@@ -588,11 +588,6 @@ const S = {};
 
 S.home = ()=> appnav('CRM Đồng Tiến','Trang chủ',['Trang chủ','Cơ hội','Đơn hàng','Khách hàng','NCC','Case','Báo cáo'],'Trang chủ')
  + `<div class="sf-body narrow">
-   <div class="launcher"><h3>App Launcher — chọn ứng dụng theo phòng ban</h3>
-     <div class="tiles">
-       ${APPS.map(t=>`<button class="tile" onclick="go('${t[3]}')"><span class="ti" style="background:${t[1]}">${t[2]}</span><span><b>${t[0]}</b><span>Mở ứng dụng</span></span></button>`).join('')}
-     </div>
-   </div>
    <div class="kpis">
      <div class="kpi"><div class="lab">Đơn hàng đang mở</div><div class="big">128</div><div class="d up">▲ 12% so tháng trước</div></div>
      <div class="kpi"><div class="lab">Cơ hội quý này</div><div class="big">₫42,6 tỷ</div><div class="d up">▲ 8%</div></div>
