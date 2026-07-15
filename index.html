@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Prototype CRM Nam Phong — Salesforce</title>
+<title>Prototype CRM Đồng Tiến — Salesforce</title>
 <style>
 :root{
   --sf-blue:#0176d3; --sf-blue-d:#014486; --sf-blue-l:#eef4ff;
@@ -351,7 +351,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
         <span class="g-ico g-gear" title="Thiết lập (Setup)">⚙</span>
         <span class="g-ico g-help" title="Trợ giúp">?</span>
         <span class="g-ico g-bell" title="Thông báo">🔔</span>
-        <span class="g-avatar" title="Hồ sơ người dùng">NP</span>
+        <span class="g-avatar" title="Hồ sơ người dùng">ĐT</span>
       </div>
     </header>
     <div id="screen"></div>
@@ -482,7 +482,7 @@ const TAGLABEL={custom:'Custom',list:'List View',record:'Record',flow:'Flow'};
 /* ============ screens ============ */
 const S = {};
 
-S.home = ()=> appnav('CRM Nam Phong','Trang chủ',['Trang chủ','Cơ hội','Đơn hàng','Khách hàng','NCC','Case','Báo cáo'],'Trang chủ')
+S.home = ()=> appnav('CRM Đồng Tiến','Trang chủ',['Trang chủ','Cơ hội','Đơn hàng','Khách hàng','NCC','Case','Báo cáo'],'Trang chủ')
  + `<div class="sf-body narrow">
    <div class="launcher"><h3>App Launcher — chọn ứng dụng theo phòng ban</h3>
      <div class="tiles">
@@ -699,7 +699,7 @@ S.excontract = ()=> appnav('Bán hàng xuất khẩu','Sales Contract',['Trang c
    ${banner('ok','Dữ liệu từ <b>Packing List chi tiết</b> (số công, số seal, số xe từ phiếu xuất kho ERP) được <b>map tự động</b> sinh chuỗi chứng từ — không nhập lại nhiều lần.')}
    <div class="cols-side">
      <div>
-     ${card('Thông tin lô hàng (free-text)', fg([['Shipper','Nam Phong Paper JSC'],['Consignee','ABC Papers Pvt Ltd'],
+     ${card('Thông tin lô hàng (free-text)', fg([['Shipper','Dong Tien Paper JSC'],['Consignee','ABC Papers Pvt Ltd'],
        ['Notify Party','Same as consignee'],['POL / POD','HCM / Nhava Sheva'],['Số Invoice','TI2619-01 (auto)'],['Incoterm','CIF']]))}
      ${card('Luồng sinh chứng từ tự động', tbl([{t:'#'},{t:'Chứng từ'},{t:'Nguồn dữ liệu'},{t:'Trạng thái'}],[
        ['1','Shipping Instruction (SI)','Contract + PL',pill('ok','Đã tạo')],
@@ -881,7 +881,7 @@ S.case = ()=> appnav('Chăm sóc KH','Case',['Trang chủ','Case','Khách hàng'
 
 S.reports = ()=> appnav('Báo cáo & Dashboard','',['Trang chủ','Dashboard','Báo cáo','Cảnh báo'],'Dashboard')
  + `<div class="sf-body">
-   ${hl({crumb:'Dashboard',ico:'📊',color:'#ba0517',title:'Dashboard Điều hành — Nam Phong',sub:'Cập nhật realtime từ CRM + ERP',
+   ${hl({crumb:'Dashboard',ico:'📊',color:'#ba0517',title:'Dashboard Điều hành — Đồng Tiến',sub:'Cập nhật realtime từ CRM + ERP',
      fields:[['Kỳ','Tháng 7/2026'],['Cập nhật','Hôm nay 10:15'],['Nguồn','CRM + Rosy']],actions:[{t:'Đăng ký nhận',pri:true},'Làm mới']})}
    <div class="kpis">
      <div class="kpi"><div class="lab">Hoàn thành PO TB</div><div class="big">78%</div><div class="prog blue" style="margin-top:6px"><i style="width:78%"></i></div></div>
@@ -1040,7 +1040,7 @@ S.shipment_list = ()=> appnav('Mua nhập khẩu','Shipment',TAB_IM,'Shipment')
 /* ============ router ============ */
 function buildNav(){
   const wrap = document.getElementById('nav');
-  wrap.innerHTML = `<div class="nav-brand"><h1>Prototype CRM Nam Phong</h1><p>Salesforce · demo theo quy trình</p>
+  wrap.innerHTML = `<div class="nav-brand"><h1>Prototype CRM Đồng Tiến</h1><p>Salesforce · demo theo quy trình</p>
      <div class="nav-hint">👉 <b>List View</b> = danh sách bản ghi, bấm 1 dòng để mở <b>Record</b>. <b>Custom</b> = trang toàn màn hình. Nút ☰ để ẩn/hiện menu.</div></div>`
    + NAV.map(grp=>`<div class="nav-group">${grp.g}</div>`
      + grp.items.map(it=>{const tag=it[3]||'';return `<button class="nav-item ${tag==='record'?'sub':''}" data-id="${it[0]}" onclick="go('${it[0]}')">
