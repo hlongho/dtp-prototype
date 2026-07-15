@@ -130,6 +130,7 @@ a:hover{text-decoration:underline}
   width:min(880px,94vw);max-height:88vh;background:var(--card);border-radius:10px;
   box-shadow:0 12px 48px rgba(0,0,0,.42);border:1px solid var(--line);display:none;flex-direction:column}
 .po-modal.show{display:flex}
+.po-modal.sm{width:min(440px,92vw)}
 .pm-head{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--line)}
 .pm-head h3{margin:0;font-size:15px;color:var(--ink)}
 .pm-head button{background:none;border:0;font-size:16px;color:var(--ink-3);width:28px;height:28px;border-radius:5px}
@@ -148,7 +149,9 @@ a:hover{text-decoration:underline}
 .po-line{display:flex;justify-content:space-between;padding:5px 12px;font-size:12px;color:var(--ink-2);border-bottom:1px dotted var(--line)}
 .po-line:last-child{border-bottom:0}
 .pm-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
-.buy-cb,.po-stage input{cursor:pointer;width:15px;height:15px}
+.buy-cb,.buy-row,.pr-row,.pr-all,.po-stage input{cursor:pointer;width:15px;height:15px}
+.mass-sel{width:100%;padding:8px 10px;border:1px solid var(--line-2);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card);color:var(--ink);outline:none}
+.mass-sel:focus{border-color:var(--sf-blue);box-shadow:0 0 0 2px var(--sf-blue-l)}
 .btn[disabled]{opacity:.45;cursor:not-allowed}
 .lm-head{padding:16px 20px;border-bottom:1px solid var(--line)}
 .lm-head h3{margin:0 0 10px;font-size:15px;color:var(--ink)}
@@ -426,6 +429,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     <div class="pm-body" id="pm-body"></div>
     <div class="pm-foot" id="pm-foot"></div>
   </div>
+  <!-- Modal mass assign người mua cho dòng PR -->
+  <div class="modal-back" id="massback" onclick="closeMass()"></div>
+  <div class="po-modal sm" id="massmodal">
+    <div class="pm-head"><h3>Gán người mua (Mass Assign)</h3><button title="Đóng" onclick="closeMass()">✕</button></div>
+    <div class="pm-body" id="mass-body"></div>
+    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeMass()">Hủy</button><button class="btn pri" onclick="confirmMass()">Gán</button></div></div>
+  </div>
 </div>
 
 <script>
@@ -436,7 +446,7 @@ const el = (h)=>{const t=document.createElement('template');t.innerHTML=h.trim()
 const APPS=[
  ['Bán hàng nội địa','#0176d3','🧾','opp_list'],
  ['Bán hàng xuất khẩu','#1b96ff','🚢','exquote_list'],
- ['Mua hàng','#2e844a','🛒','pr'],
+ ['Mua hàng','#2e844a','🛒','pr_list'],
  ['Mua nhập khẩu','#0b827c','🌐','matinv'],
  ['Chăm sóc KH','#e07a00','🎧','case_list'],
  ['Dữ liệu nền tảng','#5867e8','🗂','pricebook_list'],
@@ -520,7 +530,8 @@ const NAV = [
    ['excontract','↳ Chi tiết Contract (sinh chứng từ)','','record'],
    ['lc','↳ Theo dõi L/C & T/T','Kế toán','record']]},
  {g:'Mua hàng nội địa', items:[
-   ['pr','Hộp thư PR (gộp/tách)','Mua hàng','custom'],
+   ['pr_list','Phiếu yêu cầu (PR)','Mua hàng','list'],
+   ['pr','↳ Chi tiết PR (mass assign người mua)','','record'],
    ['buylist','Hàng cần mua của tôi (tạo PO)','Mua hàng','custom'],
    ['ppo_list','Đơn mua (Purchase Order)','Mua hàng','list'],
    ['ppo','↳ Chi tiết PO (chọn NCC, lịch sử giá)','','record'],
@@ -791,18 +802,35 @@ S.lc = ()=> appnav('Bán hàng xuất khẩu','Thanh toán',['Trang chủ','Báo
    </div>
  </div>`;
 
-S.pr = ()=> appnav('Mua hàng','Phiếu YC (PR)',['Trang chủ','PR','Đơn mua (PO)','Nhận hàng','NCC'],'Phiếu YC (PR)')
- + `<div class="sf-body">
-   ${hl({crumb:'Phiếu yêu cầu mua hàng',ico:'📥',color:'#2e844a',title:'Hộp thư PR — Chờ xử lý',sub:'Đồng bộ từ ERP Rosy sau khi duyệt bản giấy',
-     fields:[['Chờ xử lý','14 PR'],['Nguồn','ERP Rosy'],['Cập nhật','Hôm nay 08:00']],actions:[{t:'Gộp PR → tạo PO',pri:true},'Tách PR']})}
-   ${banner('info','Cho phép <b>gộp nhiều PR vào 1 đơn mua (PO)</b> để có giá tốt, hoặc <b>tách 1 PR</b> mua từ nhiều nhà cung cấp.')}
-   ${card('Danh sách PR đã duyệt (từ ERP)', tbl([{t:'☐'},{t:'Số PR'},{t:'Vật tư'},{t:'SL',num:true},{t:'Phòng ban'},{t:'Ngày cần'},{t:'Trạng thái'}],[
-     ['☑','PR-3301','Keo dán công nghiệp','2.000 kg','P.SX Long An','20/07',pill('info','Mới')],
-     ['☑','PR-3302','Keo dán công nghiệp','1.500 kg','P.SX Bình Dương','22/07',pill('info','Mới')],
-     ['☐','PR-3303','Lô cao su máy xeo','4 cái','Bảo trì','25/07',pill('info','Mới')],
-     ['☐','PR-3304','Dây đai PP','800 cuộn','Đóng gói','21/07',pill('warn','Gấp')]]),
-     {n:'14',r:'<button class="btn sm">Đã chọn 2 → Gộp</button>'})}
-   <p class="note">Tick 2 PR keo dán cùng loại → "Gộp PR" để đàm phán số lượng lớn với 1 NCC, giá tốt hơn.</p>
+S.pr_list = ()=> appnav('Mua hàng','Phiếu yêu cầu',['Trang chủ','PR','Đơn mua (PO)','Nhận hàng','NCC'],'PR')
+ + `<div class="sf-body">${lv({crumb:'<span data-go="pr_list">Phiếu yêu cầu (PR)</span> &rsaquo;',ico:'📥',color:'#2e844a',object:'Phiếu yêu cầu (PR)',view:'PR chờ phân công',count:'14',newLabel:'PR mới',
+   cols:[{t:'Số PR'},{t:'Phòng ban yêu cầu'},{t:'Ngày tạo'},{t:'Số dòng',num:true},{t:'Ngày cần sớm nhất'},{t:'Trạng thái'}],
+   rows:[
+    {go:'pr',cells:['PR-3301','P.SX Long An','12/07/2026','5','20/07/2026',pill('info','Chờ phân công')]},
+    {go:'pr',cells:['PR-3302','P.SX Bình Dương','12/07/2026','3','22/07/2026',pill('info','Chờ phân công')]},
+    {go:'pr',cells:['PR-3303','Bảo trì','11/07/2026','2','25/07/2026',pill('info','Mới')]},
+    {go:'pr',cells:['PR-3304','Đóng gói','13/07/2026','1','21/07/2026',pill('warn','Gấp')]},
+    {go:'pr',cells:['PR-3308','P.SX Bình Dương','10/07/2026','4','24/07/2026',pill('mut','Đã phân công')]}]})}</div>`;
+
+S.pr = ()=> appnav('Mua hàng','Phiếu yêu cầu',['Trang chủ','PR','Đơn mua (PO)','Nhận hàng','NCC'],'PR')
+ + `<div class="sf-body narrow">
+   ${hl({crumb:'<span data-go="pr_list">Phiếu yêu cầu (PR)</span> &rsaquo;',ico:'📥',color:'#2e844a',title:'PR-3301 · P.SX Long An',sub:'Phiếu yêu cầu mua hàng · Đồng bộ từ ERP Rosy',
+     fields:[['Phòng ban YC','P.SX Long An'],['Người yêu cầu','Tổ trưởng SX'],['Ngày cần','20/07/2026'],['Trạng thái',pill('info','Chờ phân công')]],
+     actions:[{t:'Gán người mua',pri:true},'Gộp PR','Sửa']})}
+   ${banner('info','Một PR gồm <b>nhiều dòng sản phẩm</b>. Chọn các dòng rồi <b>Gán người mua (mass assign)</b> — sản phẩm sẽ chảy về màn hình <b>“Hàng cần mua”</b> của người được gán để họ tạo PO.')}
+   <div class="cols-side">
+     <div>
+     ${card('Thông tin phiếu yêu cầu', fg([['Số PR','PR-3301'],['Phòng ban','P.SX Long An'],['Người yêu cầu','Tổ trưởng SX'],['Ngày tạo','12/07/2026'],['Ngày cần','20/07/2026'],['Nguồn','ERP Rosy']]))}
+     ${card('Dòng sản phẩm cần mua',
+       `<div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th style="width:34px"><input type="checkbox" class="pr-all" title="Chọn tất cả" onchange="toggleAllPR(this)"></th>
+            <th>Sản phẩm</th><th class="num">Số lượng</th><th>Ngày cần</th><th>Người phụ trách mua</th></tr></thead>
+          <tbody id="pr-lines-tbody">${prLinesRows()}</tbody>
+       </table></div>`,
+       {n:String(PR_LINES.length), r:'<button class="btn pri" id="btn-massassign" onclick="openMassAssign()" disabled>Gán người mua</button>'})}
+     </div>
+     ${activity([['🔄','Đồng bộ PR từ ERP Rosy','Tự động · Hôm nay'],['✍','Duyệt bản giấy PR','P.SX · 11/07']])}
+   </div>
  </div>`;
 
 /* ===== Hàng cần mua của nhân viên + tạo PO ===== */
@@ -890,6 +918,49 @@ function confirmPO(){
   const sups=[...new Set(PODRAFT.filter(p=>p.supplier).map(p=>p.supplier))];
   closePO();
   toast(`Đã tạo ${sups.length} PO cho ${PODRAFT.length} dòng hàng (${sups.join(', ')})`);
+}
+
+/* ===== PR object: dòng sản phẩm + mass assign người mua ===== */
+let PR_LINES = [
+  {product:'Keo dán công nghiệp', qty:'2.000', unit:'kg',   need:'20/07', buyer:''},
+  {product:'Hóa chất tẩy trắng',  qty:'500',   unit:'kg',   need:'24/07', buyer:''},
+  {product:'Dây đai PP',          qty:'800',   unit:'cuộn', need:'21/07', buyer:''},
+  {product:'Mực in công nghiệp',  qty:'120',   unit:'kg',   need:'23/07', buyer:''},
+  {product:'Lô cao su máy xeo',   qty:'4',     unit:'cái',  need:'25/07', buyer:'Nguyễn Văn A'},
+];
+const BUYERS = ['Nguyễn Văn A','Trần Thị B','Lê Văn C','Phạm Thị D'];
+function prLinesRows(){
+  return PR_LINES.map((l,i)=>`<tr>
+    <td><input type="checkbox" class="pr-row" data-i="${i}" onchange="updatePRSel()"></td>
+    <td>${l.product}</td><td class="num">${l.qty} ${l.unit}</td><td>${l.need}</td>
+    <td>${l.buyer ? pill('ok',l.buyer) : '<span style="color:var(--ink-3)">— Chưa gán —</span>'}</td></tr>`).join('');
+}
+function renderPRLines(){ const tb=document.getElementById('pr-lines-tbody'); if(tb) tb.innerHTML=prLinesRows(); updatePRSel(); }
+function updatePRSel(){
+  const boxes=[...document.querySelectorAll('.pr-row')];
+  const n=boxes.filter(b=>b.checked).length;
+  const btn=document.getElementById('btn-massassign');
+  if(btn){ btn.disabled=n===0; btn.textContent = n ? `Gán người mua (${n})` : 'Gán người mua'; }
+  const master=document.querySelector('.pr-all');
+  if(master){ master.checked=n>0&&n===boxes.length; master.indeterminate=n>0&&n<boxes.length; }
+}
+function toggleAllPR(m){ document.querySelectorAll('.pr-row').forEach(cb=>cb.checked=m.checked); updatePRSel(); }
+let MASS_SEL=[];
+function openMassAssign(){
+  MASS_SEL=[...document.querySelectorAll('.pr-row:checked')].map(cb=>+cb.dataset.i);
+  if(!MASS_SEL.length) return;
+  document.getElementById('mass-body').innerHTML=
+    `<p class="po-hint">Gán <b>${MASS_SEL.length} dòng sản phẩm</b> đã chọn cho người mua:</p>
+     <select id="mass-buyer" class="mass-sel">${BUYERS.map(b=>`<option>${b}</option>`).join('')}</select>`;
+  document.getElementById('massback').classList.add('show');
+  document.getElementById('massmodal').classList.add('show');
+}
+function closeMass(){ document.getElementById('massback').classList.remove('show'); document.getElementById('massmodal').classList.remove('show'); }
+function confirmMass(){
+  const buyer=document.getElementById('mass-buyer').value;
+  MASS_SEL.forEach(i=>{ if(PR_LINES[i]) PR_LINES[i].buyer=buyer; });
+  closeMass(); renderPRLines();
+  toast(`Đã gán ${MASS_SEL.length} dòng sản phẩm cho ${buyer}`);
 }
 
 S.ppo = ()=> appnav('Mua hàng','Đơn mua (PO)',['Trang chủ','PR','Đơn mua (PO)','Nhận hàng','NCC'],'Đơn mua (PO)')
@@ -1299,14 +1370,14 @@ function setupSearch(){
   dd.addEventListener('click',e=>{const it=e.target.closest('.sr-item'); if(it) pickSearch(it.dataset.id);});
   document.addEventListener('click',e=>{ if(!e.target.closest('.g-search')) dd.classList.remove('show'); });
   document.getElementById('lmsearch').addEventListener('input',e=>renderLauncher(e.target.value));
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeLauncher(); closePO(); } });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeLauncher(); closePO(); closeMass(); } });
 }
 
 /* ---- in-page interactivity ---- */
 const TAB2ID={'Trang chủ':'home','Lead':'lead_list','Cơ hội':'opp_list','Đơn hàng':'order_list','Khách hàng':'master',
  'NCC':'vendor_list','Case':'case_list','Báo cáo':'reports','Phê duyệt':'approve','Dashboard':'reports','Cảnh báo':'reports',
  'Bảng giá':'pricebook_list','Hợp đồng':'contract_list','Sản phẩm':'master','Báo giá XK':'exquote_list','Chứng từ':'excontract_list',
- 'Thanh toán':'lc','PR':'pr','Đơn mua (PO)':'ppo_list','Nhận hàng':'receipt','Kế hoạch NVL':'matinv',
+ 'Thanh toán':'lc','PR':'pr_list','Đơn mua (PO)':'ppo_list','Nhận hàng':'receipt','Kế hoạch NVL':'matinv',
  'Shipment':'shipment_list','Knowledge':'case_list'};
 function resolveTab(app,label){
   if(label==='Sales Contract') return app.includes('nhập khẩu')?'imcontract_list':'excontract_list';
