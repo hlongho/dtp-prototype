@@ -447,7 +447,7 @@ function fg(rows,one){
   return `<div class="fg ${one?'one':''}">${rows.map(r=>`<div class="fld"><label>${r[0]}</label><div class="v ${r[2]||''}" ${r[3]?`data-go="${r[3]}"`:''}>${r[1]}<span class="pencil">✎</span></div></div>`).join('')}</div>`;
 }
 function tbl(cols, rows){
-  return `<div class="tbl-wrap"><table class="tbl"><thead><tr>${cols.map(c=>`<th class="${c.num?'num':''}">${c.t||c}</th>`).join('')}</tr></thead>
+  return `<div class="tbl-wrap"><table class="tbl"><thead><tr>${cols.map(c=>`<th class="${c.num?'num':''}">${(c&&c.t!==undefined)?c.t:c}</th>`).join('')}</tr></thead>
    <tbody>${rows.map(r=>`<tr>${r.map((c,i)=>`<td class="${cols[i]&&cols[i].num?'num':''}">${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
 function banner(type,txt){const ic={warn:'⚠',err:'⛔',info:'ⓘ',ok:'✓'}[type];return `<div class="banner ${type}"><span class="ic">${ic}</span><span>${txt}</span></div>`;}
@@ -590,6 +590,7 @@ S.lead = ()=> appnav('Bán hàng nội địa','Lead',['Trang chủ','Lead','Cơ
    ${hl({crumb:'<span data-go="lead_list">Lead</span> &rsaquo;',ico:'👤',color:'#e07a00',title:'Cty TNHH Bao Bì Sông Lam',sub:'Lead mới · Nguồn: Hội chợ VietPack 2026',
      fields:[['Trạng thái',pill('info','Mới')],['Người phụ trách','Nguyễn Văn Sales'],['Nhu cầu','Giấy Medium 125gsm'],['Ngày tạo','12/07/2026']],
      actions:[{t:'Chuyển đổi',pri:true},'Sửa']})}
+   ${path(['Mới','Đã liên hệ','Đang nuôi dưỡng','Đủ điều kiện','Chuyển đổi'],0,'✓ Chuyển đổi Lead')}
    ${banner('warn','<b>Kiểm tra trùng:</b> tìm thấy 1 bản ghi tương đồng theo Mã số thuế / tên. Xác nhận trước khi tạo mới để tránh trùng khách hàng.')}
    <div class="cols-side">
      <div>
