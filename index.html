@@ -376,11 +376,43 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
 .card.lv-body{border-radius:0 0 var(--radius) var(--radius);margin-top:0;border-top:0}
 .tbl a[data-go]{color:var(--sf-blue);font-weight:600}
 .tbl input[type=checkbox]{accent-color:var(--sf-blue)}
+
+/* ===== WIREFRAME LOW-FI MODE ===== */
+#app.wire{
+  --ink:#3a3a3a; --ink-2:#6b6b6b; --ink-3:#9b9b9b;
+  --bg:#f4f4f4; --card:#ffffff; --line:#cfcfcf; --line-2:#bcbcbc;
+  --sf-blue:#5c5c5c; --sf-blue-d:#3a3a3a; --sf-blue-l:#ededed;
+  --ok:#5f5f5f; --ok-bg:#f0f0f0; --warn:#5f5f5f; --warn-bg:#f0f0f0; --warn-line:#c4c4c4;
+  --err:#404040; --err-bg:#ededed; --err-line:#c4c4c4;
+  --path-todo:#e6e6e6; --path-done:#9b9b9b; --path-current:#5f5f5f;
+  --nav:#f7f7f7; --shadow:none;
+}
+#app.wire *{box-shadow:none !important}
+#app.wire .g-header{background:#eaeaea;border-bottom:1px solid var(--line)}
+#app.wire .g-header .g-ico,#app.wire .g-burger,#app.wire .g-fav,#app.wire .g-gear,#app.wire .g-help{color:#3a3a3a}
+#app.wire .g-search{border:1px solid var(--line)}
+#app.wire .waffle span{background:#6b6b6b}
+#app.wire .g-avatar{background:#dcdcdc;color:#3a3a3a}
+#app.wire .notif-badge{background:#6b6b6b !important;border-color:#eaeaea}
+#app.wire .notif-item.unread{background:#f2f2f2}
+/* icon/placeholder -> khối xám, emoji desaturate */
+#app.wire .hl-ico,#app.wire .ti,#app.wire .sr-ico,#app.wire .n-ico{
+  background:#dadada !important;color:#4d4d4d !important;border:1px solid var(--line-2);filter:grayscale(1)}
+#app.wire .tl-dot,#app.wire .waffle,#app.wire .banner .ic{filter:grayscale(1)}
+/* navigator (menu ẩn) */
+#app.wire .navigator,#app.wire .nav-brand{background:#3c3c3c;border-color:#555}
+#app.wire .nav-hint{background:#4a4a4a;color:#e0e0e0}
+#app.wire .nav-brand h1{color:#fff}
+#app.wire .nav-brand p,#app.wire .nav-group,#app.wire .dept,#app.wire .ni-label{color:#c7c7c7 !important}
+#app.wire .nav-item{color:#dcdcdc}
+#app.wire .nav-item:hover{background:#4a4a4a}
+#app.wire .nav-item.active{background:#5c5c5c;border-left-color:#bdbdbd}
+#app.wire .tag{background:#5a5a5a !important;color:#e8e8e8 !important}
 </style>
 </head>
 <body>
 
-<div class="app nav-hidden" id="app">
+<div class="app nav-hidden wire" id="app">
   <nav class="navigator" id="nav"></nav>
   <div class="backdrop" onclick="toggleNav()"></div>
   <div class="sf">
