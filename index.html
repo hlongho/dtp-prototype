@@ -282,13 +282,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
 
 /* pills / badges */
 .pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:11px;
-  font-size:11px;font-weight:600;border:1px solid transparent}
+  font-size:11px;font-weight:600;background:transparent;border:1px solid currentColor}
 .pill:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
-.pill.ok{color:var(--ok);background:var(--ok-bg)}
-.pill.warn{color:var(--warn);background:var(--warn-bg)}
-.pill.err{color:var(--err);background:var(--err-bg)}
-.pill.info{color:var(--sf-blue);background:var(--sf-blue-l)}
-.pill.mut{color:var(--ink-2);background:var(--bg)}
+.pill.ok{color:var(--ok)}
+.pill.warn{color:var(--warn)}
+.pill.err{color:var(--err)}
+.pill.info{color:var(--sf-blue)}
+.pill.mut{color:var(--ink-2)}
 
 /* banner */
 .banner{display:flex;gap:9px;align-items:flex-start;padding:9px 13px;border-radius:5px;
