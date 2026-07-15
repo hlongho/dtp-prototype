@@ -125,6 +125,31 @@ a:hover{text-decoration:underline}
   width:min(780px,93vw);max-height:82vh;background:var(--card);border-radius:10px;
   box-shadow:0 10px 44px rgba(0,0,0,.4);border:1px solid var(--line);display:none;flex-direction:column}
 .launcher-modal.show{display:flex}
+/* Modal tạo PO */
+.po-modal{position:fixed;z-index:130;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:min(880px,94vw);max-height:88vh;background:var(--card);border-radius:10px;
+  box-shadow:0 12px 48px rgba(0,0,0,.42);border:1px solid var(--line);display:none;flex-direction:column}
+.po-modal.show{display:flex}
+.pm-head{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--line)}
+.pm-head h3{margin:0;font-size:15px;color:var(--ink)}
+.pm-head button{background:none;border:0;font-size:16px;color:var(--ink-3);width:28px;height:28px;border-radius:5px}
+.pm-head button:hover{background:var(--bg)}
+.pm-body{padding:10px 20px;overflow:auto;flex:1}
+.po-stage select{padding:5px 8px;border:1px solid var(--line-2);border-radius:5px;font-size:12.5px;
+  font-family:inherit;background:var(--card);color:var(--ink);min-width:200px;outline:none}
+.po-stage select:focus{border-color:var(--sf-blue);box-shadow:0 0 0 2px var(--sf-blue-l)}
+.pm-foot{border-top:1px solid var(--line);padding:12px 20px;background:var(--bg);border-radius:0 0 10px 10px}
+.po-sum-h{font-size:13px;color:var(--ink);margin-bottom:8px}
+.po-sum-h b{color:var(--sf-blue)}
+.po-hint{font-size:12px;color:var(--ink-3);margin-bottom:6px}
+.po-card{border:1px solid var(--line);border-radius:6px;margin-bottom:8px;background:var(--card);overflow:hidden}
+.po-card-h{padding:7px 12px;border-bottom:1px solid var(--line);font-size:12.5px;color:var(--ink);background:var(--nav)}
+.po-card-h span{color:var(--ink-3);font-weight:400}
+.po-line{display:flex;justify-content:space-between;padding:5px 12px;font-size:12px;color:var(--ink-2);border-bottom:1px dotted var(--line)}
+.po-line:last-child{border-bottom:0}
+.pm-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+.buy-cb,.po-stage input{cursor:pointer;width:15px;height:15px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
 .lm-head{padding:16px 20px;border-bottom:1px solid var(--line)}
 .lm-head h3{margin:0 0 10px;font-size:15px;color:var(--ink)}
 .lm-search{width:100%;padding:8px 12px;border:1px solid var(--line-2);border-radius:6px;
@@ -394,6 +419,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     </div>
     <div class="lm-body" id="lmbody"></div>
   </div>
+  <!-- Modal tạo PO từ danh sách hàng cần mua -->
+  <div class="modal-back" id="pomback" onclick="closePO()"></div>
+  <div class="po-modal" id="pomodal">
+    <div class="pm-head"><h3>Tạo Đơn mua hàng (PO)</h3><button title="Đóng" onclick="closePO()">✕</button></div>
+    <div class="pm-body" id="pm-body"></div>
+    <div class="pm-foot" id="pm-foot"></div>
+  </div>
 </div>
 
 <script>
@@ -489,6 +521,7 @@ const NAV = [
    ['lc','↳ Theo dõi L/C & T/T','Kế toán','record']]},
  {g:'Mua hàng nội địa', items:[
    ['pr','Hộp thư PR (gộp/tách)','Mua hàng','custom'],
+   ['buylist','Hàng cần mua của tôi (tạo PO)','Mua hàng','custom'],
    ['ppo_list','Đơn mua (Purchase Order)','Mua hàng','list'],
    ['ppo','↳ Chi tiết PO (chọn NCC, lịch sử giá)','','record'],
    ['receipt','↳ Theo dõi nhận hàng (thừa/thiếu)','Kho','record'],
@@ -771,6 +804,93 @@ S.pr = ()=> appnav('Mua hàng','Phiếu YC (PR)',['Trang chủ','PR','Đơn mua 
      {n:'14',r:'<button class="btn sm">Đã chọn 2 → Gộp</button>'})}
    <p class="note">Tick 2 PR keo dán cùng loại → "Gộp PR" để đàm phán số lượng lớn với 1 NCC, giá tốt hơn.</p>
  </div>`;
+
+/* ===== Hàng cần mua của nhân viên + tạo PO ===== */
+// Sản phẩm được phân công cho NV mua hàng (gộp từ nhiều PR nếu trùng vật tư)
+const BUY = [
+  {product:'Keo dán công nghiệp', qty:'3.500', unit:'kg',    prs:['PR-3301','PR-3302'], dept:'P.SX Long An / Bình Dương', need:'20/07'},
+  {product:'Dây đai PP',          qty:'800',   unit:'cuộn',  prs:['PR-3304'],           dept:'Đóng gói',   need:'21/07'},
+  {product:'Lô cao su máy xeo',   qty:'4',     unit:'cái',   prs:['PR-3303'],           dept:'Bảo trì',    need:'25/07'},
+  {product:'Mực in công nghiệp',  qty:'120',   unit:'kg',    prs:['PR-3310','PR-3312'], dept:'P.In',       need:'23/07'},
+  {product:'Hóa chất tẩy trắng',  qty:'500',   unit:'kg',    prs:['PR-3308'],           dept:'P.SX Bình Dương', need:'24/07'},
+];
+// Danh sách NCC để chọn
+const SUPPLIERS = ['Cty Hóa chất Tân Tiến','Cty TM Hải Đăng','Cty Cơ khí Tân Bình','Cty Nhựa Tân Thành','Cty In Ấn Việt Tiến','Cty Bao Bì Sông Lam'];
+
+S.buylist = ()=> appnav('Mua hàng','Hàng cần mua',['Trang chủ','PR','Đơn mua (PO)','Nhận hàng','NCC'],'PR')
+ + `<div class="sf-body">
+   ${hl({crumb:'Mua hàng',ico:'🛍️',color:'#2e844a',title:'Hàng cần mua của tôi — Nguyễn Văn A',sub:'Sản phẩm được phân công cho bạn từ các Phiếu yêu cầu (PR)',
+     fields:[['Người phụ trách','Nguyễn Văn A'],['Số dòng hàng',String(BUY.length)],['Trạng thái',pill('info','Chờ tạo PO')]],actions:[]})}
+   ${banner('info','Chọn các sản phẩm cần mua rồi bấm <b>Tạo PO</b>. Gán <b>nhà cung cấp</b> cho từng sản phẩm — <b>chọn bao nhiêu NCC sẽ tạo bấy nhiêu PO</b>, mỗi sản phẩm là một dòng trong PO của NCC đó.')}
+   ${card('Danh sách hàng cần mua của tôi',
+     `<div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th style="width:34px"><input type="checkbox" class="buy-cb" title="Chọn tất cả" onchange="toggleAllBuy(this)"></th>
+          <th>Sản phẩm</th><th class="num">Số lượng</th><th>Phiếu yêu cầu</th><th>Phòng ban</th><th>Ngày cần</th></tr></thead>
+        <tbody>${BUY.map((b,i)=>`<tr>
+          <td><input type="checkbox" class="buy-row" data-i="${i}" onchange="updateBuyCount()"></td>
+          <td>${b.product}</td><td class="num">${b.qty} ${b.unit}</td>
+          <td>${b.prs.join(', ')}</td><td>${b.dept}</td><td>${b.need}</td></tr>`).join('')}</tbody>
+      </table></div>`,
+     {n:String(BUY.length), r:'<button class="btn pri" id="btn-createpo" onclick="openPOModal()" disabled>Tạo PO từ mục đã chọn</button>'})}
+ </div>`;
+
+let PODRAFT = [];
+function updateBuyCount(){
+  const boxes=[...document.querySelectorAll('.buy-row')];
+  const n=boxes.filter(b=>b.checked).length;
+  const btn=document.getElementById('btn-createpo');
+  if(btn){ btn.disabled=n===0; btn.textContent = n ? `Tạo PO từ ${n} mục đã chọn` : 'Tạo PO từ mục đã chọn'; }
+  const master=document.querySelector('.buy-cb');
+  if(master){ master.checked = n>0 && n===boxes.length; master.indeterminate = n>0 && n<boxes.length; }
+}
+function toggleAllBuy(master){
+  document.querySelectorAll('.buy-row').forEach(cb=>cb.checked=master.checked);
+  updateBuyCount();
+}
+function openPOModal(){
+  const sel=[...document.querySelectorAll('.buy-row:checked')].map(cb=>BUY[+cb.dataset.i]);
+  if(!sel.length) return;
+  PODRAFT=sel.map(b=>({product:b.product, qty:b.qty, unit:b.unit, prs:b.prs, supplier:''}));
+  document.getElementById('pomback').classList.add('show');
+  document.getElementById('pomodal').classList.add('show');
+  renderPOStage();
+}
+function closePO(){
+  document.getElementById('pomback').classList.remove('show');
+  document.getElementById('pomodal').classList.remove('show');
+}
+function renderPOStage(){
+  const opts=(cur)=>`<option value="">— Chọn NCC —</option>`+SUPPLIERS.map(s=>`<option ${s===cur?'selected':''}>${s}</option>`).join('');
+  document.getElementById('pm-body').innerHTML=
+    `<table class="tbl po-stage"><thead><tr><th>Sản phẩm</th><th class="num">Số lượng</th><th>Phiếu yêu cầu</th><th>Nhà cung cấp</th></tr></thead>
+     <tbody>${PODRAFT.map((p,i)=>`<tr><td>${p.product}</td><td class="num">${p.qty} ${p.unit}</td><td>${p.prs.join(', ')}</td>
+       <td><select onchange="setSup(${i},this.value)">${opts(p.supplier)}</select></td></tr>`).join('')}</tbody></table>`;
+  renderPOSummary();
+}
+function setSup(i,v){ PODRAFT[i].supplier=v; renderPOSummary(); }
+function renderPOSummary(){
+  const groups={};
+  PODRAFT.forEach(p=>{ if(p.supplier){ (groups[p.supplier]=groups[p.supplier]||[]).push(p); } });
+  const sups=Object.keys(groups);
+  const assigned=PODRAFT.filter(p=>p.supplier).length;
+  let html='';
+  if(!sups.length){
+    html=`<div class="po-hint">Chọn nhà cung cấp cho từng sản phẩm để xem số PO sẽ được tạo.</div>`;
+  } else {
+    html=`<div class="po-sum-h">Sẽ tạo <b>${sups.length} PO</b> · đã gán NCC cho ${assigned}/${PODRAFT.length} sản phẩm</div>`;
+    html+=sups.map((s,k)=>`<div class="po-card"><div class="po-card-h">PO ${k+1} — <b>${s}</b> <span>· ${groups[s].length} dòng</span></div>
+      ${groups[s].map(p=>`<div class="po-line"><span>${p.product} <span style="color:var(--ink-3)">(${p.prs.join(', ')})</span></span><span>${p.qty} ${p.unit}</span></div>`).join('')}</div>`).join('');
+  }
+  const ready = sups.length>0 && assigned===PODRAFT.length;
+  document.getElementById('pm-foot').innerHTML = html +
+    `<div class="pm-actions"><button class="btn" onclick="closePO()">Hủy</button>
+     <button class="btn pri" ${ready?'':'disabled'} onclick="confirmPO()">Tạo ${sups.length||''} PO</button></div>`;
+}
+function confirmPO(){
+  const sups=[...new Set(PODRAFT.filter(p=>p.supplier).map(p=>p.supplier))];
+  closePO();
+  toast(`Đã tạo ${sups.length} PO cho ${PODRAFT.length} dòng hàng (${sups.join(', ')})`);
+}
 
 S.ppo = ()=> appnav('Mua hàng','Đơn mua (PO)',['Trang chủ','PR','Đơn mua (PO)','Nhận hàng','NCC'],'Đơn mua (PO)')
  + `<div class="sf-body narrow">
@@ -1179,7 +1299,7 @@ function setupSearch(){
   dd.addEventListener('click',e=>{const it=e.target.closest('.sr-item'); if(it) pickSearch(it.dataset.id);});
   document.addEventListener('click',e=>{ if(!e.target.closest('.g-search')) dd.classList.remove('show'); });
   document.getElementById('lmsearch').addEventListener('input',e=>renderLauncher(e.target.value));
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeLauncher(); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeLauncher(); closePO(); } });
 }
 
 /* ---- in-page interactivity ---- */
@@ -1252,9 +1372,9 @@ function setupClicks(){
       rel.querySelectorAll('.rel-panel').forEach((p,i)=>p.classList.toggle('on',i===idx));
       return;
     }
-    // 6) action buttons -> toast
+    // 6) action buttons -> toast (bỏ qua nút có onclick riêng)
     const btn=e.target.closest('.btn');
-    if(btn){ toast('“'+btn.textContent.trim()+'” — thao tác demo'); return; }
+    if(btn){ if(btn.hasAttribute('onclick')) return; toast('“'+btn.textContent.trim()+'” — thao tác demo'); return; }
   });
 }
 function toggleTheme(){ /* theme cố định: luôn nền trắng */ }
