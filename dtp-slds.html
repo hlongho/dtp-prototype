@@ -512,6 +512,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     <div class="pm-body" id="mass-body"></div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeMass()">Hủy</button><button class="btn pri" onclick="confirmMass()">Gán</button></div></div>
   </div>
+  <!-- Modal thêm mới nhà cung cấp -->
+  <div class="modal-back" id="supback" onclick="closeSupModal()" style="z-index:135"></div>
+  <div class="po-modal sm" id="supmodal" style="z-index:140">
+    <div class="pm-head"><h3>Thêm mới nhà cung cấp</h3><button title="Đóng" onclick="closeSupModal()">✕</button></div>
+    <div class="pm-body" id="sup-body"></div>
+    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeSupModal()">Hủy</button><button class="btn pri" onclick="confirmAddSupplier()">Thêm</button></div></div>
+  </div>
 </div>
 
 <script>
@@ -1000,7 +1007,7 @@ function closePO(){
 function renderPOStage(){
   const opts=(cur)=>`<option value="">— Chọn NCC —</option>`+SUPPLIERS.map(s=>`<option value="${s.name}" ${s.name===cur?'selected':''}>${s.name} — ${s.price} ₫ · ${stars(s.stars)}</option>`).join('');
   document.getElementById('pm-body').innerHTML=
-    `<div style="text-align:right;margin-bottom:8px"><button class="btn sm" onclick="addSupplier()">＋ Thêm mới NCC</button></div>
+    `<div style="text-align:right;margin-bottom:8px"><button class="btn sm" onclick="openSupModal()">＋ Thêm mới NCC</button></div>
      <table class="tbl po-stage"><thead><tr><th>Sản phẩm</th><th class="num">Số lượng</th><th>Phiếu yêu cầu</th><th>Nhà cung cấp</th><th class="num">Đơn giá</th></tr></thead>
      <tbody>${PODRAFT.map((p,i)=>`<tr><td>${p.product}</td><td class="num">${p.qty} ${p.unit}</td><td>${p.prs.join(', ')}</td>
        <td><select onchange="setSup(${i},this.value)">${opts(p.supplier)}</select></td>
@@ -1008,10 +1015,26 @@ function renderPOStage(){
   renderPOSummary();
 }
 function setSup(i,v){ const s=SUPPLIERS.find(x=>x.name===v); PODRAFT[i].supplier=v; PODRAFT[i].price=s?s.price:''; renderPOStage(); }
-function addSupplier(){
-  SUPPLIERS.push({name:'NCC mới #'+(SUPPLIERS.length+1)+' (chưa đánh giá)', price:'—', stars:0});
-  renderPOStage();
-  toast('Đã thêm nhà cung cấp mới — chọn trong dropdown');
+function openSupModal(){
+  document.getElementById('sup-body').innerHTML=
+    `<div style="display:flex;flex-direction:column;gap:10px">
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Tên nhà cung cấp *</label><input id="sup-name" class="mass-sel" placeholder="VD: Cty TNHH ABC"></div>
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Mã số thuế</label><input id="sup-tax" class="mass-sel" placeholder="03xxxxxxxx"></div>
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Đơn giá dự kiến (₫)</label><input id="sup-price" class="mass-sel" placeholder="VD: 52.000"></div>
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Đánh giá</label><select id="sup-stars" class="mass-sel">
+         <option value="0">Chưa đánh giá</option><option value="3">★★★☆☆ (3)</option><option value="4">★★★★☆ (4)</option><option value="5">★★★★★ (5)</option><option value="2">★★☆☆☆ (2)</option><option value="1">★☆☆☆☆ (1)</option></select></div>
+     </div>`;
+  document.getElementById('supback').classList.add('show');
+  document.getElementById('supmodal').classList.add('show');
+}
+function closeSupModal(){ document.getElementById('supback').classList.remove('show'); document.getElementById('supmodal').classList.remove('show'); }
+function confirmAddSupplier(){
+  const name=(document.getElementById('sup-name').value||'').trim()||('NCC mới #'+(SUPPLIERS.length+1));
+  const price=(document.getElementById('sup-price').value||'').trim()||'—';
+  const st=parseInt(document.getElementById('sup-stars').value||'0',10)||0;
+  SUPPLIERS.push({name, price, stars:st});
+  closeSupModal(); renderPOStage();
+  toast('Đã thêm nhà cung cấp: '+name);
 }
 function renderPOSummary(){
   const groups={};
@@ -1509,7 +1532,7 @@ function setupSearch(){
   dd.addEventListener('click',e=>{const it=e.target.closest('.sr-item'); if(it) pickSearch(it.dataset.id);});
   document.addEventListener('click',e=>{ if(!e.target.closest('.g-search')) dd.classList.remove('show'); });
   document.getElementById('lmsearch').addEventListener('input',e=>renderLauncher(e.target.value));
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeLauncher(); closePO(); closeMass(); } });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeSupModal(); closeMass(); closePO(); closeLauncher(); } });
 }
 
 /* ---- in-page interactivity ---- */
