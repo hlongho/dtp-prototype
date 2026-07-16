@@ -1011,9 +1011,9 @@ function renderPOStage(){
   const opts=(cur)=>`<option value="">— Chọn NCC —</option>`+SUPPLIERS.map(s=>`<option value="${s.name}" ${s.name===cur?'selected':''}>${s.name} — ${s.price} ₫ · ${stars(s.stars)}</option>`).join('');
   document.getElementById('pm-body').innerHTML=
     `<div style="text-align:right;margin-bottom:8px"><button class="btn sm" onclick="openSupModal()">＋ Thêm mới NCC</button></div>
-     <table class="tbl po-stage"><thead><tr><th style="width:30px"></th><th>Sản phẩm</th><th class="num">Số lượng</th><th>Phiếu yêu cầu</th><th>Nhà cung cấp</th><th class="num">Đơn giá</th></tr></thead>
+     <table class="tbl po-stage"><thead><tr><th style="width:30px"></th><th>Sản phẩm</th><th class="num">Số lượng</th><th>Đơn vị</th><th>Phiếu yêu cầu</th><th>Nhà cung cấp</th><th class="num">Đơn giá</th></tr></thead>
      <tbody>${PODRAFT.map((p,i)=>`<tr><td><button class="po-del" title="Bỏ sản phẩm khỏi PO" onclick="removePODraft(${i})">−</button></td>
-       <td>${p.product}</td><td class="num">${p.qty} ${p.unit}</td><td>${p.prs.join(', ')}</td>
+       <td>${p.product}</td><td class="num">${p.qty}</td><td>${p.unit}</td><td>${p.prs.join(', ')}</td>
        <td><select onchange="setSup(${i},this.value)">${opts(p.supplier)}</select></td>
        <td class="num">${p.price?`${p.price} ₫`:'—'}</td></tr>`).join('')}</tbody></table>`;
   renderPOSummary();
