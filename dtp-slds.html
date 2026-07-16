@@ -627,7 +627,6 @@ const NAV = [
    ['opp','↳ Chi tiết Cơ hội (Path + Sampling)','','record'],
    ['order_list','Đơn hàng (Order)','Sales','list'],
    ['po','↳ Đơn PO (cảnh báo tồn/công nợ)','','record'],
-   ['delivery','↳ Theo dõi sản xuất & giao hàng','','record'],
    ['approve','Phê duyệt PO (Kế hoạch → TGĐ)','Kế hoạch / TGĐ','flow'],
    ['excase','↳ Case giao hàng ngoại lệ','Sales / TGĐ','record']]},
  {g:'Bán hàng xuất khẩu', items:[
@@ -801,6 +800,13 @@ S.po = ()=> appnav('Bán hàng nội địa','Đơn hàng',['Trang chủ','Lead'
      ${card('Dòng sản phẩm đặt hàng', tbl([{t:'Sản phẩm'},{t:'ĐL/Khổ'},{t:'SL (tấn)',num:true},{t:'Đơn giá',num:true},{t:'Thành tiền',num:true}],[
        ['Giấy Medium','125gsm / 200','120','12.250','1.470.000.000 ₫'],
        ['— chiết khấu HĐ','','','','−290.000.000 ₫']]),{n:'2'})}
+     ${card('Theo dõi SX & giao hàng', `<div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>Giấy Medium 125gsm — 74/120 tấn · SO 7788 · giao cam kết 29/07/2026</span><b>62%</b></div>
+        <div class="prog"><i style="width:62%"></i></div></div>`
+       + tbl([{t:'Trạng thái'},{t:'SL (tấn)',num:true},{t:'Phiếu kho'}],[
+       [pill('ok','Đã xuất kho'),'74','XK-1120, XK-1121'],
+       [pill('info','Đã SX, chờ xuất'),'28','—'],
+       [pill('mut','Chưa sản xuất'),'18','Lệnh SX #442']]),{n:'3'})}
      ${card('Tồn kho & công nợ', fg([['Tồn trong hạn','18 tấn'],['Tồn quá hạn','0 tấn'],
        ['Dư nợ hiện tại','1.620.000.000 ₫'],['Quá hạn','420.000.000 ₫ (15 ngày)','link','excase'],['Hạn mức','2.000.000.000 ₫'],['Khả dụng','380.000.000 ₫']]))}
      </div>
@@ -829,27 +835,6 @@ S.approve = ()=> appnav('Bán hàng nội địa','Phê duyệt',['Trang chủ',
    </div>
  </div>`;
 
-S.delivery = ()=> appnav('Bán hàng nội địa','Đơn hàng',['Trang chủ','Cơ hội','Đơn hàng','Khách hàng','Case'],'Đơn hàng')
- + `<div class="sf-body narrow">
-   ${hl({crumb:'<span data-go="order_list">Đơn hàng (PO)</span> &rsaquo;',ico:'🚚',color:'#0176d3',title:'PO-2619 · Theo dõi sản xuất & giao hàng',sub:'SO 7788 · Ngày giao cam kết 29/07/2026',
-     fields:[['Tiến độ giao','62%'],['Trạng thái',pill('info','Đang giao')],['Đã xuất kho','74 / 120 tấn'],['SO','7788','link']],
-     actions:[{t:'Tạo phiếu yêu cầu giao',pri:true},'Sửa']})}
-   ${path(['Nhận PO','Kiểm tồn/công nợ','Chờ duyệt','Lên SO','Đang SX','Giao hàng','Đóng đơn'],5)}
-   ${banner('info','Dữ liệu tiến độ <b>cập nhật tự động</b>: Đã sản xuất / Đã xuất kho / Chưa sản xuất. Khi xuất đủ <b>100% đơn tự động đóng</b>.')}
-   <div class="cols-side">
-     <div>
-     ${card('Tiến độ theo dòng hàng', `<div style="margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>Giấy Medium 125gsm — 74/120 tấn</span><b>62%</b></div>
-        <div class="prog"><i style="width:62%"></i></div></div>`
-       + tbl([{t:'Trạng thái'},{t:'SL (tấn)',num:true},{t:'Phiếu kho'}],[
-       [pill('ok','Đã xuất kho'),'74','XK-1120, XK-1121'],
-       [pill('info','Đã SX, chờ xuất'),'28','—'],
-       [pill('mut','Chưa sản xuất'),'18','Lệnh SX #442']]))}
-     </div>
-     ${activity([['📦','Xuất kho 34 tấn (XK-1121)','Kho Long An · Hôm nay'],['⚠','Kiểm công nợ trước xuất','Trần Thị B · Hôm nay'],['🏭','Hoàn tất lệnh SX #441','12/07/2026']])}
-   </div>
- </div>`;
-
 S.excase = ()=> appnav('Bán hàng nội địa','Case',['Trang chủ','Cơ hội','Đơn hàng','Khách hàng','Case'],'Case')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="case_list">Case · Giao hàng ngoại lệ</span> &rsaquo;',ico:'🛑',color:'#e07a00',title:'CASE-EX-0031 · Yêu cầu giao khi vướng công nợ',sub:'Liên kết PO-2619 · Cty Hưng Thịnh',
@@ -858,7 +843,7 @@ S.excase = ()=> appnav('Bán hàng nội địa','Case',['Trang chủ','Cơ hộ
    ${banner('err','Khách có <b>công nợ quá hạn 420.000.000 ₫</b>. Đơn bị chặn giao tự động — cần Case ngoại lệ được <b>TGĐ phê duyệt</b> mới cho xuất kho.')}
    <div class="cols-side">
      <div>
-     ${card('Nội dung yêu cầu', fg([['Đơn liên quan','PO-2619','link','delivery'],['Khách hàng','Cty Hưng Thịnh','link','master'],
+     ${card('Nội dung yêu cầu', fg([['Đơn liên quan','PO-2619','link','po'],['Khách hàng','Cty Hưng Thịnh','link','master'],
        ['Lý do đề xuất','KH cam kết trả nợ trong 5 ngày'],['SL cần giao','34 tấn'],['Người duyệt','TGĐ'],['Mức độ',pill('err','Cao')]],true))}
      </div>
      ${activity([['📝','Tạo yêu cầu ngoại lệ','Trần Thị B · Hôm nay'],['🔒','Đơn bị chặn giao (nợ quá hạn)','Hệ thống']])}
@@ -1210,7 +1195,7 @@ S.case = ()=> appnav('Chăm sóc KH','Case',['Trang chủ','Case','Khách hàng'
    ${banner('err','Case đã <b>quá SLA 4 giờ</b>. Cần cập nhật tiến trình xử lý cho khách hàng.')}
    <div class="cols-side">
      <div>
-     ${card('Chi tiết khiếu nại', fg([['Khách hàng','Cty Hưng Thịnh','link','master'],['Đơn liên quan','PO-2588','link','delivery'],
+     ${card('Chi tiết khiếu nại', fg([['Khách hàng','Cty Hưng Thịnh','link','master'],['Đơn liên quan','PO-2588','link','po'],
        ['Loại sự cố','Hàng ướt / hư hỏng'],['SL ảnh hưởng','12 cuộn'],['Nguyên nhân','Container thấm nước mưa'],['Bên chịu TN','Hãng tàu']]))}
      ${card('Chi phí & trách nhiệm đền bù', tbl([{t:'Khoản mục'},{t:'Số tiền',num:true},{t:'Bên chịu'}],[
        ['Giá trị hàng hư','32.000.000 ₫','Hãng tàu'],
@@ -1320,8 +1305,8 @@ S.order_list = ()=> appnav('Bán hàng nội địa','Đơn hàng',TAB_SALES,'Đ
    cols:[{t:'Số PO'},{t:'Khách hàng'},{t:'Giá trị',num:true},{t:'Trạng thái'},{t:'% Giao',num:true},{t:'Ngày giao'}],
    rows:[
     {go:'po',cells:['PO-2619','Hưng Thịnh Phát','1.180.000.000 ₫',pill('warn','Chờ duyệt'),'0%','29/07/2026']},
-    {go:'delivery',cells:['PO-2601','CP Minh Khang','2.050.000.000 ₫',pill('info','Đang giao'),'95%','18/07/2026']},
-    {go:'delivery',cells:['PO-2588','Hưng Thịnh Phát','640.000.000 ₫',pill('mut','Khiếu nại'),'100%','10/07/2026']},
+    {go:'po',cells:['PO-2601','CP Minh Khang','2.050.000.000 ₫',pill('info','Đang giao'),'95%','18/07/2026']},
+    {go:'po',cells:['PO-2588','Hưng Thịnh Phát','640.000.000 ₫',pill('mut','Khiếu nại'),'100%','10/07/2026']},
     {go:'po',cells:['PO-2630','Bao Bì Sông Lam','380.000.000 ₫',pill('info','Đang SX'),'20%','05/08/2026']}]})}</div>`;
 
 S.case_list = ()=> appnav('Chăm sóc KH','Case',['Trang chủ','Case','Khách hàng','Knowledge','Báo cáo'],'Case')
