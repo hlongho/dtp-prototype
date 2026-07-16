@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SLDS Wireframe — Opportunity Record Page</title>
+<!-- Salesforce Lightning Design System (SLDS) — CDN thật -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@salesforce-ux/design-system@2/assets/styles/salesforce-lightning-design-system.min.css">
+<style>
+  /* ===== ÉP VỀ TONE WIREFRAME GRAYSCALE ===== */
+  /* Desaturate toàn bộ màu thương hiệu SLDS về thang xám */
+  html { filter: grayscale(1); -webkit-filter: grayscale(1); }
+  /* Phẳng: bỏ đổ bóng để tập trung vào khung viền & layout */
+  * { box-shadow: none !important; }
+  body { background: #ffffff; }
+  .slds-global-header_container { border-bottom: 1px solid #d8d8d8; position: static !important; }
+  /* Khối icon = placeholder xám (thay icon SVG có màu) */
+  .wf-ico {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 2rem; height: 2rem; border-radius: .25rem;
+    background: #d9d9d9; border: 1px solid #bcbcbc; color: #4d4d4d;
+    font-size: .95rem; flex-shrink: 0;
+  }
+  .wf-ico.lg { width: 3rem; height: 3rem; font-size: 1.4rem; }
+  .wf-avatar { background:#dcdcdc; color:#3a3a3a; border:1px solid #bcbcbc;
+    width:2rem;height:2rem;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;}
+  .wf-search { max-width: 30rem; }
+  /* Divider mảnh giữa các cột */
+  .wf-col + .wf-col { border-left: 1px solid #e5e5e5; }
+  @media (max-width: 64em){ .wf-col + .wf-col { border-left: 0; } }
+  .wf-muted { color:#6b6b6b; }
+  .wf-tabpanel[hidden]{ display:none; }
+  /* Đảm bảo Navigation Bar (context bar) hiển thị đúng chiều cao */
+  .slds-context-bar { height:2.75rem !important; min-height:2.75rem !important; display:flex !important;
+    align-items:stretch !important; background:#f4f4f4 !important; border-bottom:1px solid #d8d8d8 !important; }
+  .slds-context-bar__primary { display:flex !important; align-items:stretch !important; }
+  .slds-context-bar__secondary { display:flex !important; align-items:stretch !important; flex:1 1 auto; }
+  .slds-context-bar__secondary .slds-grid { display:flex !important; align-items:stretch !important; margin:0; }
+  .slds-context-bar__item { display:flex !important; align-items:center !important; }
+  .slds-context-bar__label-action { display:flex !important; align-items:center !important; height:100%;
+    padding:0 .85rem !important; color:#3a3a3a !important; text-decoration:none; }
+  .slds-context-bar__label-action:hover { background:#eaeaea; }
+  .slds-context-bar .slds-is-active { box-shadow: inset 0 -3px 0 #5c5c5c; background:#ececec; }
+  .slds-context-bar .slds-is-active .slds-context-bar__label-action { font-weight:700; }
+</style>
+</head>
+<body>
+<div class="slds-scope">
+
+  <!-- ============ GLOBAL HEADER ============ -->
+  <header class="slds-global-header_container">
+    <div class="slds-global-header slds-grid slds-grid_align-spread" style="padding:.25rem .75rem;">
+      <div class="slds-global-header__item slds-grid slds-grid_vertical-align-center">
+        <button class="slds-button slds-button_icon slds-button_icon-container" title="App Launcher" style="margin-right:.5rem;">
+          <span class="wf-ico" style="width:1.6rem;height:1.6rem;">⋮⋮⋮</span>
+        </button>
+        <span class="slds-text-heading_small" style="font-weight:700;">CRM Đồng Tiến</span>
+      </div>
+      <div class="slds-global-header__item slds-global-header__item_search wf-search" style="flex:1;margin:0 1rem;">
+        <div class="slds-form-element">
+          <div class="slds-form-element__control slds-input-has-icon slds-input-has-icon_left">
+            <span class="slds-icon_container slds-input__icon slds-input__icon_left" style="display:inline-flex;align-items:center;">🔍</span>
+            <input type="search" class="slds-input" placeholder="Tìm kiếm..." />
+          </div>
+        </div>
+      </div>
+      <ul class="slds-global-header__item slds-grid slds-grid_vertical-align-center" style="gap:.5rem;list-style:none;">
+        <li><button class="slds-button slds-button_icon" title="Yêu thích">★</button></li>
+        <li><button class="slds-button slds-button_icon" title="Thiết lập">⚙</button></li>
+        <li><button class="slds-button slds-button_icon" title="Trợ giúp">?</button></li>
+        <li><button class="slds-button slds-button_icon" title="Thông báo">🔔</button></li>
+        <li><span class="wf-avatar">ĐT</span></li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- ============ APP NAVIGATION (CONTEXT BAR) ============ -->
+  <div class="slds-context-bar">
+    <div class="slds-context-bar__primary">
+      <div class="slds-context-bar__item slds-context-bar__dropdown-trigger slds-no-hover" style="border-left:0;">
+        <span class="slds-context-bar__label-action" style="font-weight:700;">
+          <span class="slds-truncate" title="Bán hàng nội địa">Bán hàng nội địa</span>
+        </span>
+      </div>
+    </div>
+    <nav class="slds-context-bar__secondary" role="navigation">
+      <ul class="slds-grid" style="list-style:none;">
+        <li class="slds-context-bar__item"><a class="slds-context-bar__label-action slds-truncate">Trang chủ</a></li>
+        <li class="slds-context-bar__item"><a class="slds-context-bar__label-action slds-truncate">Lead</a></li>
+        <li class="slds-context-bar__item slds-is-active"><a class="slds-context-bar__label-action slds-truncate">Cơ hội</a></li>
+        <li class="slds-context-bar__item"><a class="slds-context-bar__label-action slds-truncate">Đơn hàng</a></li>
+        <li class="slds-context-bar__item"><a class="slds-context-bar__label-action slds-truncate">Khách hàng</a></li>
+        <li class="slds-context-bar__item"><a class="slds-context-bar__label-action slds-truncate">Case</a></li>
+      </ul>
+    </nav>
+  </div>
+
+  <div style="padding:.75rem;">
+
+    <!-- ============ RECORD PAGE HEADER + PATH ============ -->
+    <div class="slds-page-header slds-page-header_record-home">
+      <div class="slds-page-header__row">
+        <div class="slds-page-header__col-title">
+          <div class="slds-media">
+            <div class="slds-media__figure">
+              <span class="wf-ico lg" title="Opportunity">▦</span>
+            </div>
+            <div class="slds-media__body">
+              <div class="slds-page-header__name">
+                <div class="slds-page-header__name-title">
+                  <h1>
+                    <span class="wf-muted" style="font-size:.75rem;">Cơ hội (Opportunity)</span><br>
+                    <span class="slds-page-header__title slds-truncate" title="Cty Hưng Thịnh — Cung cấp Medium Q3">Cty Hưng Thịnh — Cung cấp Medium Q3</span>
+                  </h1>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="slds-page-header__col-actions">
+          <div class="slds-page-header__controls">
+            <div class="slds-page-header__control">
+              <ul class="slds-button-group-list">
+                <li><button class="slds-button slds-button_neutral">Sửa</button></li>
+                <li><button class="slds-button slds-button_neutral">Gửi mẫu</button></li>
+                <li><button class="slds-button slds-button_brand">Tạo báo giá</button></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="slds-page-header__row slds-page-header__row_gutters">
+        <div class="slds-page-header__col-details">
+          <ul class="slds-page-header__detail-row">
+            <li class="slds-page-header__detail-block">
+              <div class="slds-text-title slds-truncate wf-muted">Số tiền</div>
+              <div class="slds-truncate" style="font-weight:600;">₫1,2 tỷ</div>
+            </li>
+            <li class="slds-page-header__detail-block">
+              <div class="slds-text-title slds-truncate wf-muted">Giai đoạn</div>
+              <span class="slds-badge">Gửi mẫu</span>
+            </li>
+            <li class="slds-page-header__detail-block">
+              <div class="slds-text-title slds-truncate wf-muted">Xác suất</div>
+              <div class="slds-truncate" style="font-weight:600;">60%</div>
+            </li>
+            <li class="slds-page-header__detail-block">
+              <div class="slds-text-title slds-truncate wf-muted">Ngày đóng dự kiến</div>
+              <div class="slds-truncate" style="font-weight:600;">30/07/2026</div>
+            </li>
+            <li class="slds-page-header__detail-block">
+              <div class="slds-text-title slds-truncate wf-muted">Phụ trách</div>
+              <div class="slds-truncate" style="font-weight:600;">Trần Thị B</div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PATH -->
+      <div class="slds-path" style="margin-top:.5rem;">
+        <div class="slds-grid slds-path__track">
+          <div class="slds-grid slds-path__scroller-container">
+            <div class="slds-path__scroller" role="application">
+              <div class="slds-path__scroller_inner">
+                <ul class="slds-path__nav" role="listbox">
+                  <li class="slds-path__item slds-is-complete" role="presentation"><a class="slds-path__link" role="option"><span class="slds-path__stage"><span class="slds-assistive-text">Đã hoàn tất</span></span><span class="slds-path__title">Tìm hiểu</span></a></li>
+                  <li class="slds-path__item slds-is-complete" role="presentation"><a class="slds-path__link" role="option"><span class="slds-path__stage"></span><span class="slds-path__title">Đã liên hệ</span></a></li>
+                  <li class="slds-path__item slds-is-current slds-is-active" role="presentation"><a class="slds-path__link" role="option"><span class="slds-path__stage"></span><span class="slds-path__title">Gửi mẫu</span></a></li>
+                  <li class="slds-path__item slds-is-incomplete" role="presentation"><a class="slds-path__link" role="option"><span class="slds-path__stage"></span><span class="slds-path__title">Duyệt mẫu</span></a></li>
+                  <li class="slds-path__item slds-is-incomplete" role="presentation"><a class="slds-path__link" role="option"><span class="slds-path__stage"></span><span class="slds-path__title">Báo giá</span></a></li>
+                  <li class="slds-path__item slds-is-incomplete" role="presentation"><a class="slds-path__link" role="option"><span class="slds-path__stage"></span><span class="slds-path__title">Đóng - Thắng</span></a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="slds-grid slds-path__action">
+            <span class="slds-path__stage-name">Giai đoạn: Gửi mẫu</span>
+            <button class="slds-button slds-button_neutral slds-path__mark-complete">✓ Đánh dấu hoàn tất</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ RECORD BODY: 3 CỘT ============ -->
+    <div class="slds-grid slds-gutters slds-wrap" style="margin-top:.75rem;">
+
+      <!-- CỘT TRÁI: DETAILS -->
+      <div class="slds-col slds-size_1-of-1 slds-large-size_3-of-12 wf-col">
+        <article class="slds-card">
+          <div class="slds-card__header slds-grid">
+            <header class="slds-media slds-media_center slds-has-flexi-truncate">
+              <div class="slds-media__body"><h2 class="slds-card__header-title"><span>Chi tiết cơ hội</span></h2></div>
+            </header>
+          </div>
+          <div class="slds-card__body slds-card__body_inner">
+            <div class="slds-form slds-form_stacked">
+              <div class="slds-form-element slds-form-element_readonly slds-form-element_edit slds-hint-parent slds-border_bottom">
+                <span class="slds-form-element__label wf-muted">Khách hàng</span>
+                <div class="slds-form-element__control"><div class="slds-form-element__static">Cty Hưng Thịnh Phát</div></div>
+              </div>
+              <div class="slds-form-element slds-border_bottom">
+                <span class="slds-form-element__label wf-muted">Sản phẩm</span>
+                <div class="slds-form-element__control"><div class="slds-form-element__static">Giấy Medium 125gsm</div></div>
+              </div>
+              <div class="slds-form-element slds-border_bottom">
+                <span class="slds-form-element__label wf-muted">Số lượng dự kiến</span>
+                <div class="slds-form-element__control"><div class="slds-form-element__static">120 tấn/tháng</div></div>
+              </div>
+              <div class="slds-form-element slds-border_bottom">
+                <span class="slds-form-element__label wf-muted">Nguồn</span>
+                <div class="slds-form-element__control"><div class="slds-form-element__static">Khách hàng cũ</div></div>
+              </div>
+              <div class="slds-form-element slds-border_bottom">
+                <span class="slds-form-element__label wf-muted">Ngày đóng dự kiến</span>
+                <div class="slds-form-element__control"><div class="slds-form-element__static">30/07/2026</div></div>
+              </div>
+              <div class="slds-form-element">
+                <span class="slds-form-element__label wf-muted">Đối thủ</span>
+                <div class="slds-form-element__control"><div class="slds-form-element__static">Giấy An Bình</div></div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <!-- CỘT GIỮA: RELATED LIST TABS -->
+      <div class="slds-col slds-size_1-of-1 slds-large-size_6-of-12 wf-col">
+        <div class="slds-tabs_default">
+          <ul class="slds-tabs_default__nav" role="tablist">
+            <li class="slds-tabs_default__item slds-is-active" role="presentation"><a class="slds-tabs_default__link" role="tab" data-tab="rel">Liên quan</a></li>
+            <li class="slds-tabs_default__item" role="presentation"><a class="slds-tabs_default__link" role="tab" data-tab="det">Chi tiết</a></li>
+            <li class="slds-tabs_default__item" role="presentation"><a class="slds-tabs_default__link" role="tab" data-tab="news">Tin tức</a></li>
+          </ul>
+
+          <!-- TAB: LIÊN QUAN -->
+          <div class="slds-tabs_default__content wf-tabpanel" data-panel="rel" role="tabpanel">
+            <!-- Related list 1: Sampling -->
+            <article class="slds-card">
+              <div class="slds-card__header slds-grid">
+                <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                  <div class="slds-media__figure"><span class="wf-ico" style="width:1.5rem;height:1.5rem;">▤</span></div>
+                  <div class="slds-media__body"><h2 class="slds-card__header-title"><a class="slds-card__header-link"><span>Lịch sử gửi mẫu (Sampling) (2)</span></a></h2></div>
+                </header>
+                <div class="slds-no-flex"><button class="slds-button slds-button_neutral">+ Gửi mẫu</button></div>
+              </div>
+              <div class="slds-card__body">
+                <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+                  <thead><tr class="slds-line-height_reset">
+                    <th class="wf-muted"><div class="slds-truncate">Ngày gửi</div></th>
+                    <th class="wf-muted"><div class="slds-truncate">Mẫu</div></th>
+                    <th class="wf-muted"><div class="slds-truncate">ĐL/Khổ</div></th>
+                    <th class="wf-muted"><div class="slds-truncate">Kết quả</div></th>
+                  </tr></thead>
+                  <tbody>
+                    <tr><td><a>05/07/2026</a></td><td>Medium M-01</td><td>125/200</td><td><span class="slds-badge">Duyệt</span></td></tr>
+                    <tr><td><a>28/06/2026</a></td><td>Medium M-00</td><td>110/180</td><td><span class="slds-badge">Từ chối — độ ẩm</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <footer class="slds-card__footer"><a>Xem tất cả</a></footer>
+            </article>
+
+            <!-- Related list 2: Products -->
+            <article class="slds-card">
+              <div class="slds-card__header slds-grid">
+                <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                  <div class="slds-media__figure"><span class="wf-ico" style="width:1.5rem;height:1.5rem;">▤</span></div>
+                  <div class="slds-media__body"><h2 class="slds-card__header-title"><a class="slds-card__header-link"><span>Sản phẩm cơ hội (1)</span></a></h2></div>
+                </header>
+                <div class="slds-no-flex"><button class="slds-button slds-button_neutral">Thêm sản phẩm</button></div>
+              </div>
+              <div class="slds-card__body">
+                <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+                  <thead><tr class="slds-line-height_reset">
+                    <th class="wf-muted"><div class="slds-truncate">Sản phẩm</div></th>
+                    <th class="wf-muted"><div class="slds-truncate">Số lượng</div></th>
+                    <th class="wf-muted"><div class="slds-truncate">Đơn giá</div></th>
+                    <th class="wf-muted"><div class="slds-truncate">Thành tiền</div></th>
+                  </tr></thead>
+                  <tbody>
+                    <tr><td><a>Giấy Medium 125gsm</a></td><td>120 tấn</td><td>12.250</td><td>₫1,47 tỷ</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <footer class="slds-card__footer"><a>Xem tất cả</a></footer>
+            </article>
+          </div>
+
+          <!-- TAB: CHI TIẾT -->
+          <div class="slds-tabs_default__content wf-tabpanel" data-panel="det" role="tabpanel" hidden>
+            <article class="slds-card"><div class="slds-card__body slds-card__body_inner">
+              <div class="slds-form slds-form_stacked">
+                <div class="slds-form-element slds-border_bottom"><span class="slds-form-element__label wf-muted">Tên cơ hội</span><div class="slds-form-element__control"><div class="slds-form-element__static">Cty Hưng Thịnh — Cung cấp Medium Q3</div></div></div>
+                <div class="slds-form-element slds-border_bottom"><span class="slds-form-element__label wf-muted">Loại</span><div class="slds-form-element__control"><div class="slds-form-element__static">Khách hàng hiện hữu — Mở rộng</div></div></div>
+                <div class="slds-form-element slds-border_bottom"><span class="slds-form-element__label wf-muted">Bước tiếp theo</span><div class="slds-form-element__control"><div class="slds-form-element__static">Chờ khách duyệt mẫu M-01</div></div></div>
+                <div class="slds-form-element"><span class="slds-form-element__label wf-muted">Mô tả</span><div class="slds-form-element__control"><div class="slds-form-element__static">Cơ hội cung cấp giấy Medium định kỳ Q3/2026 cho nhà máy bao bì.</div></div></div>
+              </div>
+            </div></article>
+          </div>
+
+          <!-- TAB: TIN TỨC -->
+          <div class="slds-tabs_default__content wf-tabpanel" data-panel="news" role="tabpanel" hidden>
+            <article class="slds-card"><div class="slds-card__body slds-card__body_inner wf-muted">Không có tin tức liên quan.</div></article>
+          </div>
+        </div>
+      </div>
+
+      <!-- CỘT PHẢI: ACTIVITY TIMELINE -->
+      <div class="slds-col slds-size_1-of-1 slds-large-size_3-of-12 wf-col">
+        <article class="slds-card">
+          <div class="slds-card__header slds-grid">
+            <header class="slds-media slds-media_center slds-has-flexi-truncate">
+              <div class="slds-media__body"><h2 class="slds-card__header-title"><span>Hoạt động</span></h2></div>
+            </header>
+          </div>
+          <div class="slds-card__body slds-card__body_inner">
+            <div class="slds-form-element slds-m-bottom_small">
+              <div class="slds-form-element__control">
+                <textarea class="slds-textarea" rows="2" placeholder="Ghi lại cuộc gọi · Tạo công việc · Lên lịch cuộc hẹn…"></textarea>
+              </div>
+            </div>
+            <ul class="slds-timeline">
+              <li><div class="slds-timeline__item_expandable slds-timeline__item_call slds-p-around_x-small slds-border_bottom">
+                <div class="slds-media">
+                  <div class="slds-media__figure"><span class="wf-ico" style="width:1.5rem;height:1.5rem;">📞</span></div>
+                  <div class="slds-media__body">
+                    <div style="font-weight:600;">Gọi xác nhận số lượng đặt hàng</div>
+                    <div class="wf-muted" style="font-size:.75rem;">Nguyễn Văn Sales · Hôm nay 09:12</div>
+                  </div>
+                </div></div></li>
+              <li><div class="slds-timeline__item_expandable slds-p-around_x-small slds-border_bottom">
+                <div class="slds-media">
+                  <div class="slds-media__figure"><span class="wf-ico" style="width:1.5rem;height:1.5rem;">✉</span></div>
+                  <div class="slds-media__body">
+                    <div style="font-weight:600;">Gửi báo giá tháng 7</div>
+                    <div class="wf-muted" style="font-size:.75rem;">Trần Thị B · Hôm qua</div>
+                  </div>
+                </div></div></li>
+              <li><div class="slds-timeline__item_expandable slds-p-around_x-small">
+                <div class="slds-media">
+                  <div class="slds-media__figure"><span class="wf-ico" style="width:1.5rem;height:1.5rem;">✔</span></div>
+                  <div class="slds-media__body">
+                    <div style="font-weight:600;">Duyệt điều kiện sản xuất</div>
+                    <div class="wf-muted" style="font-size:.75rem;">P. Kế hoạch · 12/07/2026</div>
+                  </div>
+                </div></div></li>
+            </ul>
+          </div>
+        </article>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // Chuyển tab related list
+  document.querySelectorAll('.slds-tabs_default__link').forEach(function(a){
+    a.addEventListener('click', function(e){
+      e.preventDefault();
+      var tab = a.getAttribute('data-tab');
+      document.querySelectorAll('.slds-tabs_default__item').forEach(function(li){ li.classList.remove('slds-is-active'); });
+      a.parentElement.classList.add('slds-is-active');
+      document.querySelectorAll('.wf-tabpanel').forEach(function(p){ p.hidden = (p.getAttribute('data-panel') !== tab); });
+    });
+  });
+</script>
+</body>
+</html>
