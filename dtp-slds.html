@@ -154,6 +154,10 @@ a:hover{text-decoration:underline}
 .po-del{width:22px;height:22px;border-radius:50%;border:1px solid var(--line-2);background:var(--card);
   color:var(--err);font-weight:700;font-size:15px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
 .po-del:hover{background:#f0f0f0;border-color:var(--err)}
+.po-actcell{white-space:nowrap}
+.po-add{width:22px;height:22px;border-radius:50%;border:1px solid var(--line-2);background:var(--card);
+  color:var(--sf-blue);font-weight:700;font-size:15px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;margin-left:4px}
+.po-add:hover{background:#f0f0f0;border-color:var(--sf-blue)}
 .po-qty{width:84px;padding:4px 7px;border:1px solid var(--line-2);border-radius:4px;font-family:inherit;font-size:12.5px;text-align:right;background:var(--card);color:var(--ink)}
 .po-qty:focus{outline:none;border-color:var(--sf-blue);box-shadow:0 0 0 2px var(--sf-blue-l)}
 .buy-cb,.buy-row,.pr-row,.pr-all,.lv-row,.lv-all,.po-stage input{cursor:pointer;width:15px;height:15px}
@@ -1042,20 +1046,19 @@ function renderPOStage(){
     g.splits.forEach((s,si)=>{
       const cover=allocs[si].map(c=>`${c.pr} (${fmtN(c.qty)})`).join(', ')||'<span class="wf-muted">—</span>';
       rows+=`<tr>
-        <td><button class="po-del" title="Bỏ dòng" onclick="removeSplit(${gi},${si})">−</button></td>
+        <td class="po-actcell"><button class="po-del" title="Bỏ dòng" onclick="removeSplit(${gi},${si})">−</button>${si===g.splits.length-1?`<button class="po-add" title="Tách cho NCC khác" onclick="addSplit(${gi})">+</button>`:''}</td>
         <td>${si===0?g.product:`<span class="wf-muted">↳ ${g.product}</span>`}</td>
         <td class="num"><input class="po-qty" value="${fmtN(s.qty)}" onchange="setSplitQty(${gi},${si},this.value)"></td>
         <td>${g.unit}</td>
         <td>${cover}</td>
         <td><select onchange="setSplitSup(${gi},${si},this.value)">${opts(s.supplier)}</select></td>
         <td class="num">${s.price?`${s.price} ₫`:'—'}</td>
-        <td>${si===g.splits.length-1?`<button class="btn sm" title="Tách sản phẩm cho NCC khác" onclick="addSplit(${gi})">Tách NCC</button>`:''}</td>
       </tr>`;
     });
   });
   document.getElementById('pm-body').innerHTML=
     `<div style="text-align:right;margin-bottom:8px"><button class="btn sm" onclick="openSupModal()">＋ Thêm mới NCC</button></div>
-     <table class="tbl po-stage"><thead><tr><th style="width:30px"></th><th>Sản phẩm</th><th class="num">Số lượng</th><th>Đơn vị</th><th>Phiếu yêu cầu (phân bổ)</th><th>Nhà cung cấp</th><th class="num">Đơn giá</th><th></th></tr></thead>
+     <table class="tbl po-stage"><thead><tr><th style="width:62px"></th><th>Sản phẩm</th><th class="num">Số lượng</th><th>Đơn vị</th><th>Phiếu yêu cầu (phân bổ)</th><th>Nhà cung cấp</th><th class="num">Đơn giá</th></tr></thead>
      <tbody>${rows}</tbody></table>`;
   renderPOSummary();
 }
