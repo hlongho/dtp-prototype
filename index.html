@@ -637,6 +637,7 @@ const NAV = [
  {g:'Mua hàng nội địa', items:[
    ['pr_list','Phiếu yêu cầu (PR)','Mua hàng','list'],
    ['pr','↳ Chi tiết PR (mass assign người mua)','','record'],
+   ['buyqueue','Sản phẩm cần mua (gán người mua)','Mua hàng','list'],
    ['buylist','Hàng cần mua của tôi (tạo PO)','Mua hàng','custom'],
    ['ppo_list','Đơn mua (Purchase Order)','Mua hàng','list'],
    ['ppo','↳ Chi tiết PO (chọn NCC, lịch sử giá)','','record'],
@@ -902,6 +903,18 @@ S.pr_list = ()=> appnav('Mua hàng','Phiếu yêu cầu',['Trang chủ','Phiếu
     {go:'pr',cells:['PR-3304','Đóng gói','13/07/2026','1','21/07/2026',pill('warn','Chờ duyệt')]},
     {go:'pr',cells:['PR-3308','P.SX Bình Dương','10/07/2026','4','24/07/2026',pill('ok','Đã duyệt')]}]})}</div>`;
 
+S.buyqueue = ()=> appnav('Mua hàng','Sản phẩm cần mua',['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'],'Phiếu yêu cầu')
+ + `<div class="sf-body">${lv({ico:'🧺',color:'#2e844a',object:'Sản phẩm cần mua (từ PR đã duyệt)',view:'Chưa gán người mua',views:['Chưa gán người mua','Đã gán','Tất cả','Xem gần đây'],count:'23',
+   bulk:[{label:'Gán người mua',fn:'lvBulkAssign()'}],
+   cols:[{t:'Sản phẩm'},{t:'Số lượng',num:true},{t:'Đơn vị'},{t:'Phiếu yêu cầu'},{t:'Phòng ban'},{t:'Ngày cần'},{t:'Người phụ trách mua'}],
+   rows:[
+    {go:'',cells:['Keo dán công nghiệp','3.500','kg','PR-3301, PR-3302','P.SX Long An','20/07/2026','<span class="wf-muted">— Chưa gán —</span>']},
+    {go:'',cells:['Hóa chất tẩy trắng','500','kg','PR-3308','P.SX Bình Dương','24/07/2026','<span class="wf-muted">— Chưa gán —</span>']},
+    {go:'',cells:['Dây đai PP','800','cuộn','PR-3304','Đóng gói','21/07/2026','<span class="wf-muted">— Chưa gán —</span>']},
+    {go:'',cells:['Lô cao su máy xeo','4','cái','PR-3303','Bảo trì','25/07/2026','<span class="wf-muted">— Chưa gán —</span>']},
+    {go:'',cells:['Mực in công nghiệp','120','kg','PR-3310','P.In','23/07/2026','<span class="slds-badge">Nguyễn Văn A</span>']},
+    {go:'',cells:['Bột giấy tái chế','2.000','kg','PR-3312','P.SX Long An','28/07/2026','<span class="slds-badge">Trần Thị B</span>']}]})}</div>`;
+
 S.pr = ()=> appnav('Mua hàng','Phiếu yêu cầu',['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'],'Phiếu yêu cầu')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="pr_list">Phiếu yêu cầu (PR)</span> &rsaquo;',ico:'📥',color:'#2e844a',title:'PR-3301 · P.SX Long An',sub:'Phiếu yêu cầu mua hàng',
@@ -914,7 +927,7 @@ S.pr = ()=> appnav('Mua hàng','Phiếu yêu cầu',['Trang chủ','Phiếu yêu
      ${card('Dòng sản phẩm cần mua',
        `<div class="tbl-wrap"><table class="tbl">
           <thead><tr><th style="width:34px"><input type="checkbox" class="pr-all" title="Chọn tất cả" onchange="toggleAllPR(this)"></th>
-            <th>Sản phẩm</th><th class="num">Số lượng</th><th>Ngày cần</th><th>Người phụ trách mua</th></tr></thead>
+            <th>Sản phẩm</th><th class="num">Số lượng</th><th>Đơn vị</th><th>Ngày cần</th><th>Người phụ trách mua</th></tr></thead>
           <tbody id="pr-lines-tbody">${prLinesRows()}</tbody>
        </table></div>`,
        {n:String(PR_LINES.length), r:'<button class="btn pri" id="btn-massassign" onclick="openMassAssign()" disabled>Gán người mua</button>'})}
@@ -1022,7 +1035,7 @@ const BUYERS = ['Nguyễn Văn A','Trần Thị B','Lê Văn C','Phạm Thị D'
 function prLinesRows(){
   return PR_LINES.map((l,i)=>`<tr>
     <td><input type="checkbox" class="pr-row" data-i="${i}" onchange="updatePRSel()"></td>
-    <td>${l.product}</td><td class="num">${l.qty} ${l.unit}</td><td>${l.need}</td>
+    <td>${l.product}</td><td class="num">${l.qty}</td><td>${l.unit}</td><td>${l.need}</td>
     <td>${l.buyer ? pill('ok',l.buyer) : '<span style="color:var(--ink-3)">— Chưa gán —</span>'}</td></tr>`).join('');
 }
 function renderPRLines(){ const tb=document.getElementById('pr-lines-tbody'); if(tb) tb.innerHTML=prLinesRows(); updatePRSel(); }
@@ -1035,22 +1048,36 @@ function updatePRSel(){
   if(master){ master.checked=n>0&&n===boxes.length; master.indeterminate=n>0&&n<boxes.length; }
 }
 function toggleAllPR(m){ document.querySelectorAll('.pr-row').forEach(cb=>cb.checked=m.checked); updatePRSel(); }
-let MASS_SEL=[];
-function openMassAssign(){
-  MASS_SEL=[...document.querySelectorAll('.pr-row:checked')].map(cb=>+cb.dataset.i);
-  if(!MASS_SEL.length) return;
+let MASS_SEL=[], MASS_TARGET='pr', LV_ROWS=[];
+function openMassModal(count){
   document.getElementById('mass-body').innerHTML=
-    `<p class="po-hint">Gán <b>${MASS_SEL.length} dòng sản phẩm</b> đã chọn cho người mua:</p>
+    `<p class="po-hint">Gán <b>${count} dòng sản phẩm</b> đã chọn cho người mua:</p>
      <select id="mass-buyer" class="mass-sel">${BUYERS.map(b=>`<option>${b}</option>`).join('')}</select>`;
   document.getElementById('massback').classList.add('show');
   document.getElementById('massmodal').classList.add('show');
 }
+function openMassAssign(){ // trong 1 PR
+  MASS_TARGET='pr';
+  MASS_SEL=[...document.querySelectorAll('.pr-row:checked')].map(cb=>+cb.dataset.i);
+  if(!MASS_SEL.length) return; openMassModal(MASS_SEL.length);
+}
+function lvBulkAssign(){ // list view sản phẩm từ PR đã duyệt
+  MASS_TARGET='lv';
+  LV_ROWS=[...document.querySelectorAll('.lv-row:checked')].map(cb=>cb.closest('tr'));
+  if(!LV_ROWS.length) return; openMassModal(LV_ROWS.length);
+}
 function closeMass(){ document.getElementById('massback').classList.remove('show'); document.getElementById('massmodal').classList.remove('show'); }
 function confirmMass(){
   const buyer=document.getElementById('mass-buyer').value;
-  MASS_SEL.forEach(i=>{ if(PR_LINES[i]) PR_LINES[i].buyer=buyer; });
-  closeMass(); renderPRLines();
-  toast(`Đã gán ${MASS_SEL.length} dòng sản phẩm cho ${buyer}`);
+  if(MASS_TARGET==='lv'){
+    LV_ROWS.forEach(tr=>{ const tds=tr.querySelectorAll('td'); const cell=tds[tds.length-2];
+      if(cell) cell.innerHTML='<span class="slds-badge">'+buyer+'</span>';
+      const cb=tr.querySelector('.lv-row'); if(cb) cb.checked=false; });
+    const n=LV_ROWS.length; closeMass(); lvSel(); toast(`Đã gán ${n} dòng sản phẩm cho ${buyer}`);
+  } else {
+    MASS_SEL.forEach(i=>{ if(PR_LINES[i]) PR_LINES[i].buyer=buyer; });
+    closeMass(); renderPRLines(); toast(`Đã gán ${MASS_SEL.length} dòng sản phẩm cho ${buyer}`);
+  }
 }
 
 S.ppo = ()=> appnav('Mua hàng','Đơn mua (PO)',['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'],'Đơn mua (PO)')
