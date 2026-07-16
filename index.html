@@ -627,7 +627,6 @@ const NAV = [
    ['opp','↳ Chi tiết Cơ hội (Path + Sampling)','','record'],
    ['order_list','Đơn hàng (Order)','Sales','list'],
    ['po','↳ Đơn PO (cảnh báo tồn/công nợ)','','record'],
-   ['approve','Phê duyệt PO (Kế hoạch → TGĐ)','Kế hoạch / TGĐ','flow'],
    ['excase','↳ Case giao hàng ngoại lệ','Sales / TGĐ','record']]},
  {g:'Bán hàng xuất khẩu', items:[
    ['exquote_list','Báo giá XK','Sales XK','list'],
@@ -809,29 +808,13 @@ S.po = ()=> appnav('Bán hàng nội địa','Đơn hàng',['Trang chủ','Lead'
        [pill('mut','Chưa sản xuất'),'18','Lệnh SX #442']]),{n:'3'})}
      ${card('Tồn kho & công nợ', fg([['Tồn trong hạn','18 tấn'],['Tồn quá hạn','0 tấn'],
        ['Dư nợ hiện tại','1.620.000.000 ₫'],['Quá hạn','420.000.000 ₫ (15 ngày)','link','excase'],['Hạn mức','2.000.000.000 ₫'],['Khả dụng','380.000.000 ₫']]))}
-     </div>
-     ${activity([['📎','Upload file PO khách','Trần Thị B · Hôm nay'],['🔄','Cập nhật tồn kho & công nợ','Tự động']])}
-   </div>
- </div>`;
-
-S.approve = ()=> appnav('Bán hàng nội địa','Phê duyệt',['Trang chủ','Cơ hội','Đơn hàng','Phê duyệt','Báo cáo'],'Phê duyệt')
- + `<div class="sf-body narrow">
-   ${hl({crumb:'Phê duyệt đơn hàng',ico:'✅',color:'#2e844a',title:'PO-2619 — Chờ TGĐ phê duyệt',sub:'Bước 2/2 · P.Kế hoạch đã duyệt điều kiện SX',
-     fields:[['Giá trị','1.180.000.000 ₫'],['Người trình','P. Kế hoạch'],['Bước hiện tại',pill('warn','TGĐ duyệt')],['Chờ từ','13/07/2026 14:20']],
-     actions:[{t:'Phê duyệt',pri:true},'Từ chối','Chuyển tiếp']})}
-   ${banner('info','Luồng duyệt: <b>Sales trình → P.Kế hoạch (cân đối SX, khổ ghép) → TGĐ duyệt</b> → lên SO → up lại PO có dấu xác nhận ngày giao.')}
-   <div class="cols-side">
-     <div>
      ${card('Lịch sử phê duyệt', tbl([{t:'Bước'},{t:'Người duyệt'},{t:'Trạng thái'},{t:'Thời gian'}],[
        ['1. Điều kiện sản xuất','P. Kế hoạch',pill('ok','Đã duyệt'),'13/07/2026 14:20'],
-       ['2. Phê duyệt cuối','Tổng Giám Đốc',pill('warn','Đang chờ'),'—']]),{n:'2'})}
-     ${card('Cân đối sản xuất (P.Kế hoạch nhập)', fg([['Khổ ghép tối ưu','1.680 mm'],['Nhà máy phân bổ','Long An'],
+       ['2. Phê duyệt cuối','Tổng Giám Đốc',pill('warn','Đang chờ'),'—']]),{n:'2',r:'<button class="btn sm">Phê duyệt</button><button class="btn sm">Từ chối</button>'})}
+     ${card('Cân đối sản xuất (Kế hoạch)', fg([['Khổ ghép tối ưu','1.680 mm'],['Nhà máy phân bổ','Long An'],
        ['Ngày giao cam kết','29/07/2026'],['Tồn dùng ngay','18 tấn'],['Cần sản xuất','102 tấn'],['Ghi chú','Ưu tiên chạy máy xeo 2']]))}
      </div>
-     <div>
-     ${banner('err','Đơn có <b>công nợ quá hạn 420.000.000 ₫</b> — cần TGĐ chấp thuận ngoại lệ khi duyệt.')}
-     ${card('Bình luận phê duyệt','<div class="composer">Nhập lý do phê duyệt / từ chối…</div>')}
-     </div>
+     ${activity([['📎','Upload file PO khách','Trần Thị B · Hôm nay'],['✅','P.Kế hoạch duyệt điều kiện SX','P. Kế hoạch · 13/07/2026'],['🔄','Cập nhật tồn kho & công nợ','Tự động']])}
    </div>
  </div>`;
 
@@ -1498,7 +1481,7 @@ function setupSearch(){
 
 /* ---- in-page interactivity ---- */
 const TAB2ID={'Trang chủ':'home','Lead':'lead_list','Cơ hội':'opp_list','Đơn hàng':'order_list','Khách hàng':'master',
- 'NCC':'vendor_list','Case':'case_list','Báo cáo':'reports','Phê duyệt':'approve','Dashboard':'reports','Cảnh báo':'reports',
+ 'NCC':'vendor_list','Case':'case_list','Báo cáo':'reports','Dashboard':'reports','Cảnh báo':'reports',
  'Bảng giá':'pricebook_list','Hợp đồng':'contract_list','Sản phẩm':'master','Báo giá XK':'exquote_list','Chứng từ':'excontract_list',
  'Thanh toán':'lc','PR':'pr_list','Đơn mua (PO)':'ppo_list','Nhận hàng':'receipt','Kế hoạch NVL':'matinv',
  'Shipment':'shipment_list','Knowledge':'case_list'};
@@ -1575,7 +1558,7 @@ function toggleTheme(){ /* theme cố định: luôn nền trắng */ }
 /* ---- Thông báo (notification) ---- */
 const NOTIFS=[
   {ico:'⛔',bg:'#ba0517',title:'<b>PO-2619</b> bị chặn giao — công nợ quá hạn 420.000.000 ₫, cần TGĐ duyệt ngoại lệ',time:'5 phút trước',unread:true,go:'excase'},
-  {ico:'✅',bg:'#2e844a',title:'Bạn có <b>1 đơn chờ phê duyệt</b>: PO-2619 (1.180.000.000 ₫) từ P. Kế hoạch',time:'22 phút trước',unread:true,go:'approve'},
+  {ico:'✅',bg:'#2e844a',title:'Bạn có <b>1 đơn chờ phê duyệt</b>: PO-2619 (1.180.000.000 ₫) từ P. Kế hoạch',time:'22 phút trước',unread:true,go:'po'},
   {ico:'🎧',bg:'#e07a00',title:'<b>CASE-0087</b> đã quá SLA 4 giờ — hàng giấy bị ướt khi giao',time:'1 giờ trước',unread:true,go:'case'},
   {ico:'📦',bg:'#8c4b02',title:'Cảnh báo tồn kho: Medium 125gsm chỉ còn <b>18 tấn</b> / nhu cầu 120 tấn',time:'2 giờ trước',unread:true,go:'po'},
   {ico:'🔔',bg:'#0176d3',title:'Nhắc gia hạn hợp đồng <b>HĐ-0421</b> (Cty Minh Khang) — còn 21 ngày hiệu lực',time:'Hôm nay 08:00',unread:false,go:'contract'},
