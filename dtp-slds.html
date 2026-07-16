@@ -455,6 +455,16 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
 .lv-view-item.on:before{content:"✓ ";color:#5c5c5c}
 .lv-view-sep{height:1px;background:#e5e5e5;margin:5px 0}
 .lv-view-manage{color:#6b6b6b}
+/* List View toolbar: search + controls (chuẩn SF) */
+.lv-toolbar{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line)}
+.lv-search-box{flex:1;max-width:340px;display:flex;align-items:center;gap:7px;border:1px solid var(--line-2);
+  border-radius:16px;padding:5px 13px;background:var(--card)}
+.lv-search-box input{border:0;outline:none;background:transparent;font-size:12.5px;flex:1;font-family:inherit;color:var(--ink)}
+.lv-search-box input::placeholder{color:var(--ink-3)}
+.lv-ctrls{margin-left:auto;display:flex;gap:3px}
+.lv-ctrls button{background:none;border:1px solid var(--line-2);border-radius:5px;width:30px;height:30px;
+  color:var(--ink-2);cursor:pointer;font-size:14px;display:inline-flex;align-items:center;justify-content:center}
+.lv-ctrls button:hover{background:var(--bg);color:var(--ink)}
 </style>
 </head>
 <body>
@@ -1314,7 +1324,15 @@ function lv({crumb,ico,color,object,view,count,cols,rows,newLabel,views,bulk}){
     </div>
     <div class="slds-page-header__row"><p class="slds-page-header__meta-text wf-muted">${count||rows.length} mục · Cập nhật vài giây trước</p></div>
   </div>
-  <article class="slds-card" style="margin-top:.25rem"><div class="slds-card__body">
+  <article class="slds-card" style="margin-top:.25rem">
+    <div class="lv-toolbar">
+      <div class="lv-search-box">
+        <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><circle cx="8" cy="8" r="6" stroke="#9b9b9b" stroke-width="2"/><path d="M13 13l5 5" stroke="#9b9b9b" stroke-width="2"/></svg>
+        <input type="search" placeholder="Tìm trong danh sách này...">
+      </div>
+      <div class="lv-ctrls"><button title="Làm mới">⟳</button><button title="Thiết lập list view">⚙</button><button title="Chọn cách hiển thị">▤</button><button title="Bộ lọc">⧨</button><button title="Biểu đồ">📊</button></div>
+    </div>
+    <div class="slds-card__body">
     <div style="overflow-x:auto"><table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped" style="min-width:560px">
       <thead><tr class="slds-line-height_reset"><th style="width:2rem"><input type="checkbox" class="lv-all" title="Chọn tất cả" onchange="lvAll(this)"></th>
         ${cols.map(c=>`<th class="${c.num?'num':''}" scope="col"><div class="slds-truncate wf-muted">${c.t||c} ▾</div></th>`).join('')}<th style="width:1.5rem"></th></tr></thead>
