@@ -723,12 +723,12 @@ S.master = ()=> appnav('Dữ liệu nền tảng','Khách hàng & NCC',['Bảng 
    views:['Đang hoạt động','Khách hàng','Nhà cung cấp','Ngưng / tạm dừng','Tất cả','Xem gần đây'],count:'1.284',newLabel:'Đồng bộ ERP',
    cols:[{t:'Tên'},{t:'Mã số thuế'},{t:'Loại'},{t:'Nhà máy'},{t:'Trạng thái'}],
    rows:[
-    {go:'master',cells:['Cty CP Minh Khang','0312765488','Khách hàng','Long An',pill('ok','Hoạt động')]},
-    {go:'master',cells:['Cty Hưng Thịnh Phát','0398112233','Khách hàng','Bình Dương',pill('ok','Hoạt động')]},
-    {go:'master',cells:['Cty Giấy Phương Đông','0345678123','NCC','Mizu',pill('ok','Hoạt động')]},
-    {go:'master',cells:['Cty Hóa chất Tân Tiến','0388445511','NCC','Bình Dương',pill('ok','Hoạt động')]},
-    {go:'master',cells:['Cty Bao Bì Sông Lam','0322114466','Khách hàng','Long An',pill('ok','Hoạt động')]},
-    {go:'master',cells:['Cty Đại Lộc','0367221900','Khách hàng','Long An',pill('warn','Ngưng đặt 2 tháng')]}]})}</div>`;
+    {go:'',cells:['Cty CP Minh Khang','0312765488','Khách hàng','Long An',pill('ok','Hoạt động')]},
+    {go:'',cells:['Cty Hưng Thịnh Phát','0398112233','Khách hàng','Bình Dương',pill('ok','Hoạt động')]},
+    {go:'vendor',cells:['Cty Giấy Phương Đông','0345678123','NCC','Mizu',pill('ok','Hoạt động')]},
+    {go:'vendor',cells:['Cty Hóa chất Tân Tiến','0388445511','NCC','Bình Dương',pill('ok','Hoạt động')]},
+    {go:'',cells:['Cty Bao Bì Sông Lam','0322114466','Khách hàng','Long An',pill('ok','Hoạt động')]},
+    {go:'',cells:['Cty Đại Lộc','0367221900','Khách hàng','Long An',pill('warn','Ngưng đặt 2 tháng')]}]})}</div>`;
 
 S.lead = ()=> appnav('Bán hàng nội địa','Lead',['Trang chủ','Lead','Cơ hội','Đơn hàng','Khách hàng','Case'],'Lead')
  + `<div class="sf-body narrow">
@@ -1265,7 +1265,7 @@ function lv({crumb,ico,color,object,view,count,cols,rows,newLabel,views}){
       <thead><tr class="slds-line-height_reset"><th style="width:2rem"><span class="slds-checkbox_faux"></span></th>
         ${cols.map(c=>`<th class="${c.num?'num':''}" scope="col"><div class="slds-truncate wf-muted">${c.t||c} ▾</div></th>`).join('')}<th style="width:1.5rem"></th></tr></thead>
       <tbody>${rows.map(r=>`<tr><td><input type="checkbox"></td>
-        ${r.cells.map((c,i)=>`<td class="${cols[i]&&cols[i].num?'num':''}">${i===0?`<a data-go="${r.go}">${c}</a>`:c}</td>`).join('')}
+        ${r.cells.map((c,i)=>`<td class="${cols[i]&&cols[i].num?'num':''}">${i===0&&r.go?`<a data-go="${r.go}">${c}</a>`:c}</td>`).join('')}
         <td>▾</td></tr>`).join('')}</tbody></table></div>
   </div></article>`;
 }
