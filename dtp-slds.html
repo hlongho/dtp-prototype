@@ -1225,7 +1225,6 @@ function lv({crumb,ico,color,object,view,count,cols,rows,newLabel}){
       <div class="slds-page-header__col-title"><div class="slds-media">
         <div class="slds-media__figure"><span class="wf-ico lg">${ico||'▦'}</span></div>
         <div class="slds-media__body">
-          <div class="crumb">${crumb||''}</div>
           <div class="wf-muted" style="font-size:.75rem">${object}</div>
           <h1 class="slds-page-header__title slds-truncate">${view||'Tất cả'} ▾</h1>
         </div>
@@ -1234,7 +1233,7 @@ function lv({crumb,ico,color,object,view,count,cols,rows,newLabel}){
         <ul class="slds-button-group-list"><li><button class="slds-button slds-button_neutral">Nhập</button></li><li><button class="slds-button slds-button_brand">${newLabel||'Mới'}</button></li></ul>
       </div></div></div>
     </div>
-    <div class="slds-page-header__row"><p class="slds-page-header__meta-text wf-muted">${count||rows.length} mục · sắp xếp theo cột đầu · cập nhật vài giây trước</p></div>
+    <div class="slds-page-header__row"><p class="slds-page-header__meta-text wf-muted">${count||rows.length} mục · Cập nhật vài giây trước</p></div>
   </div>
   <article class="slds-card" style="margin-top:.25rem"><div class="slds-card__body">
     <div style="overflow-x:auto"><table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped" style="min-width:560px">
