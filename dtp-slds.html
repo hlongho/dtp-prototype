@@ -956,14 +956,15 @@ const BUY = [
 ];
 // Danh sách NCC để chọn (kèm đơn giá & đánh giá sao)
 let SUPPLIERS = [
-  {name:'Cty Hóa chất Tân Tiến', price:'52.000', stars:4},
-  {name:'Cty TM Hải Đăng',       price:'53.500', stars:3},
-  {name:'Cty Cơ khí Tân Bình',   price:'51.800', stars:5},
-  {name:'Cty Nhựa Tân Thành',    price:'54.000', stars:3},
-  {name:'Cty In Ấn Việt Tiến',   price:'52.900', stars:4},
-  {name:'Cty Bao Bì Sông Lam',   price:'53.200', stars:4},
+  {name:'Cty Hóa chất Tân Tiến', price:'52.000', score:82, grade:'B'},
+  {name:'Cty TM Hải Đăng',       price:'53.500', score:68, grade:'C'},
+  {name:'Cty Cơ khí Tân Bình',   price:'51.800', score:91, grade:'A'},
+  {name:'Cty Nhựa Tân Thành',    price:'54.000', score:74, grade:'B'},
+  {name:'Cty In Ấn Việt Tiến',   price:'52.900', score:85, grade:'A'},
+  {name:'Cty Bao Bì Sông Lam',   price:'53.200', score:79, grade:'B'},
 ];
-function stars(n){ return '★'.repeat(n)+'☆'.repeat(5-n); }
+function gradeOf(sc){ return sc>=85?'A':sc>=70?'B':sc>=1?'C':'—'; }
+function scoreLabel(s){ return s.score?`${s.score}/100 (${s.grade})`:'chưa đánh giá'; }
 
 S.buylist = ()=> appnav('Mua hàng','Hàng cần mua',['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'],'Phiếu yêu cầu')
  + `<div class="sf-body">
@@ -1018,7 +1019,7 @@ function closePO(){
   document.getElementById('pomodal').classList.remove('show');
 }
 function renderPOStage(){
-  const opts=(cur)=>`<option value="">— Chọn NCC —</option>`+SUPPLIERS.map(s=>`<option value="${s.name}" ${s.name===cur?'selected':''}>${s.name} — ${s.price} ₫ · ${stars(s.stars)}</option>`).join('');
+  const opts=(cur)=>`<option value="">— Chọn NCC —</option>`+SUPPLIERS.map(s=>`<option value="${s.name}" ${s.name===cur?'selected':''}>${s.name} — ${s.price} ₫ · ${scoreLabel(s)}</option>`).join('');
   document.getElementById('pm-body').innerHTML=
     `<div style="text-align:right;margin-bottom:8px"><button class="btn sm" onclick="openSupModal()">＋ Thêm mới NCC</button></div>
      <table class="tbl po-stage"><thead><tr><th style="width:30px"></th><th>Sản phẩm</th><th class="num">Số lượng</th><th>Đơn vị</th><th>Phiếu yêu cầu</th><th>Nhà cung cấp</th><th class="num">Đơn giá</th></tr></thead>
@@ -1040,8 +1041,7 @@ function openSupModal(){
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Tên nhà cung cấp *</label><input id="sup-name" class="mass-sel" placeholder="VD: Cty TNHH ABC"></div>
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Mã số thuế</label><input id="sup-tax" class="mass-sel" placeholder="03xxxxxxxx"></div>
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Đơn giá dự kiến (₫)</label><input id="sup-price" class="mass-sel" placeholder="VD: 52.000"></div>
-       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Đánh giá</label><select id="sup-stars" class="mass-sel">
-         <option value="0">Chưa đánh giá</option><option value="3">★★★☆☆ (3)</option><option value="4">★★★★☆ (4)</option><option value="5">★★★★★ (5)</option><option value="2">★★☆☆☆ (2)</option><option value="1">★☆☆☆☆ (1)</option></select></div>
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Điểm đánh giá (/100)</label><input id="sup-score" class="mass-sel" type="number" min="0" max="100" placeholder="VD: 82 (để trống = chưa đánh giá)"></div>
      </div>`;
   document.getElementById('supback').classList.add('show');
   document.getElementById('supmodal').classList.add('show');
@@ -1050,8 +1050,8 @@ function closeSupModal(){ document.getElementById('supback').classList.remove('s
 function confirmAddSupplier(){
   const name=(document.getElementById('sup-name').value||'').trim()||('NCC mới #'+(SUPPLIERS.length+1));
   const price=(document.getElementById('sup-price').value||'').trim()||'—';
-  const st=parseInt(document.getElementById('sup-stars').value||'0',10)||0;
-  SUPPLIERS.push({name, price, stars:st});
+  const sc=parseInt(document.getElementById('sup-score').value||'0',10)||0;
+  SUPPLIERS.push({name, price, score:sc, grade:gradeOf(sc)});
   closeSupModal(); renderPOStage();
   toast('Đã thêm nhà cung cấp: '+name);
 }
@@ -1170,7 +1170,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
      ${card('Thông tin nhà cung cấp', fg([['Tên NCC','Cty Hóa chất Tân Tiến'],['Mã số thuế','0388445511'],
        ['Nhóm hàng cung cấp','Hóa chất, keo công nghiệp'],['Người liên hệ','Ông Phạm Văn K'],['Điện thoại','028 xxx xxxx'],
        ['Email','muahang@tantien.vn'],['Địa chỉ','KCN Sóng Thần, Bình Dương'],['Điều khoản TT','Net 30'],
-       ['Đánh giá','★★★★☆ (82/100)'],['Trạng thái',pill('ok','Đang hợp tác')]]))}
+       ['Đánh giá tổng','82/100 · Xếp loại B'],['Trạng thái',pill('ok','Đang hợp tác')]]))}
      ${card('Lịch sử điểm trừ (phiếu nhập)', tbl([{t:'Ngày'},{t:'Bộ phận'},{t:'Sự cố'},{t:'Điểm trừ',num:true}],[
        ['06/2026','QA','Chất lượng keo không đạt lô','−10'],
        ['03/2026','Kho','Giao trễ 3 ngày','−5'],
