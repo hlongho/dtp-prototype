@@ -892,20 +892,20 @@ S.lc = ()=> appnav('Bán hàng xuất khẩu','Thanh toán',['Trang chủ','Báo
  </div>`;
 
 S.pr_list = ()=> appnav('Mua hàng','Phiếu yêu cầu',['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'],'Phiếu yêu cầu')
- + `<div class="sf-body">${lv({ico:'📥',color:'#2e844a',object:'Phiếu yêu cầu',view:'Chờ phân công',views:['Chờ phân công','Của phòng tôi','Đã phân công','Tất cả','Xem gần đây'],count:'14',
+ + `<div class="sf-body">${lv({ico:'📥',color:'#2e844a',object:'Phiếu yêu cầu',view:'Chờ duyệt',views:['Chờ duyệt','Đã duyệt','Của phòng tôi','Tất cả','Xem gần đây'],count:'14',
    bulk:[{label:'Duyệt',fn:'lvBulkApprove()'}],
    cols:[{t:'Số phiếu'},{t:'Phòng ban yêu cầu'},{t:'Ngày tạo'},{t:'Số dòng',num:true},{t:'Ngày cần sớm nhất'},{t:'Trạng thái'}],
    rows:[
-    {go:'pr',cells:['PR-3301','P.SX Long An','12/07/2026','5','20/07/2026',pill('info','Chờ phân công')]},
-    {go:'pr',cells:['PR-3302','P.SX Bình Dương','12/07/2026','3','22/07/2026',pill('info','Chờ phân công')]},
-    {go:'pr',cells:['PR-3303','Bảo trì','11/07/2026','2','25/07/2026',pill('info','Mới')]},
-    {go:'pr',cells:['PR-3304','Đóng gói','13/07/2026','1','21/07/2026',pill('warn','Gấp')]},
-    {go:'pr',cells:['PR-3308','P.SX Bình Dương','10/07/2026','4','24/07/2026',pill('mut','Đã phân công')]}]})}</div>`;
+    {go:'pr',cells:['PR-3301','P.SX Long An','12/07/2026','5','20/07/2026',pill('warn','Chờ duyệt')]},
+    {go:'pr',cells:['PR-3302','P.SX Bình Dương','12/07/2026','3','22/07/2026',pill('warn','Chờ duyệt')]},
+    {go:'pr',cells:['PR-3303','Bảo trì','11/07/2026','2','25/07/2026',pill('warn','Chờ duyệt')]},
+    {go:'pr',cells:['PR-3304','Đóng gói','13/07/2026','1','21/07/2026',pill('warn','Chờ duyệt')]},
+    {go:'pr',cells:['PR-3308','P.SX Bình Dương','10/07/2026','4','24/07/2026',pill('ok','Đã duyệt')]}]})}</div>`;
 
 S.pr = ()=> appnav('Mua hàng','Phiếu yêu cầu',['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'],'Phiếu yêu cầu')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="pr_list">Phiếu yêu cầu (PR)</span> &rsaquo;',ico:'📥',color:'#2e844a',title:'PR-3301 · P.SX Long An',sub:'Phiếu yêu cầu mua hàng',
-     fields:[['Phòng ban YC','P.SX Long An'],['Người yêu cầu','Tổ trưởng SX'],['Ngày cần','20/07/2026'],['Trạng thái',pill('info','Chờ phân công')]],
+     fields:[['Phòng ban YC','P.SX Long An'],['Người yêu cầu','Tổ trưởng SX'],['Ngày cần','20/07/2026'],['Trạng thái',pill('warn','Chờ duyệt')]],
      actions:[{t:'Duyệt',pri:true}]})}
    ${banner('info','Một PR gồm <b>nhiều dòng sản phẩm</b>. Chọn các dòng rồi <b>Gán người mua (mass assign)</b> — sản phẩm sẽ chảy về màn hình <b>“Hàng cần mua”</b> của người được gán để họ tạo PO.')}
    <div class="cols-side">
