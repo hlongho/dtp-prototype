@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Prototype CRM Đồng Tiến — Salesforce</title>
+<title>Prototype CRM Đồng Tiến — SLDS Wireframe</title>
+<!-- Salesforce Lightning Design System (SLDS) — CDN thật -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@salesforce-ux/design-system@2/assets/styles/salesforce-lightning-design-system.min.css">
 <style>
 :root{
   --sf-blue:#0176d3; --sf-blue-d:#014486; --sf-blue-l:#eef4ff;
@@ -408,6 +410,33 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
 #app.wire .nav-item:hover{background:#4a4a4a}
 #app.wire .nav-item.active{background:#5c5c5c;border-left-color:#bdbdbd}
 #app.wire .tag{background:#5a5a5a !important;color:#e8e8e8 !important}
+
+/* ===== SLDS CDN INTEGRATION — ép grayscale + glue ===== */
+/* Desaturate token màu của SLDS (brand blue…) về thang xám */
+#app.wire { filter: grayscale(1); -webkit-filter: grayscale(1); }
+/* Placeholder icon (thay icon SVG có màu của SLDS) */
+.wf-ico{display:inline-flex;align-items:center;justify-content:center;width:2rem;height:2rem;border-radius:.25rem;
+  background:#dadada;border:1px solid #bcbcbc;color:#4d4d4d;font-size:.95rem;flex-shrink:0;filter:grayscale(1)}
+.wf-ico.lg{width:3rem;height:3rem;font-size:1.35rem}
+.wf-muted{color:#6b6b6b}
+/* Căn phải cột số trong slds-table */
+.slds-table th.num,.slds-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+.slds-table td.num,.slds-table th.num>.slds-truncate{text-align:right}
+/* Navigation Bar (context bar) hiển thị đúng chiều cao */
+.slds-context-bar{height:2.75rem !important;min-height:2.75rem;display:flex !important;align-items:stretch !important;background:#f4f4f4;border-bottom:1px solid #d8d8d8;margin-bottom:.5rem}
+.slds-context-bar__primary{display:flex !important;align-items:stretch !important}
+.slds-context-bar__secondary{display:flex !important;align-items:stretch !important;flex:1 1 auto}
+.slds-context-bar__secondary .slds-grid{display:flex !important;align-items:stretch !important;margin:0}
+.slds-context-bar__item{display:flex !important;align-items:center !important}
+.slds-context-bar__label-action{display:flex !important;align-items:center !important;height:100%;padding:0 .85rem !important;color:#3a3a3a !important;text-decoration:none;white-space:nowrap}
+.slds-context-bar__label-action:hover{background:#eaeaea}
+.slds-context-bar .slds-is-active,.slds-context-bar .a-tab.on{box-shadow:inset 0 -3px 0 #5c5c5c;background:#ececec}
+.slds-context-bar .slds-is-active .slds-context-bar__label-action,.slds-context-bar .a-tab.on{font-weight:700}
+/* slds-card khoảng cách trong record 3 cột */
+.cols-rec .slds-card,.rel .slds-card{margin-bottom:.5rem}
+.slds-scoped-notification{margin-bottom:.5rem}
+/* nút slds trong page header nhỏ gọn */
+.slds-page-header .slds-button-group-list{flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -493,20 +522,35 @@ function iconFor(g){return GROUPICON[g]||['▦','#0176d3'];}
 let INDEX=[]; // built after NAV defined
 
 function appnav(app, sub, tabs, active){
-  return `<div class="a-nav">
-    <div class="a-app"><b>${app}</b><span>${sub||''}</span></div>
-    ${tabs.map(t=>`<button class="a-tab ${t===active?'on':''}">${t}</button>`).join('')}
+  return `<div class="a-nav slds-context-bar">
+    <div class="slds-context-bar__primary a-app">
+      <div class="slds-context-bar__item"><span class="slds-context-bar__label-action"><b>${app}</b>${sub?` <span class="wf-muted slds-m-left_xx-small">· ${sub}</span>`:''}</span></div>
+    </div>
+    <nav class="slds-context-bar__secondary"><ul class="slds-grid">
+      ${tabs.map(t=>`<li class="slds-context-bar__item ${t===active?'slds-is-active':''}"><a class="a-tab slds-context-bar__label-action ${t===active?'on':''}">${t}</a></li>`).join('')}
+    </ul></nav>
   </div>`;
 }
 function hl({crumb,ico,color,title,sub,fields,actions}){
-  return `<div class="hl">
-    <div class="crumb">${crumb||''}</div>
-    <div class="hl-top">
-      <div class="hl-ico" ${color?`style="background:${color}"`:''}>${ico||'▦'}</div>
-      <div class="hl-title"><h2>${title}</h2><div class="sub">${sub||''}</div></div>
-      <div class="hl-actions">${(actions||['Sửa','Xóa']).map((a,i)=>`<button class="btn ${a.pri?'pri':''}">${a.t||a}</button>`).join('')}</div>
+  return `<div class="slds-page-header slds-page-header_record-home">
+    <div class="slds-page-header__row">
+      <div class="slds-page-header__col-title">
+        <div class="slds-media">
+          <div class="slds-media__figure"><span class="wf-ico lg">${ico||'▦'}</span></div>
+          <div class="slds-media__body">
+            <div class="crumb">${crumb||''}</div>
+            <h1 class="slds-page-header__title slds-truncate" title="${(title||'').replace(/<[^>]+>/g,'')}">${title}</h1>
+            ${sub?`<div class="wf-muted" style="font-size:.78rem;margin-top:2px">${sub}</div>`:''}
+          </div>
+        </div>
+      </div>
+      <div class="slds-page-header__col-actions">
+        <div class="slds-page-header__controls"><div class="slds-page-header__control">
+          <ul class="slds-button-group-list">${(actions||['Sửa','Xóa']).map(a=>`<li><button class="slds-button ${a.pri?'slds-button_brand':'slds-button_neutral'}">${a.t||a}</button></li>`).join('')}</ul>
+        </div></div>
+      </div>
     </div>
-    ${fields?`<div class="hl-fields">${fields.map(f=>`<div class="f"><label>${f[0]}</label><div class="v">${f[1]}</div></div>`).join('')}</div>`:''}
+    ${fields?`<div class="slds-page-header__row slds-page-header__row_gutters"><div class="slds-page-header__col-details"><ul class="slds-page-header__detail-row">${fields.map(f=>`<li class="slds-page-header__detail-block"><div class="slds-text-title slds-truncate wf-muted">${f[0]}</div><div class="slds-truncate" style="font-weight:600">${f[1]}</div></li>`).join('')}</ul></div></div>`:''}
   </div>`;
 }
 function path(stages, cur, btn){
@@ -515,17 +559,33 @@ function path(stages, cur, btn){
     <button class="path-btn">${btn||'✓ Đánh dấu hoàn tất'}</button></div>`;
 }
 function card(t,body,{n,r}={}){
-  return `<div class="card"><div class="card-h"><span class="t">${t}</span>${n?`<span class="n">(${n})</span>`:''}${r?`<span class="r">${r}</span>`:''}</div><div class="card-b">${body}</div></div>`;
+  return `<article class="slds-card">
+    <div class="slds-card__header slds-grid">
+      <header class="slds-media slds-media_center slds-has-flexi-truncate">
+        <div class="slds-media__body"><h2 class="slds-card__header-title"><span class="card-title">${t}</span>${n?` <span class="card-count slds-badge slds-m-left_xx-small">${n}</span>`:''}</h2></div>
+      </header>
+      ${r?`<div class="slds-no-flex card-action">${r}</div>`:''}
+    </div>
+    <div class="slds-card__body slds-card__body_inner card-body">${body}</div>
+  </article>`;
 }
 function fg(rows,one){
-  return `<div class="fg ${one?'one':''}">${rows.map(r=>`<div class="fld"><label>${r[0]}</label><div class="v ${r[2]||''}" ${r[3]?`data-go="${r[3]}"`:''}>${r[1]}<span class="pencil">✎</span></div></div>`).join('')}</div>`;
+  return `<div class="slds-form slds-form_stacked wf-form">${rows.map(r=>`
+    <div class="slds-form-element slds-border_bottom" style="padding:5px 0">
+      <span class="slds-form-element__label wf-muted" style="padding:0">${r[0]}</span>
+      <div class="slds-form-element__control"><div class="slds-form-element__static ${r[2]||''}" ${r[3]?`data-go="${r[3]}"`:''}>${r[1]}</div></div>
+    </div>`).join('')}</div>`;
 }
 function tbl(cols, rows){
-  return `<div class="tbl-wrap"><table class="tbl"><thead><tr>${cols.map(c=>`<th class="${c.num?'num':''}">${(c&&c.t!==undefined)?c.t:c}</th>`).join('')}</tr></thead>
+  return `<div style="overflow-x:auto"><table class="slds-table slds-table_cell-buffer slds-table_bordered" style="min-width:520px">
+   <thead><tr class="slds-line-height_reset">${cols.map(c=>`<th class="${c.num?'num':''}" scope="col"><div class="slds-truncate wf-muted">${(c&&c.t!==undefined)?c.t:c}</div></th>`).join('')}</tr></thead>
    <tbody>${rows.map(r=>`<tr>${r.map((c,i)=>`<td class="${cols[i]&&cols[i].num?'num':''}">${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
-function banner(type,txt){const ic={warn:'⚠',err:'⛔',info:'ⓘ',ok:'✓'}[type];return `<div class="banner ${type}"><span class="ic">${ic}</span><span>${txt}</span></div>`;}
-function pill(cls,t){return `<span class="pill ${cls}">${t}</span>`;}
+function banner(type,txt){const ic={warn:'⚠',err:'⛔',info:'ⓘ',ok:'✓'}[type];
+  return `<div class="slds-scoped-notification slds-scoped-notification_light slds-media slds-media_center" role="status">
+    <div class="slds-media__figure"><span aria-hidden="true">${ic}</span></div>
+    <div class="slds-media__body">${txt}</div></div>`;}
+function pill(cls,t){return `<span class="slds-badge">${t}</span>`;}
 function activity(items){
   return `<div class="card"><div class="act-tabs"><button class="t on">Hoạt động</button><button class="t">Chatter</button><button class="t">Chi tiết</button></div>
    <div class="composer">✎ Ghi lại cuộc gọi · Tạo công việc mới · Lên lịch cuộc hẹn…</div>
@@ -1163,20 +1223,30 @@ S.reports = ()=> appnav('Báo cáo & Dashboard','',['Trang chủ','Dashboard','B
 
 /* ============ List View component + screens ============ */
 function lv({crumb,ico,color,object,view,count,cols,rows,newLabel}){
-  return `<div class="crumb">${crumb||''}</div>
-  <div class="lv-top">
-    <div class="hl-ico" style="background:${color||'var(--sf-blue)'}">${ico||'▦'}</div>
-    <div class="lv-title"><div class="lv-obj">${object}</div>
-      <div class="lv-view">${view||'Tất cả'} <span style="font-size:11px">▾</span></div>
-      <div class="lv-meta">${count||rows.length} mục · sắp xếp theo cột đầu · cập nhật vài giây trước</div></div>
-    <div class="hl-actions"><button class="btn">Nhập</button><button class="btn pri">${newLabel||'Mới'}</button></div>
+  return `<div class="slds-page-header slds-page-header_object-home">
+    <div class="slds-page-header__row">
+      <div class="slds-page-header__col-title"><div class="slds-media">
+        <div class="slds-media__figure"><span class="wf-ico lg">${ico||'▦'}</span></div>
+        <div class="slds-media__body">
+          <div class="crumb">${crumb||''}</div>
+          <div class="wf-muted" style="font-size:.75rem">${object}</div>
+          <h1 class="slds-page-header__title slds-truncate">${view||'Tất cả'} ▾</h1>
+        </div>
+      </div></div>
+      <div class="slds-page-header__col-actions"><div class="slds-page-header__controls"><div class="slds-page-header__control">
+        <ul class="slds-button-group-list"><li><button class="slds-button slds-button_neutral">Nhập</button></li><li><button class="slds-button slds-button_brand">${newLabel||'Mới'}</button></li></ul>
+      </div></div></div>
+    </div>
+    <div class="slds-page-header__row"><p class="slds-page-header__meta-text wf-muted">${count||rows.length} mục · sắp xếp theo cột đầu · cập nhật vài giây trước</p></div>
   </div>
-  <div class="lv-tools"><span class="lv-search">🔍 Tìm trong danh sách này…</span><span class="lv-icons">⚙ ⭯ ▦ ▤</span></div>
-  <div class="card lv-body"><div class="tbl-wrap"><table class="tbl"><thead><tr><th style="width:26px"></th>
-   ${cols.map(c=>`<th class="${c.num?'num':''}">${c.t||c} ▾</th>`).join('')}<th style="width:24px"></th></tr></thead>
-   <tbody>${rows.map(r=>`<tr><td><input type="checkbox"></td>
-     ${r.cells.map((c,i)=>`<td class="${cols[i]&&cols[i].num?'num':''}">${i===0?`<a data-go="${r.go}">${c}</a>`:c}</td>`).join('')}
-     <td>▾</td></tr>`).join('')}</tbody></table></div></div>`;
+  <article class="slds-card" style="margin-top:.25rem"><div class="slds-card__body">
+    <div style="overflow-x:auto"><table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped" style="min-width:560px">
+      <thead><tr class="slds-line-height_reset"><th style="width:2rem"><span class="slds-checkbox_faux"></span></th>
+        ${cols.map(c=>`<th class="${c.num?'num':''}" scope="col"><div class="slds-truncate wf-muted">${c.t||c} ▾</div></th>`).join('')}<th style="width:1.5rem"></th></tr></thead>
+      <tbody>${rows.map(r=>`<tr><td><input type="checkbox"></td>
+        ${r.cells.map((c,i)=>`<td class="${cols[i]&&cols[i].num?'num':''}">${i===0?`<a data-go="${r.go}">${c}</a>`:c}</td>`).join('')}
+        <td>▾</td></tr>`).join('')}</tbody></table></div>
+  </div></article>`;
 }
 const TAB_SALES=['Trang chủ','Lead','Cơ hội','Đơn hàng','Khách hàng','Case'];
 const TAB_EX=['Trang chủ','Báo giá XK','Sales Contract','Chứng từ','Thanh toán'];
@@ -1299,10 +1369,10 @@ function buildRecordLayout(root){
     const kids=Array.from(cs.children);
     if(kids.length<2) return;
     const leftWrap=kids[0], rightCol=kids[1];
-    const cards=Array.from(leftWrap.children).filter(el=>el.classList&&el.classList.contains('card'));
+    const cards=Array.from(leftWrap.children).filter(el=>el.classList&&el.classList.contains('slds-card'));
     if(cards.length<1) return;
-    // Detail = card chứa field-grid (.fg); nếu không có thì lấy card đầu
-    let di=cards.findIndex(c=>c.querySelector('.fg')); if(di<0) di=0;
+    // Detail = card chứa form (.slds-form); nếu không có thì lấy card đầu
+    let di=cards.findIndex(c=>c.querySelector('.slds-form')); if(di<0) di=0;
     const detail=cards[di], related=cards.filter((_,i)=>i!==di);
     cs.classList.remove('cols-side'); cs.classList.add('cols-rec');
     cs.innerHTML='';
@@ -1315,9 +1385,8 @@ function buildRecordLayout(root){
       const tabs=document.createElement('div'); tabs.className='rel-tabs';
       const panels=document.createElement('div');
       related.forEach((cd,i)=>{
-        const h=cd.querySelector('.card-h');
-        const tEl=h&&h.querySelector('.t'), nEl=h&&h.querySelector('.n'), rEl=h&&h.querySelector('.r');
-        const bEl=cd.querySelector('.card-b');
+        const tEl=cd.querySelector('.card-title'), nEl=cd.querySelector('.card-count'), rEl=cd.querySelector('.card-action');
+        const bEl=cd.querySelector('.card-body');
         const btn=document.createElement('button');
         btn.className='rel-tab'+(i===0?' on':'');
         btn.innerHTML=(tEl?tEl.textContent:('Danh sách '+(i+1)))+(nEl?` <span class="cnt">${nEl.textContent}</span>`:'');
@@ -1471,7 +1540,7 @@ function setupClicks(){
       return;
     }
     // 6) action buttons -> toast (bỏ qua nút có onclick riêng)
-    const btn=e.target.closest('.btn');
+    const btn=e.target.closest('.slds-button, .btn');
     if(btn){ if(btn.hasAttribute('onclick')) return; toast('“'+btn.textContent.trim()+'” — thao tác demo'); return; }
   });
 }
