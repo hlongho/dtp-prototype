@@ -663,7 +663,6 @@ S.home = ()=> appnav('CRM Đồng Tiến','Trang chủ',['Trang chủ','Cơ hộ
        + banner('warn','<b>Cty Đại Lộc</b> ngưng đặt hàng 2 tháng (nguy cơ rớt đơn).')
        + banner('info','Tồn kho NVL giấy OCC dưới mức an toàn — cân nhắc chốt lô nhập.'))}
    </div>
-   <p class="note">Có thể click ngay trên trang: các <b>tab ứng dụng</b> (Cơ hội, Đơn hàng, NCC…) mở màn hình tương ứng; <b>App Launcher</b> ở trên chọn ứng dụng theo phòng ban; trong màn hình bản ghi có thể bấm <b>Path</b> (giai đoạn), <b>tab Hoạt động/Chi tiết</b> và các <b>link bản ghi</b>.</p>
  </div>`;
 
 S.pricebook = ()=> appnav('Dữ liệu nền tảng','Price Book',['Bảng giá','Hợp đồng','Sản phẩm','Khách hàng','NCC'],'Bảng giá')
@@ -812,7 +811,6 @@ S.delivery = ()=> appnav('Bán hàng nội địa','Đơn hàng',['Trang chủ',
      </div>
      ${activity([['📦','Xuất kho 34 tấn (XK-1121)','Kho Long An · Hôm nay'],['⚠','Kiểm công nợ trước xuất','Trần Thị B · Hôm nay'],['🏭','Hoàn tất lệnh SX #441','12/07']])}
    </div>
-   <p class="note">Trước mỗi lần xuất kho, Sales kiểm tra lại công nợ. Nếu vướng nợ quá hạn → tạo "Phiếu yêu cầu giao hàng ngoại lệ" (Case) trình TGĐ.</p>
  </div>`;
 
 S.excase = ()=> appnav('Bán hàng nội địa','Case',['Trang chủ','Cơ hội','Đơn hàng','Khách hàng','Case'],'Case')
@@ -1218,7 +1216,6 @@ S.reports = ()=> appnav('Báo cáo & Dashboard','',['Trang chủ','Dashboard','B
        + banner('warn','<b>3 báo giá</b> vượt khung giá chuẩn chờ TGĐ duyệt.')
        + banner('info','Tồn NVL giấy OCC dưới mức an toàn.'))}
    </div>
-   <p class="note">Báo cáo gồm: Tiến độ SX & giao hàng · AOP (KH vs Thực tế, mùa vụ/trending) · Doanh số & công nợ theo nhóm/khu vực/NCC · Cảnh báo (rớt đơn, vượt công nợ, vượt khung giá).</p>
  </div>`;
 
 /* ============ List View component + screens ============ */
@@ -1357,8 +1354,7 @@ S.shipment_list = ()=> appnav('Mua nhập khẩu','Shipment',TAB_IM,'Shipment')
 /* ============ router ============ */
 function buildNav(){
   const wrap = document.getElementById('nav');
-  wrap.innerHTML = `<div class="nav-brand"><h1>Prototype CRM Đồng Tiến</h1><p>Salesforce · demo theo quy trình</p>
-     <div class="nav-hint">👉 <b>List View</b> = danh sách bản ghi, bấm 1 dòng để mở <b>Record</b>. <b>Custom</b> = trang toàn màn hình. Nút ☰ để ẩn/hiện menu.</div></div>`
+  wrap.innerHTML = `<div class="nav-brand"><h1>Prototype CRM Đồng Tiến</h1><p>Salesforce · demo theo quy trình</p></div>`
    + NAV.map(grp=>`<div class="nav-group">${grp.g}</div>`
      + grp.items.map(it=>{const tag=it[3]||'';return `<button class="nav-item ${tag==='record'?'sub':''}" data-id="${it[0]}" onclick="go('${it[0]}')">
         <span class="ni-row"><span class="ni-label">${it[1]}</span>${tag?`<span class="tag t-${tag}">${TAGLABEL[tag]}</span>`:''}</span>
