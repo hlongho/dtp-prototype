@@ -1157,6 +1157,10 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
    ${banner('info','Điểm trừ được <b>ghi nhận từ nhiều bộ phận</b> (Kho, QA, Kỹ thuật) thông qua phiếu nhập mua khi có sự cố phát sinh.')}
    <div class="cols-side">
      <div>
+     ${card('Thông tin nhà cung cấp', fg([['Tên NCC','Cty Hóa chất Tân Tiến'],['Mã số thuế','0388445511'],
+       ['Nhóm hàng cung cấp','Hóa chất, keo công nghiệp'],['Người liên hệ','Ông Phạm Văn K'],['Điện thoại','028 xxx xxxx'],
+       ['Email','muahang@tantien.vn'],['Địa chỉ','KCN Sóng Thần, Bình Dương'],['Điều khoản TT','Net 30'],
+       ['Đánh giá','★★★★☆ (82/100)'],['Trạng thái',pill('ok','Đang hợp tác')]]))}
      ${card('Lịch sử điểm trừ (phiếu nhập)', tbl([{t:'Ngày'},{t:'Bộ phận'},{t:'Sự cố'},{t:'Điểm trừ',num:true}],[
        ['06/2026','QA','Chất lượng keo không đạt lô','−10'],
        ['03/2026','Kho','Giao trễ 3 ngày','−5'],
