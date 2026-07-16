@@ -712,7 +712,7 @@ S.master = ()=> appnav('Dữ liệu nền tảng','Khách hàng',['Bảng giá',
      ['Cty CP Minh Khang','0312765488','Khách hàng','Long An',pill('ok','Hoạt động')],
      ['Cty Hưng Thịnh Phát','0398112233','Khách hàng','Bình Dương',pill('ok','Hoạt động')],
      ['Cty Giấy Phương Đông','0345678123','NCC','Mizu',pill('ok','Hoạt động')],
-     ['Cty Đại Lộc','0367221900','Khách hàng','Long An',pill('warn','Ngưng đặt 2 tháng')]]),{n:'1.284',r:'<button class="btn sm">Lọc</button>'})}
+     ['Cty Đại Lộc','0367221900','Khách hàng','Long An',pill('warn','Ngưng đặt 2 tháng')]]),{n:'1.284'})}
  </div>`;
 
 S.lead = ()=> appnav('Bán hàng nội địa','Lead',['Trang chủ','Lead','Cơ hội','Đơn hàng','Khách hàng','Case'],'Lead')
@@ -755,7 +755,7 @@ S.po = ()=> appnav('Bán hàng nội địa','Đơn hàng',['Trang chủ','Lead'
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="order_list">Đơn hàng (PO)</span> &rsaquo;',ico:'🧾',color:'#0176d3',title:'PO-2619 · Cty Hưng Thịnh Phát',sub:'Đơn đặt hàng · Tạo từ file PO khách gửi',
      fields:[['Giá trị','₫1,18 tỷ'],['Trạng thái',pill('warn','Chờ duyệt')],['Ngày nhận PO','13/07/2026'],['Sales','Trần Thị B']],
-     actions:[{t:'Trình duyệt',pri:true},'Sửa','Xem file PO']})}
+     actions:[{t:'Trình duyệt',pri:true},'Sửa']})}
    ${path(['Nhận PO','Kiểm tồn/công nợ','Chờ duyệt','Lên SO (ERP)','Đang SX','Giao hàng','Đóng đơn'],2)}
    ${banner('err','<b>Cảnh báo công nợ:</b> khách đang có <b>₫420 tr quá hạn 15 ngày</b> (dữ liệu Invoice từ ERP). Đơn có thể bị chặn giao — cần TGĐ duyệt ngoại lệ.')}
    ${banner('warn','<b>Cảnh báo tồn kho:</b> tồn thành phẩm Medium 125gsm chỉ còn <b>18 tấn</b> / nhu cầu 120 tấn — phần còn lại phải đưa vào kế hoạch sản xuất.')}
@@ -901,7 +901,7 @@ S.pr = ()=> appnav('Mua hàng','Phiếu yêu cầu',['Trang chủ','PR','Đơn m
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="pr_list">Phiếu yêu cầu (PR)</span> &rsaquo;',ico:'📥',color:'#2e844a',title:'PR-3301 · P.SX Long An',sub:'Phiếu yêu cầu mua hàng · Đồng bộ từ ERP Rosy',
      fields:[['Phòng ban YC','P.SX Long An'],['Người yêu cầu','Tổ trưởng SX'],['Ngày cần','20/07/2026'],['Trạng thái',pill('info','Chờ phân công')]],
-     actions:[{t:'Gán người mua',pri:true},'Gộp PR','Sửa']})}
+     actions:['Sửa']})}
    ${banner('info','Một PR gồm <b>nhiều dòng sản phẩm</b>. Chọn các dòng rồi <b>Gán người mua (mass assign)</b> — sản phẩm sẽ chảy về màn hình <b>“Hàng cần mua”</b> của người được gán để họ tạo PO.')}
    <div class="cols-side">
      <div>
@@ -1071,7 +1071,7 @@ S.receipt = ()=> appnav('Mua hàng','Nhận hàng',['Trang chủ','PR','Đơn mu
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="ppo_list">Theo dõi nhận hàng</span> &rsaquo;',ico:'📦',color:'#2e844a',title:'PPO-0915 · Tiến độ nhận hàng',sub:'Kho nhập trên ERP → CRM ghi nhận thực nhận',
      fields:[['Đã nhận','3.640 / 3.500 kg'],['Trạng thái',pill('warn','Giao thừa')],['Phiếu nhập','NK-2201'],['Thanh toán',pill('info','Cọc 30%')]],
-     actions:[{t:'Cập nhật số liệu PO',pri:true},'Xem phiếu nhập']})}
+     actions:[{t:'Cập nhật số liệu PO',pri:true}]})}
    ${banner('warn','<b>Cảnh báo giao thừa:</b> thực nhận <b>3.640 kg</b> / đặt 3.500 kg (+140 kg). Xác nhận cập nhật lại số liệu PO cho khớp thực tế.')}
    <div class="cols-side">
      <div>
@@ -1130,7 +1130,7 @@ S.imcontract = ()=> appnav('Mua nhập khẩu','Sales Contract',['Trang chủ','
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="imcontract_list">Sales Contract (NK)</span> &rsaquo;',ico:'💱',color:'#0b827c',title:'IC-2026-041 · OCC từ Mỹ',sub:'Đa tiền tệ · 800 tấn · Recycling Corp USA',
      fields:[['Trị giá','$168.000'],['Quy đổi','₫4,28 tỷ'],['Tỷ giá','1 USD = 25.480'],['Trạng thái',pill('info','Đang thực hiện')]],
-     actions:[{t:'Xem quy đổi VNĐ',pri:true},'Sửa']})}
+     actions:['Sửa']})}
    ${banner('info','Áp dụng <b>đa tiền tệ (multi-currency)</b>: quy đổi USD/AUD về VNĐ để xem báo cáo tổng quan. Theo dõi Local charges theo từng hãng tàu để tối ưu chi phí.')}
    <div class="cols-side">
      <div>
@@ -1230,7 +1230,7 @@ function lv({crumb,ico,color,object,view,count,cols,rows,newLabel}){
         </div>
       </div></div>
       <div class="slds-page-header__col-actions"><div class="slds-page-header__controls"><div class="slds-page-header__control">
-        <ul class="slds-button-group-list"><li><button class="slds-button slds-button_neutral">Nhập</button></li><li><button class="slds-button slds-button_brand">${newLabel||'Mới'}</button></li></ul>
+        <ul class="slds-button-group-list"><li><button class="slds-button slds-button_brand">${newLabel||'Mới'}</button></li></ul>
       </div></div></div>
     </div>
     <div class="slds-page-header__row"><p class="slds-page-header__meta-text wf-muted">${count||rows.length} mục · Cập nhật vài giây trước</p></div>
