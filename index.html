@@ -154,6 +154,8 @@ a:hover{text-decoration:underline}
 .po-del{width:22px;height:22px;border-radius:50%;border:1px solid var(--line-2);background:var(--card);
   color:var(--err);font-weight:700;font-size:15px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
 .po-del:hover{background:#f0f0f0;border-color:var(--err)}
+.po-qty{width:84px;padding:4px 7px;border:1px solid var(--line-2);border-radius:4px;font-family:inherit;font-size:12.5px;text-align:right;background:var(--card);color:var(--ink)}
+.po-qty:focus{outline:none;border-color:var(--sf-blue);box-shadow:0 0 0 2px var(--sf-blue-l)}
 .buy-cb,.buy-row,.pr-row,.pr-all,.lv-row,.lv-all,.po-stage input{cursor:pointer;width:15px;height:15px}
 .mass-sel{width:100%;padding:8px 10px;border:1px solid var(--line-2);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card);color:var(--ink);outline:none}
 .mass-sel:focus{border-color:var(--sf-blue);box-shadow:0 0 0 2px var(--sf-blue-l)}
@@ -456,15 +458,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
 .lv-view-sep{height:1px;background:#e5e5e5;margin:5px 0}
 .lv-view-manage{color:#6b6b6b}
 /* List View toolbar: search + controls (chuẩn SF) */
-.lv-toolbar{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line)}
-.lv-search-box{flex:1;max-width:340px;display:flex;align-items:center;gap:7px;border:1px solid var(--line-2);
+.lv-toolbar{display:flex;align-items:center;justify-content:flex-end;padding:8px 12px;border-bottom:1px solid var(--line)}
+.lv-search-box{width:320px;max-width:100%;display:flex;align-items:center;gap:7px;border:1px solid var(--line-2);
   border-radius:16px;padding:5px 13px;background:var(--card)}
 .lv-search-box input{border:0;outline:none;background:transparent;font-size:12.5px;flex:1;font-family:inherit;color:var(--ink)}
 .lv-search-box input::placeholder{color:var(--ink-3)}
-.lv-ctrls{margin-left:auto;display:flex;gap:3px}
-.lv-ctrls button{background:none;border:1px solid var(--line-2);border-radius:5px;width:30px;height:30px;
-  color:var(--ink-2);cursor:pointer;font-size:14px;display:inline-flex;align-items:center;justify-content:center}
-.lv-ctrls button:hover{background:var(--bg);color:var(--ink)}
 </style>
 </head>
 <body>
@@ -947,12 +945,12 @@ S.pr = ()=> appnav('Mua hàng','Phiếu yêu cầu',['Trang chủ','Phiếu yêu
 /* ===== Hàng cần mua của nhân viên + tạo PO ===== */
 // Sản phẩm được phân công cho NV mua hàng (gộp từ nhiều PR nếu trùng vật tư)
 const BUY = [
-  {product:'Keo dán công nghiệp', qty:'3.500', unit:'kg',   prs:['PR-3301','PR-3302'], dept:'P.SX Long An', need:'20/07/2026', buyer:''},
-  {product:'Hóa chất tẩy trắng',  qty:'500',   unit:'kg',   prs:['PR-3308'],           dept:'P.SX Bình Dương', need:'24/07/2026', buyer:''},
-  {product:'Dây đai PP',          qty:'800',   unit:'cuộn', prs:['PR-3304'],           dept:'Đóng gói',   need:'21/07/2026', buyer:''},
-  {product:'Lô cao su máy xeo',   qty:'4',     unit:'cái',  prs:['PR-3303'],           dept:'Bảo trì',    need:'25/07/2026', buyer:''},
-  {product:'Mực in công nghiệp',  qty:'120',   unit:'kg',   prs:['PR-3310'],           dept:'P.In',       need:'23/07/2026', buyer:'Nguyễn Văn A'},
-  {product:'Bột giấy tái chế',    qty:'2.000', unit:'kg',   prs:['PR-3312'],           dept:'P.SX Long An', need:'28/07/2026', buyer:'Trần Thị B'},
+  {product:'Keo dán công nghiệp', qty:'3.500', unit:'kg',   prs:['PR-3301','PR-3302'], prBreak:[{pr:'PR-3301',qty:2000},{pr:'PR-3302',qty:1500}], dept:'P.SX Long An', need:'20/07/2026', buyer:''},
+  {product:'Hóa chất tẩy trắng',  qty:'500',   unit:'kg',   prs:['PR-3308'],           prBreak:[{pr:'PR-3308',qty:500}],  dept:'P.SX Bình Dương', need:'24/07/2026', buyer:''},
+  {product:'Dây đai PP',          qty:'800',   unit:'cuộn', prs:['PR-3304'],           prBreak:[{pr:'PR-3304',qty:800}],  dept:'Đóng gói',   need:'21/07/2026', buyer:''},
+  {product:'Lô cao su máy xeo',   qty:'4',     unit:'cái',  prs:['PR-3303'],           prBreak:[{pr:'PR-3303',qty:4}],    dept:'Bảo trì',    need:'25/07/2026', buyer:''},
+  {product:'Mực in công nghiệp',  qty:'120',   unit:'kg',   prs:['PR-3310'],           prBreak:[{pr:'PR-3310',qty:120}],  dept:'P.In',       need:'23/07/2026', buyer:'Nguyễn Văn A'},
+  {product:'Bột giấy tái chế',    qty:'2.000', unit:'kg',   prs:['PR-3312'],           prBreak:[{pr:'PR-3312',qty:2000}], dept:'P.SX Long An', need:'28/07/2026', buyer:'Trần Thị B'},
 ];
 // Danh sách NCC để chọn (kèm đơn giá & đánh giá sao)
 let SUPPLIERS = [
@@ -1006,10 +1004,14 @@ function openBuyAssign(){
   MASS_SEL=[...document.querySelectorAll('.buy-row:checked')].map(cb=>+cb.dataset.i);
   if(!MASS_SEL.length) return; openMassModal(MASS_SEL.length);
 }
+function parseNum(s){ return parseInt(String(s).replace(/[^\d]/g,''),10)||0; }
+function fmtN(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,'.'); }
 function openPOModal(){
   const sel=[...document.querySelectorAll('.buy-row:checked')].map(cb=>BUY[+cb.dataset.i]);
   if(!sel.length) return;
-  PODRAFT=sel.map(b=>({product:b.product, qty:b.qty, unit:b.unit, prs:b.prs, supplier:'', price:''}));
+  // mỗi sản phẩm = 1 nhóm, mặc định 1 dòng (split) = toàn bộ SL; có thể "Tách NCC"
+  PODRAFT=sel.map(b=>{ const total=b.prBreak.reduce((a,x)=>a+x.qty,0);
+    return {product:b.product, unit:b.unit, prBreak:b.prBreak, total, splits:[{supplier:'',qty:total,price:''}]}; });
   document.getElementById('pomback').classList.add('show');
   document.getElementById('pomodal').classList.add('show');
   renderPOStage();
@@ -1018,23 +1020,50 @@ function closePO(){
   document.getElementById('pomback').classList.remove('show');
   document.getElementById('pomodal').classList.remove('show');
 }
+// Phân bổ FIFO: mỗi split lấy SL từ phiếu cũ tính dần lên phiếu mới
+function allocate(g){
+  const breaks=g.prBreak.map(x=>({pr:x.pr, rem:x.qty}));
+  return g.splits.map(s=>{
+    let need=parseNum(s.qty); const cover=[];
+    for(const b of breaks){ if(need<=0) break; if(b.rem<=0) continue;
+      const take=Math.min(b.rem,need); cover.push({pr:b.pr,qty:take}); b.rem-=take; need-=take; }
+    return cover;
+  });
+}
 function renderPOStage(){
   const opts=(cur)=>`<option value="">— Chọn NCC —</option>`+SUPPLIERS.map(s=>`<option value="${s.name}" ${s.name===cur?'selected':''}>${s.name} — ${s.price} ₫ · ${scoreLabel(s)}</option>`).join('');
+  let rows='';
+  PODRAFT.forEach((g,gi)=>{
+    const allocs=allocate(g);
+    g.splits.forEach((s,si)=>{
+      const cover=allocs[si].map(c=>`${c.pr} (${fmtN(c.qty)})`).join(', ')||'<span class="wf-muted">—</span>';
+      rows+=`<tr>
+        <td><button class="po-del" title="Bỏ dòng" onclick="removeSplit(${gi},${si})">−</button></td>
+        <td>${si===0?g.product:`<span class="wf-muted">↳ ${g.product}</span>`}</td>
+        <td class="num"><input class="po-qty" value="${fmtN(s.qty)}" onchange="setSplitQty(${gi},${si},this.value)"></td>
+        <td>${g.unit}</td>
+        <td>${cover}</td>
+        <td><select onchange="setSplitSup(${gi},${si},this.value)">${opts(s.supplier)}</select></td>
+        <td class="num">${s.price?`${s.price} ₫`:'—'}</td>
+        <td>${si===g.splits.length-1?`<button class="btn sm" title="Tách sản phẩm cho NCC khác" onclick="addSplit(${gi})">Tách NCC</button>`:''}</td>
+      </tr>`;
+    });
+  });
   document.getElementById('pm-body').innerHTML=
     `<div style="text-align:right;margin-bottom:8px"><button class="btn sm" onclick="openSupModal()">＋ Thêm mới NCC</button></div>
-     <table class="tbl po-stage"><thead><tr><th style="width:30px"></th><th>Sản phẩm</th><th class="num">Số lượng</th><th>Đơn vị</th><th>Phiếu yêu cầu</th><th>Nhà cung cấp</th><th class="num">Đơn giá</th></tr></thead>
-     <tbody>${PODRAFT.map((p,i)=>`<tr><td><button class="po-del" title="Bỏ sản phẩm khỏi PO" onclick="removePODraft(${i})">−</button></td>
-       <td>${p.product}</td><td class="num">${p.qty}</td><td>${p.unit}</td><td>${p.prs.join(', ')}</td>
-       <td><select onchange="setSup(${i},this.value)">${opts(p.supplier)}</select></td>
-       <td class="num">${p.price?`${p.price} ₫`:'—'}</td></tr>`).join('')}</tbody></table>`;
+     <table class="tbl po-stage"><thead><tr><th style="width:30px"></th><th>Sản phẩm</th><th class="num">Số lượng</th><th>Đơn vị</th><th>Phiếu yêu cầu (phân bổ)</th><th>Nhà cung cấp</th><th class="num">Đơn giá</th><th></th></tr></thead>
+     <tbody>${rows}</tbody></table>`;
   renderPOSummary();
 }
-function removePODraft(i){
-  PODRAFT.splice(i,1);
+function setSplitQty(gi,si,v){ PODRAFT[gi].splits[si].qty=parseNum(v); renderPOStage(); }
+function setSplitSup(gi,si,v){ const s=SUPPLIERS.find(x=>x.name===v); PODRAFT[gi].splits[si].supplier=v; PODRAFT[gi].splits[si].price=s?s.price:''; renderPOStage(); }
+function addSplit(gi){ const g=PODRAFT[gi]; const last=g.splits[g.splits.length-1]; const q=parseNum(last.qty); const h=Math.floor(q/2); last.qty=q-h; g.splits.push({supplier:'',qty:h,price:''}); renderPOStage(); }
+function removeSplit(gi,si){
+  const g=PODRAFT[gi];
+  if(g.splits.length>1){ g.splits.splice(si,1); } else { PODRAFT.splice(gi,1); }
   if(!PODRAFT.length){ closePO(); toast('Đã bỏ hết sản phẩm — huỷ tạo PO'); return; }
   renderPOStage();
 }
-function setSup(i,v){ const s=SUPPLIERS.find(x=>x.name===v); PODRAFT[i].supplier=v; PODRAFT[i].price=s?s.price:''; renderPOStage(); }
 function openSupModal(){
   document.getElementById('sup-body').innerHTML=
     `<div style="display:flex;flex-direction:column;gap:10px">
@@ -1056,27 +1085,34 @@ function confirmAddSupplier(){
   toast('Đã thêm nhà cung cấp: '+name);
 }
 function renderPOSummary(){
-  const groups={};
-  PODRAFT.forEach(p=>{ if(p.supplier){ (groups[p.supplier]=groups[p.supplier]||[]).push(p); } });
+  const groups={}; let totalSplits=0, assigned=0, fullyAlloc=true;
+  PODRAFT.forEach(g=>{
+    const allocs=allocate(g);
+    const sum=g.splits.reduce((a,s)=>a+parseNum(s.qty),0);
+    if(sum!==g.total) fullyAlloc=false;
+    g.splits.forEach((s,si)=>{ totalSplits++;
+      if(s.supplier){ assigned++; (groups[s.supplier]=groups[s.supplier]||[]).push({product:g.product,unit:g.unit,qty:parseNum(s.qty),price:s.price,cover:allocs[si]}); }
+    });
+  });
   const sups=Object.keys(groups);
-  const assigned=PODRAFT.filter(p=>p.supplier).length;
   let html='';
   if(!sups.length){
-    html=`<div class="po-hint">Chọn nhà cung cấp cho từng sản phẩm để xem số PO sẽ được tạo.</div>`;
+    html=`<div class="po-hint">Chọn NCC cho từng dòng để xem PO sẽ tạo. Bấm <b>Tách NCC</b> để chia 1 sản phẩm cho nhiều nhà cung cấp — số lượng mỗi NCC sẽ tự phân bổ về phiếu yêu cầu (phiếu cũ trước).</div>`;
   } else {
-    html=`<div class="po-sum-h">Sẽ tạo <b>${sups.length} PO</b> · đã gán NCC cho ${assigned}/${PODRAFT.length} sản phẩm</div>`;
+    html=`<div class="po-sum-h">Sẽ tạo <b>${sups.length} PO</b> · ${assigned}/${totalSplits} dòng đã gán NCC${fullyAlloc?'':' · <span style="color:var(--err)">còn sản phẩm chưa phân bổ đủ SL</span>'}</div>`;
     html+=sups.map((s,k)=>`<div class="po-card"><div class="po-card-h">PO ${k+1} — <b>${s}</b> <span>· ${groups[s].length} dòng</span></div>
-      ${groups[s].map(p=>`<div class="po-line"><span>${p.product} <span style="color:var(--ink-3)">(${p.prs.join(', ')})</span></span><span>${p.qty} ${p.unit}${p.price&&p.price!=='—'?` · ${p.price} ₫`:''}</span></div>`).join('')}</div>`).join('');
+      ${groups[s].map(l=>`<div class="po-line"><span>${l.product} <span style="color:var(--ink-3)">(${l.cover.map(c=>c.pr+' '+fmtN(c.qty)).join(', ')||'—'})</span></span><span>${fmtN(l.qty)} ${l.unit}${l.price&&l.price!=='—'?` · ${l.price} ₫`:''}</span></div>`).join('')}</div>`).join('');
   }
-  const ready = sups.length>0 && assigned===PODRAFT.length;
+  const ready = sups.length>0 && assigned===totalSplits && fullyAlloc;
   document.getElementById('pm-foot').innerHTML = html +
     `<div class="pm-actions"><button class="btn" onclick="closePO()">Hủy</button>
      <button class="btn pri" ${ready?'':'disabled'} onclick="confirmPO()">Tạo ${sups.length||''} PO</button></div>`;
 }
 function confirmPO(){
-  const sups=[...new Set(PODRAFT.filter(p=>p.supplier).map(p=>p.supplier))];
+  const sups=[...new Set(PODRAFT.flatMap(g=>g.splits.filter(s=>s.supplier).map(s=>s.supplier)))];
+  const lines=PODRAFT.reduce((a,g)=>a+g.splits.filter(s=>s.supplier).length,0);
   closePO();
-  toast(`Đã tạo ${sups.length} PO cho ${PODRAFT.length} dòng hàng (${sups.join(', ')})`);
+  toast(`Đã tạo ${sups.length} PO cho ${lines} dòng hàng`);
 }
 
 /* ===== PR object: dòng sản phẩm + mass assign người mua ===== */
@@ -1330,7 +1366,6 @@ function lv({crumb,ico,color,object,view,count,cols,rows,newLabel,views,bulk}){
         <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><circle cx="8" cy="8" r="6" stroke="#9b9b9b" stroke-width="2"/><path d="M13 13l5 5" stroke="#9b9b9b" stroke-width="2"/></svg>
         <input type="search" placeholder="Tìm trong danh sách này...">
       </div>
-      <div class="lv-ctrls"><button title="Làm mới">⟳</button><button title="Thiết lập list view">⚙</button><button title="Chọn cách hiển thị">▤</button><button title="Bộ lọc">⧨</button><button title="Biểu đồ">📊</button></div>
     </div>
     <div class="slds-card__body">
     <div style="overflow-x:auto"><table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped" style="min-width:560px">
