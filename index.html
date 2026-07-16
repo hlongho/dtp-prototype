@@ -637,7 +637,6 @@ const NAV = [
  {g:'Mua hàng nội địa', items:[
    ['pr_list','Phiếu yêu cầu (PR)','Mua hàng','list'],
    ['pr','↳ Chi tiết PR (mass assign người mua)','','record'],
-   ['buyqueue','Sản phẩm cần mua (gán người mua)','Mua hàng','list'],
    ['buylist','Hàng cần mua của tôi (tạo PO)','Mua hàng','custom'],
    ['ppo_list','Đơn mua (Purchase Order)','Mua hàng','list'],
    ['ppo','↳ Chi tiết PO (chọn NCC, lịch sử giá)','','record'],
@@ -903,17 +902,6 @@ S.pr_list = ()=> appnav('Mua hàng','Phiếu yêu cầu',['Trang chủ','Phiếu
     {go:'pr',cells:['PR-3304','Đóng gói','13/07/2026','1','21/07/2026',pill('warn','Chờ duyệt')]},
     {go:'pr',cells:['PR-3308','P.SX Bình Dương','10/07/2026','4','24/07/2026',pill('ok','Đã duyệt')]}]})}</div>`;
 
-S.buyqueue = ()=> appnav('Mua hàng','Sản phẩm cần mua',['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'],'Phiếu yêu cầu')
- + `<div class="sf-body">${lv({ico:'🧺',color:'#2e844a',object:'Sản phẩm cần mua (từ PR đã duyệt)',view:'Chưa gán người mua',views:['Chưa gán người mua','Đã gán','Tất cả','Xem gần đây'],count:'23',
-   bulk:[{label:'Gán người mua',fn:'lvBulkAssign()'}],
-   cols:[{t:'Sản phẩm'},{t:'Số lượng',num:true},{t:'Đơn vị'},{t:'Phiếu yêu cầu'},{t:'Phòng ban'},{t:'Ngày cần'},{t:'Người phụ trách mua'}],
-   rows:[
-    {go:'',cells:['Keo dán công nghiệp','3.500','kg','PR-3301, PR-3302','P.SX Long An','20/07/2026','<span class="wf-muted">— Chưa gán —</span>']},
-    {go:'',cells:['Hóa chất tẩy trắng','500','kg','PR-3308','P.SX Bình Dương','24/07/2026','<span class="wf-muted">— Chưa gán —</span>']},
-    {go:'',cells:['Dây đai PP','800','cuộn','PR-3304','Đóng gói','21/07/2026','<span class="wf-muted">— Chưa gán —</span>']},
-    {go:'',cells:['Lô cao su máy xeo','4','cái','PR-3303','Bảo trì','25/07/2026','<span class="wf-muted">— Chưa gán —</span>']},
-    {go:'',cells:['Mực in công nghiệp','120','kg','PR-3310','P.In','23/07/2026','<span class="slds-badge">Nguyễn Văn A</span>']},
-    {go:'',cells:['Bột giấy tái chế','2.000','kg','PR-3312','P.SX Long An','28/07/2026','<span class="slds-badge">Trần Thị B</span>']}]})}</div>`;
 
 S.pr = ()=> appnav('Mua hàng','Phiếu yêu cầu',['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'],'Phiếu yêu cầu')
  + `<div class="sf-body narrow">
@@ -939,38 +927,52 @@ S.pr = ()=> appnav('Mua hàng','Phiếu yêu cầu',['Trang chủ','Phiếu yêu
 /* ===== Hàng cần mua của nhân viên + tạo PO ===== */
 // Sản phẩm được phân công cho NV mua hàng (gộp từ nhiều PR nếu trùng vật tư)
 const BUY = [
-  {product:'Keo dán công nghiệp', qty:'3.500', unit:'kg',    prs:['PR-3301','PR-3302'], dept:'P.SX Long An / Bình Dương', need:'20/07/2026'},
-  {product:'Dây đai PP',          qty:'800',   unit:'cuộn',  prs:['PR-3304'],           dept:'Đóng gói',   need:'21/07/2026'},
-  {product:'Lô cao su máy xeo',   qty:'4',     unit:'cái',   prs:['PR-3303'],           dept:'Bảo trì',    need:'25/07/2026'},
-  {product:'Mực in công nghiệp',  qty:'120',   unit:'kg',    prs:['PR-3310','PR-3312'], dept:'P.In',       need:'23/07/2026'},
-  {product:'Hóa chất tẩy trắng',  qty:'500',   unit:'kg',    prs:['PR-3308'],           dept:'P.SX Bình Dương', need:'24/07/2026'},
+  {product:'Keo dán công nghiệp', qty:'3.500', unit:'kg',   prs:['PR-3301','PR-3302'], dept:'P.SX Long An', need:'20/07/2026', buyer:''},
+  {product:'Hóa chất tẩy trắng',  qty:'500',   unit:'kg',   prs:['PR-3308'],           dept:'P.SX Bình Dương', need:'24/07/2026', buyer:''},
+  {product:'Dây đai PP',          qty:'800',   unit:'cuộn', prs:['PR-3304'],           dept:'Đóng gói',   need:'21/07/2026', buyer:''},
+  {product:'Lô cao su máy xeo',   qty:'4',     unit:'cái',  prs:['PR-3303'],           dept:'Bảo trì',    need:'25/07/2026', buyer:''},
+  {product:'Mực in công nghiệp',  qty:'120',   unit:'kg',   prs:['PR-3310'],           dept:'P.In',       need:'23/07/2026', buyer:'Nguyễn Văn A'},
+  {product:'Bột giấy tái chế',    qty:'2.000', unit:'kg',   prs:['PR-3312'],           dept:'P.SX Long An', need:'28/07/2026', buyer:'Trần Thị B'},
 ];
-// Danh sách NCC để chọn
-const SUPPLIERS = ['Cty Hóa chất Tân Tiến','Cty TM Hải Đăng','Cty Cơ khí Tân Bình','Cty Nhựa Tân Thành','Cty In Ấn Việt Tiến','Cty Bao Bì Sông Lam'];
+// Danh sách NCC để chọn (kèm đơn giá & đánh giá sao)
+let SUPPLIERS = [
+  {name:'Cty Hóa chất Tân Tiến', price:'52.000', stars:4},
+  {name:'Cty TM Hải Đăng',       price:'53.500', stars:3},
+  {name:'Cty Cơ khí Tân Bình',   price:'51.800', stars:5},
+  {name:'Cty Nhựa Tân Thành',    price:'54.000', stars:3},
+  {name:'Cty In Ấn Việt Tiến',   price:'52.900', stars:4},
+  {name:'Cty Bao Bì Sông Lam',   price:'53.200', stars:4},
+];
+function stars(n){ return '★'.repeat(n)+'☆'.repeat(5-n); }
 
 S.buylist = ()=> appnav('Mua hàng','Hàng cần mua',['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'],'Phiếu yêu cầu')
  + `<div class="sf-body">
    ${hl({crumb:'Mua hàng',ico:'🛍️',color:'#2e844a',title:'Hàng cần mua của tôi — Nguyễn Văn A',sub:'Sản phẩm được phân công cho bạn từ các Phiếu yêu cầu (PR)',
      fields:[['Người phụ trách','Nguyễn Văn A'],['Số dòng hàng',String(BUY.length)],['Trạng thái',pill('info','Chờ tạo PO')]],actions:[]})}
-   ${banner('info','Chọn các sản phẩm cần mua rồi bấm <b>Tạo PO</b>. Gán <b>nhà cung cấp</b> cho từng sản phẩm — <b>chọn bao nhiêu NCC sẽ tạo bấy nhiêu PO</b>, mỗi sản phẩm là một dòng trong PO của NCC đó.')}
-   ${card('Danh sách hàng cần mua của tôi',
+   ${banner('info','Chọn sản phẩm rồi <b>Gán người mua</b> (đồng loạt) hoặc <b>Tạo PO</b>. Khi tạo PO, gán NCC cho từng sản phẩm — <b>chọn bao nhiêu NCC sẽ tạo bấy nhiêu PO</b>, mỗi sản phẩm là một dòng trong PO của NCC đó.')}
+   ${card('Danh sách hàng cần mua',
      `<div class="tbl-wrap"><table class="tbl">
         <thead><tr><th style="width:34px"><input type="checkbox" class="buy-cb" title="Chọn tất cả" onchange="toggleAllBuy(this)"></th>
-          <th>Sản phẩm</th><th class="num">Số lượng</th><th>Phiếu yêu cầu</th><th>Phòng ban</th><th>Ngày cần</th></tr></thead>
-        <tbody>${BUY.map((b,i)=>`<tr>
-          <td><input type="checkbox" class="buy-row" data-i="${i}" onchange="updateBuyCount()"></td>
-          <td>${b.product}</td><td class="num">${b.qty} ${b.unit}</td>
-          <td>${b.prs.join(', ')}</td><td>${b.dept}</td><td>${b.need}</td></tr>`).join('')}</tbody>
+          <th>Sản phẩm</th><th class="num">Số lượng</th><th>Đơn vị</th><th>Phiếu yêu cầu</th><th>Phòng ban</th><th>Ngày cần</th><th>Người phụ trách mua</th></tr></thead>
+        <tbody id="buy-tbody">${buyRows()}</tbody>
       </table></div>`,
-     {n:String(BUY.length), r:'<button class="btn pri" id="btn-createpo" onclick="openPOModal()" disabled>Tạo PO từ mục đã chọn</button>'})}
+     {n:String(BUY.length), r:'<button class="btn buy-bulk" id="btn-buyassign" onclick="openBuyAssign()" disabled>Gán người mua</button><button class="btn pri buy-bulk" id="btn-createpo" onclick="openPOModal()" disabled>Tạo PO từ mục đã chọn</button>'})}
  </div>`;
 
 let PODRAFT = [];
+function buyRows(){
+  return BUY.map((b,i)=>`<tr>
+    <td><input type="checkbox" class="buy-row" data-i="${i}" onchange="updateBuyCount()"></td>
+    <td>${b.product}</td><td class="num">${b.qty}</td><td>${b.unit}</td>
+    <td>${b.prs.join(', ')}</td><td>${b.dept}</td><td>${b.need}</td>
+    <td>${b.buyer?`<span class="slds-badge">${b.buyer}</span>`:'<span class="wf-muted">— Chưa gán —</span>'}</td></tr>`).join('');
+}
+function renderBuyRows(){ const tb=document.getElementById('buy-tbody'); if(tb) tb.innerHTML=buyRows(); updateBuyCount(); }
 function updateBuyCount(){
   const boxes=[...document.querySelectorAll('.buy-row')];
   const n=boxes.filter(b=>b.checked).length;
-  const btn=document.getElementById('btn-createpo');
-  if(btn){ btn.disabled=n===0; btn.textContent = n ? `Tạo PO từ ${n} mục đã chọn` : 'Tạo PO từ mục đã chọn'; }
+  document.querySelectorAll('.buy-bulk').forEach(b=>b.disabled=n===0);
+  const cp=document.getElementById('btn-createpo'); if(cp) cp.textContent = n ? `Tạo PO từ ${n} mục đã chọn` : 'Tạo PO từ mục đã chọn';
   const master=document.querySelector('.buy-cb');
   if(master){ master.checked = n>0 && n===boxes.length; master.indeterminate = n>0 && n<boxes.length; }
 }
@@ -978,10 +980,15 @@ function toggleAllBuy(master){
   document.querySelectorAll('.buy-row').forEach(cb=>cb.checked=master.checked);
   updateBuyCount();
 }
+function openBuyAssign(){
+  MASS_TARGET='buy';
+  MASS_SEL=[...document.querySelectorAll('.buy-row:checked')].map(cb=>+cb.dataset.i);
+  if(!MASS_SEL.length) return; openMassModal(MASS_SEL.length);
+}
 function openPOModal(){
   const sel=[...document.querySelectorAll('.buy-row:checked')].map(cb=>BUY[+cb.dataset.i]);
   if(!sel.length) return;
-  PODRAFT=sel.map(b=>({product:b.product, qty:b.qty, unit:b.unit, prs:b.prs, supplier:''}));
+  PODRAFT=sel.map(b=>({product:b.product, qty:b.qty, unit:b.unit, prs:b.prs, supplier:'', price:''}));
   document.getElementById('pomback').classList.add('show');
   document.getElementById('pomodal').classList.add('show');
   renderPOStage();
@@ -991,14 +998,21 @@ function closePO(){
   document.getElementById('pomodal').classList.remove('show');
 }
 function renderPOStage(){
-  const opts=(cur)=>`<option value="">— Chọn NCC —</option>`+SUPPLIERS.map(s=>`<option ${s===cur?'selected':''}>${s}</option>`).join('');
+  const opts=(cur)=>`<option value="">— Chọn NCC —</option>`+SUPPLIERS.map(s=>`<option value="${s.name}" ${s.name===cur?'selected':''}>${s.name} — ${s.price} ₫ · ${stars(s.stars)}</option>`).join('');
   document.getElementById('pm-body').innerHTML=
-    `<table class="tbl po-stage"><thead><tr><th>Sản phẩm</th><th class="num">Số lượng</th><th>Phiếu yêu cầu</th><th>Nhà cung cấp</th></tr></thead>
+    `<div style="text-align:right;margin-bottom:8px"><button class="btn sm" onclick="addSupplier()">＋ Thêm mới NCC</button></div>
+     <table class="tbl po-stage"><thead><tr><th>Sản phẩm</th><th class="num">Số lượng</th><th>Phiếu yêu cầu</th><th>Nhà cung cấp</th><th class="num">Đơn giá</th></tr></thead>
      <tbody>${PODRAFT.map((p,i)=>`<tr><td>${p.product}</td><td class="num">${p.qty} ${p.unit}</td><td>${p.prs.join(', ')}</td>
-       <td><select onchange="setSup(${i},this.value)">${opts(p.supplier)}</select></td></tr>`).join('')}</tbody></table>`;
+       <td><select onchange="setSup(${i},this.value)">${opts(p.supplier)}</select></td>
+       <td class="num">${p.price?`${p.price} ₫`:'—'}</td></tr>`).join('')}</tbody></table>`;
   renderPOSummary();
 }
-function setSup(i,v){ PODRAFT[i].supplier=v; renderPOSummary(); }
+function setSup(i,v){ const s=SUPPLIERS.find(x=>x.name===v); PODRAFT[i].supplier=v; PODRAFT[i].price=s?s.price:''; renderPOStage(); }
+function addSupplier(){
+  SUPPLIERS.push({name:'NCC mới #'+(SUPPLIERS.length+1)+' (chưa đánh giá)', price:'—', stars:0});
+  renderPOStage();
+  toast('Đã thêm nhà cung cấp mới — chọn trong dropdown');
+}
 function renderPOSummary(){
   const groups={};
   PODRAFT.forEach(p=>{ if(p.supplier){ (groups[p.supplier]=groups[p.supplier]||[]).push(p); } });
@@ -1010,7 +1024,7 @@ function renderPOSummary(){
   } else {
     html=`<div class="po-sum-h">Sẽ tạo <b>${sups.length} PO</b> · đã gán NCC cho ${assigned}/${PODRAFT.length} sản phẩm</div>`;
     html+=sups.map((s,k)=>`<div class="po-card"><div class="po-card-h">PO ${k+1} — <b>${s}</b> <span>· ${groups[s].length} dòng</span></div>
-      ${groups[s].map(p=>`<div class="po-line"><span>${p.product} <span style="color:var(--ink-3)">(${p.prs.join(', ')})</span></span><span>${p.qty} ${p.unit}</span></div>`).join('')}</div>`).join('');
+      ${groups[s].map(p=>`<div class="po-line"><span>${p.product} <span style="color:var(--ink-3)">(${p.prs.join(', ')})</span></span><span>${p.qty} ${p.unit}${p.price&&p.price!=='—'?` · ${p.price} ₫`:''}</span></div>`).join('')}</div>`).join('');
   }
   const ready = sups.length>0 && assigned===PODRAFT.length;
   document.getElementById('pm-foot').innerHTML = html +
@@ -1069,7 +1083,10 @@ function lvBulkAssign(){ // list view sản phẩm từ PR đã duyệt
 function closeMass(){ document.getElementById('massback').classList.remove('show'); document.getElementById('massmodal').classList.remove('show'); }
 function confirmMass(){
   const buyer=document.getElementById('mass-buyer').value;
-  if(MASS_TARGET==='lv'){
+  if(MASS_TARGET==='buy'){
+    MASS_SEL.forEach(i=>{ if(BUY[i]) BUY[i].buyer=buyer; });
+    closeMass(); renderBuyRows(); toast(`Đã gán ${MASS_SEL.length} dòng sản phẩm cho ${buyer}`);
+  } else if(MASS_TARGET==='lv'){
     LV_ROWS.forEach(tr=>{ const tds=tr.querySelectorAll('td'); const cell=tds[tds.length-2];
       if(cell) cell.innerHTML='<span class="slds-badge">'+buyer+'</span>';
       const cb=tr.querySelector('.lv-row'); if(cb) cb.checked=false; });
