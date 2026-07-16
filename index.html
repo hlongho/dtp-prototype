@@ -892,7 +892,7 @@ S.lc = ()=> appnav('Bán hàng xuất khẩu','Thanh toán',['Trang chủ','Báo
  </div>`;
 
 S.pr_list = ()=> appnav('Mua hàng','Phiếu yêu cầu',['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'],'Phiếu yêu cầu')
- + `<div class="sf-body">${lv({ico:'📥',color:'#2e844a',object:'Phiếu yêu cầu',view:'Chờ phân công',views:['Chờ phân công','Của phòng tôi','Đã phân công','Tất cả','Xem gần đây'],count:'14',newLabel:'Phiếu mới',
+ + `<div class="sf-body">${lv({ico:'📥',color:'#2e844a',object:'Phiếu yêu cầu',view:'Chờ phân công',views:['Chờ phân công','Của phòng tôi','Đã phân công','Tất cả','Xem gần đây'],count:'14',
    bulk:[{label:'Duyệt',fn:'lvBulkApprove()'}],
    cols:[{t:'Số phiếu'},{t:'Phòng ban yêu cầu'},{t:'Ngày tạo'},{t:'Số dòng',num:true},{t:'Ngày cần sớm nhất'},{t:'Trạng thái'}],
    rows:[
@@ -1234,7 +1234,7 @@ function lv({crumb,ico,color,object,view,count,cols,rows,newLabel,views,bulk}){
       </div></div>
       <div class="slds-page-header__col-actions"><div class="slds-page-header__controls"><div class="slds-page-header__control" style="display:flex;align-items:center;gap:8px">
         ${bulk?`<span id="lv-selcount" class="wf-muted" style="font-size:12px"></span>${bulk.map(b=>`<button class="slds-button slds-button_neutral lv-bulk-btn" onclick="${b.fn}" disabled>${b.label}</button>`).join('')}`:''}
-        <ul class="slds-button-group-list"><li><button class="slds-button slds-button_brand">${newLabel||'Mới'}</button></li></ul>
+        ${newLabel?`<ul class="slds-button-group-list"><li><button class="slds-button slds-button_brand">${newLabel}</button></li></ul>`:''}
       </div></div></div>
     </div>
     <div class="slds-page-header__row"><p class="slds-page-header__meta-text wf-muted">${count||rows.length} mục · Cập nhật vài giây trước</p></div>
