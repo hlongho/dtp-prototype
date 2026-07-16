@@ -151,6 +151,9 @@ a:hover{text-decoration:underline}
 .po-line{display:flex;justify-content:space-between;padding:5px 12px;font-size:12px;color:var(--ink-2);border-bottom:1px dotted var(--line)}
 .po-line:last-child{border-bottom:0}
 .pm-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+.po-del{width:22px;height:22px;border-radius:50%;border:1px solid var(--line-2);background:var(--card);
+  color:var(--err);font-weight:700;font-size:15px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.po-del:hover{background:#f0f0f0;border-color:var(--err)}
 .buy-cb,.buy-row,.pr-row,.pr-all,.lv-row,.lv-all,.po-stage input{cursor:pointer;width:15px;height:15px}
 .mass-sel{width:100%;padding:8px 10px;border:1px solid var(--line-2);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card);color:var(--ink);outline:none}
 .mass-sel:focus{border-color:var(--sf-blue);box-shadow:0 0 0 2px var(--sf-blue-l)}
@@ -1008,11 +1011,17 @@ function renderPOStage(){
   const opts=(cur)=>`<option value="">— Chọn NCC —</option>`+SUPPLIERS.map(s=>`<option value="${s.name}" ${s.name===cur?'selected':''}>${s.name} — ${s.price} ₫ · ${stars(s.stars)}</option>`).join('');
   document.getElementById('pm-body').innerHTML=
     `<div style="text-align:right;margin-bottom:8px"><button class="btn sm" onclick="openSupModal()">＋ Thêm mới NCC</button></div>
-     <table class="tbl po-stage"><thead><tr><th>Sản phẩm</th><th class="num">Số lượng</th><th>Phiếu yêu cầu</th><th>Nhà cung cấp</th><th class="num">Đơn giá</th></tr></thead>
-     <tbody>${PODRAFT.map((p,i)=>`<tr><td>${p.product}</td><td class="num">${p.qty} ${p.unit}</td><td>${p.prs.join(', ')}</td>
+     <table class="tbl po-stage"><thead><tr><th style="width:30px"></th><th>Sản phẩm</th><th class="num">Số lượng</th><th>Phiếu yêu cầu</th><th>Nhà cung cấp</th><th class="num">Đơn giá</th></tr></thead>
+     <tbody>${PODRAFT.map((p,i)=>`<tr><td><button class="po-del" title="Bỏ sản phẩm khỏi PO" onclick="removePODraft(${i})">−</button></td>
+       <td>${p.product}</td><td class="num">${p.qty} ${p.unit}</td><td>${p.prs.join(', ')}</td>
        <td><select onchange="setSup(${i},this.value)">${opts(p.supplier)}</select></td>
        <td class="num">${p.price?`${p.price} ₫`:'—'}</td></tr>`).join('')}</tbody></table>`;
   renderPOSummary();
+}
+function removePODraft(i){
+  PODRAFT.splice(i,1);
+  if(!PODRAFT.length){ closePO(); toast('Đã bỏ hết sản phẩm — huỷ tạo PO'); return; }
+  renderPOStage();
 }
 function setSup(i,v){ const s=SUPPLIERS.find(x=>x.name===v); PODRAFT[i].supplier=v; PODRAFT[i].price=s?s.price:''; renderPOStage(); }
 function openSupModal(){
