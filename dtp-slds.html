@@ -619,7 +619,8 @@ const NAV = [
    ['pricebook','↳ Chi tiết bảng giá','','record'],
    ['contract_list','Hợp đồng nguyên tắc','Sales / Admin','list'],
    ['contract','↳ Chi tiết hợp đồng','','record'],
-   ['master','Khách hàng & NCC (sync ERP)','Admin','list']]},
+   ['master','Khách hàng & NCC (sync ERP)','Admin','list'],
+   ['account','↳ Chi tiết Khách hàng (Account)','','record']]},
  {g:'Bán hàng nội địa', items:[
    ['lead_list','Lead','Sales','list'],
    ['lead','↳ Chi tiết Lead (kiểm tra trùng)','','record'],
@@ -723,12 +724,34 @@ S.master = ()=> appnav('Dữ liệu nền tảng','Khách hàng & NCC',['Bảng 
    views:['Đang hoạt động','Khách hàng','Nhà cung cấp','Ngưng / tạm dừng','Tất cả','Xem gần đây'],count:'1.284',newLabel:'Đồng bộ ERP',
    cols:[{t:'Tên'},{t:'Mã số thuế'},{t:'Loại'},{t:'Nhà máy'},{t:'Trạng thái'}],
    rows:[
-    {go:'',cells:['Cty CP Minh Khang','0312765488','Khách hàng','Long An',pill('ok','Hoạt động')]},
-    {go:'',cells:['Cty Hưng Thịnh Phát','0398112233','Khách hàng','Bình Dương',pill('ok','Hoạt động')]},
+    {go:'account',cells:['Cty CP Minh Khang','0312765488','Khách hàng','Long An',pill('ok','Hoạt động')]},
+    {go:'account',cells:['Cty Hưng Thịnh Phát','0398112233','Khách hàng','Bình Dương',pill('ok','Hoạt động')]},
     {go:'vendor',cells:['Cty Giấy Phương Đông','0345678123','NCC','Mizu',pill('ok','Hoạt động')]},
     {go:'vendor',cells:['Cty Hóa chất Tân Tiến','0388445511','NCC','Bình Dương',pill('ok','Hoạt động')]},
-    {go:'',cells:['Cty Bao Bì Sông Lam','0322114466','Khách hàng','Long An',pill('ok','Hoạt động')]},
-    {go:'',cells:['Cty Đại Lộc','0367221900','Khách hàng','Long An',pill('warn','Ngưng đặt 2 tháng')]}]})}</div>`;
+    {go:'account',cells:['Cty Bao Bì Sông Lam','0322114466','Khách hàng','Long An',pill('ok','Hoạt động')]},
+    {go:'account',cells:['Cty Đại Lộc','0367221900','Khách hàng','Long An',pill('warn','Ngưng đặt 2 tháng')]}]})}</div>`;
+
+S.account = ()=> appnav('Dữ liệu nền tảng','Khách hàng',['Bảng giá','Hợp đồng','Sản phẩm','Khách hàng','NCC'],'Khách hàng')
+ + `<div class="sf-body narrow">
+   ${hl({crumb:'<span data-go="master">Khách hàng & NCC</span> &rsaquo;',ico:'🏢',title:'Cty CP Minh Khang',sub:'Khách hàng · Nhà máy Long An · Đồng bộ từ ERP Rosy',
+     fields:[['Mã số thuế','0312765488'],['Hạn mức công nợ','₫2,0 tỷ'],['Dư nợ hiện tại','₫1,62 tỷ'],['Trạng thái',pill('ok','Hoạt động')]],
+     actions:['Sửa']})}
+   <div class="cols-side">
+     <div>
+     ${card('Thông tin khách hàng', fg([['Tên','Cty CP Minh Khang'],['Mã số thuế','0312765488'],['Loại','Khách hàng'],
+       ['Nhà máy giao dịch','Long An'],['Điều khoản TT','Net 30'],['Người phụ trách','Trần Thị B'],['Điện thoại','028 xxx xxxx'],['Địa chỉ','KCN Long An']]))}
+     ${card('Cơ hội', tbl([{t:'Tên cơ hội'},{t:'Giai đoạn'},{t:'Số tiền',num:true},{t:'Đóng dự kiến'}],[
+       ['Cung cấp Medium Q3',pill('info','Báo giá'),'₫3,4 tỷ','15/08/2026'],
+       ['Đơn giấy hai da',pill('mut','Tìm hiểu'),'₫600 tr','30/09/2026']]),{n:'2',r:'<button class="btn sm">Cơ hội mới</button>'})}
+     ${card('Đơn hàng', tbl([{t:'Số đơn'},{t:'Giá trị',num:true},{t:'Trạng thái'},{t:'Ngày nhận'}],[
+       ['PO-2601','₫980 tr',pill('ok','Đã đóng'),'02/06/2026'],
+       ['PO-2574','₫1,1 tỷ',pill('ok','Đã đóng'),'12/05/2026']]),{n:'2'})}
+     ${card('Hợp đồng nguyên tắc', tbl([{t:'Số HĐ'},{t:'Hiệu lực'},{t:'Trạng thái'}],[
+       ['HĐ-0421','15/08/2025 – 14/08/2026',pill('warn','Sắp hết hạn')]]),{n:'1'})}
+     </div>
+     ${activity([['📞','Trao đổi kế hoạch mua Q3','Trần Thị B · Hôm nay'],['✉','Gửi bảng giá tháng 7','Hôm qua'],['✔','Ký gia hạn hợp đồng năm trước','15/08/2025']])}
+   </div>
+ </div>`;
 
 S.lead = ()=> appnav('Bán hàng nội địa','Lead',['Trang chủ','Lead','Cơ hội','Đơn hàng','Khách hàng','Case'],'Lead')
  + `<div class="sf-body narrow">
