@@ -1056,7 +1056,7 @@ S.pr = ()=> appnav('Mua hàng','Phiếu yêu cầu',['Trang chủ','Phiếu yêu
      ${card('Dòng sản phẩm cần mua',
        `<div class="tbl-wrap"><table class="tbl">
           <thead><tr><th style="width:34px"><input type="checkbox" class="pr-all" title="Chọn tất cả" onchange="toggleAllPR(this)"></th>
-            <th>Sản phẩm</th><th class="num">Số lượng</th><th>Đơn vị</th><th>Ngày cần</th><th>Người phụ trách mua</th></tr></thead>
+            <th>Sản phẩm</th><th class="num">Số lượng</th><th>Đơn vị</th><th>Ngày cần</th><th style="text-align:center">Hàng nhập khẩu</th><th>Người phụ trách mua</th></tr></thead>
           <tbody id="pr-lines-tbody">${prLinesRows()}</tbody>
        </table></div>`,
        {n:String(PR_LINES.length), r:'<button class="btn pri" id="btn-massassign" onclick="openMassAssign()" disabled>Gán người mua</button>'})}
@@ -1273,19 +1273,21 @@ function confirmPO(){
 
 /* ===== PR object: dòng sản phẩm + mass assign người mua ===== */
 let PR_LINES = [
-  {product:'Keo dán công nghiệp', qty:'2.000', unit:'kg',   need:'20/07/2026', buyer:''},
-  {product:'Hóa chất tẩy trắng',  qty:'500',   unit:'kg',   need:'24/07/2026', buyer:''},
-  {product:'Dây đai PP',          qty:'800',   unit:'cuộn', need:'21/07/2026', buyer:''},
-  {product:'Mực in công nghiệp',  qty:'120',   unit:'kg',   need:'23/07/2026', buyer:''},
-  {product:'Lô cao su máy xeo',   qty:'4',     unit:'cái',  need:'25/07/2026', buyer:'Nguyễn Văn A'},
+  {product:'Keo dán công nghiệp', qty:'2.000', unit:'kg',   need:'20/07/2026', imported:false, buyer:''},
+  {product:'Hóa chất tẩy trắng',  qty:'500',   unit:'kg',   need:'24/07/2026', imported:true,  buyer:''},
+  {product:'Dây đai PP',          qty:'800',   unit:'cuộn', need:'21/07/2026', imported:false, buyer:''},
+  {product:'Mực in công nghiệp',  qty:'120',   unit:'kg',   need:'23/07/2026', imported:true,  buyer:''},
+  {product:'Lô cao su máy xeo',   qty:'4',     unit:'cái',  need:'25/07/2026', imported:false, buyer:'Nguyễn Văn A'},
 ];
 const BUYERS = ['Nguyễn Văn A','Trần Thị B','Lê Văn C','Phạm Thị D'];
 function prLinesRows(){
   return PR_LINES.map((l,i)=>`<tr>
     <td><input type="checkbox" class="pr-row" data-i="${i}" onchange="updatePRSel()"></td>
     <td>${l.product}</td><td class="num">${l.qty}</td><td>${l.unit}</td><td>${l.need}</td>
+    <td style="text-align:center"><input type="checkbox" ${l.imported?'checked':''} onchange="togglePRImport(${i},this)" title="Hàng nhập khẩu"></td>
     <td>${l.buyer ? pill('ok',l.buyer) : '<span style="color:var(--ink-3)">— Chưa gán —</span>'}</td></tr>`).join('');
 }
+function togglePRImport(i,el){ if(PR_LINES[i]){ PR_LINES[i].imported=el.checked; toast(PR_LINES[i].product+': '+(el.checked?'đánh dấu Hàng nhập khẩu':'bỏ đánh dấu Hàng nhập khẩu')); } }
 function renderPRLines(){ const tb=document.getElementById('pr-lines-tbody'); if(tb) tb.innerHTML=prLinesRows(); updatePRSel(); }
 function updatePRSel(){
   const boxes=[...document.querySelectorAll('.pr-row')];
