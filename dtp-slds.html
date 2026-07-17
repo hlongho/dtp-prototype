@@ -1319,7 +1319,7 @@ function togglePRImport(i,el){ if(PR_LINES[i]){ PR_LINES[i].imported=el.checked;
 function togglePaid(el){ toast(el.checked?'Đã đánh dấu PO đã thanh toán':'Bỏ đánh dấu đã thanh toán'); }
 
 /* ===== PO bán nội địa: Case related list + tạo Case ===== */
-let POCASES=[{no:'CASE-EX-0031', type:'Giao hàng ngoại lệ', status:'Chờ TGĐ duyệt', date:'13/07/2026', go:'excase'}];
+let POCASES=[{no:'CASE-0087', type:'Khiếu nại — Hàng giấy bị ướt khi giao', status:'Đang xử lý', date:'13/07/2026', go:'case'}];
 let poCaseSeq=32;
 function poCasesRows(){
   return POCASES.map(c=>`<tr><td><a data-go="${c.go||'case'}">${c.no}</a></td><td>${c.type}</td><td><span class="slds-badge">${c.status}</span></td><td>${c.date}</td></tr>`).join('');
