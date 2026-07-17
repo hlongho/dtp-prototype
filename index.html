@@ -589,7 +589,7 @@ function hl({crumb,ico,color,title,sub,fields,actions}){
       </div>
       <div class="slds-page-header__col-actions">
         <div class="slds-page-header__controls"><div class="slds-page-header__control">
-          <ul class="slds-button-group-list">${(actions||['Sửa','Xóa']).map(a=>`<li><button class="slds-button ${a.pri?'slds-button_brand':'slds-button_neutral'}">${a.t||a}</button></li>`).join('')}</ul>
+          <ul class="slds-button-group-list">${(actions||['Sửa','Xóa']).map(a=>`<li><button class="slds-button ${a.pri?'slds-button_brand':'slds-button_neutral'}" ${a.fn?`onclick="${a.fn}"`:''}>${a.t||a}</button></li>`).join('')}</ul>
         </div></div>
       </div>
     </div>
@@ -637,6 +637,49 @@ function activity(items){
 const sampleActivity=[['📞','Gọi xác nhận số lượng đặt hàng','Nguyễn Văn Sales · Hôm nay 09:12'],
   ['✉','Gửi báo giá tháng 7','Trần Thị B · Hôm qua'],
   ['✔','Duyệt điều kiện sản xuất','P. Kế hoạch · 12/07/2026']];
+
+/* ===== Opportunity: Báo giá (Quotes) ===== */
+let QUOTES=[
+  {no:'QUO-0451', date:'12/07/2026', total:'1.470.000.000 ₫', status:'Đã gửi'},
+  {no:'QUO-0448', date:'05/07/2026', total:'1.420.000.000 ₫', status:'Hết hiệu lực'},
+];
+let quoteSeq=452;
+function quotesRows(){
+  return QUOTES.map(q=>`<tr>
+    <td><a>${q.no}</a></td><td>${q.date}</td><td class="num">${q.total}</td>
+    <td><span class="slds-badge">${q.status}</span></td>
+    <td class="num"><button class="btn sm" title="Xuất báo giá PDF" onclick="exportQuotePDF('${q.no}')">📄 PDF</button></td></tr>`).join('');
+}
+function renderQuotes(){ const tb=document.getElementById('quotes-tbody'); if(tb) tb.innerHTML=quotesRows(); }
+function createQuote(){
+  const no='QUO-0'+(quoteSeq++);
+  QUOTES.unshift({no, date:'Hôm nay', total:'1.470.000.000 ₫', status:'Nháp'});
+  renderQuotes();
+  toast('Đã tạo báo giá '+no+' (Nháp)');
+}
+function createContract(){ toast('Đã tạo Hợp đồng nháp từ cơ hội — chuyển sang màn Hợp đồng'); setTimeout(function(){ if(S.contract) go('contract'); }, 700); }
+function exportQuotePDF(no){
+  const q=QUOTES.find(x=>x.no===no)||QUOTES[0];
+  const total = (typeof q.total==='string')?q.total:'';
+  const w=window.open('','_blank');
+  if(!w){ toast('Trình duyệt chặn cửa sổ — cho phép popup để xuất PDF'); return; }
+  w.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Báo giá ${no}</title>
+    <style>body{font-family:Arial,"Segoe UI",sans-serif;color:#222;margin:36px;font-size:13px}
+    h1{font-size:20px;margin:0 0 2px} .muted{color:#666} .hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #333;padding-bottom:12px;margin-bottom:16px}
+    table{width:100%;border-collapse:collapse;margin:14px 0} th,td{border:1px solid #ccc;padding:7px 10px;text-align:left;font-size:12.5px} th{background:#f2f2f2}
+    .num{text-align:right} .tot{font-weight:700} .sec{margin:14px 0} .lbl{color:#666;font-size:11px}</style></head>
+    <body>
+      <div class="hd"><div><h1>CÔNG TY CP GIẤY ĐỒNG TIẾN</h1><div class="muted">KCN Long An · MST 0301xxxxxx</div></div>
+        <div style="text-align:right"><h1>BÁO GIÁ</h1><div class="muted">Số: <b>${no}</b><br>Ngày: ${q.date}</div></div></div>
+      <div class="sec"><span class="lbl">Khách hàng</span><br><b>Cty Hưng Thịnh Phát</b> · MST 0398112233 · KCN Bình Dương</div>
+      <table><thead><tr><th>Sản phẩm</th><th>ĐL/Khổ</th><th class="num">SL (tấn)</th><th class="num">Đơn giá (₫/kg)</th><th class="num">Thành tiền</th></tr></thead>
+        <tbody><tr><td>Giấy Medium</td><td>125gsm / 200</td><td class="num">120</td><td class="num">12.250</td><td class="num">1.470.000.000 ₫</td></tr>
+          <tr><td colspan="4" class="num tot">Tổng cộng (chưa VAT)</td><td class="num tot">${total||'1.470.000.000 ₫'}</td></tr></tbody></table>
+      <div class="sec"><span class="lbl">Điều khoản</span><br>Thanh toán: Net 30 · Hiệu lực báo giá: 15 ngày · Giao hàng: theo thỏa thuận</div>
+      <div class="sec" style="margin-top:40px;display:flex;justify-content:space-between"><div>Khách hàng<br><span class="muted">(Ký, ghi rõ họ tên)</span></div><div style="text-align:right">Đại diện Đồng Tiến<br><span class="muted">(Ký, ghi rõ họ tên)</span></div></div>
+    </body></html>`);
+  w.document.close(); w.focus(); setTimeout(function(){ try{w.print();}catch(e){} }, 300);
+}
 
 /* ============ screen registry ============ */
 // [id, label, dept, tag]  tag: custom | list | record(sub) | flow
@@ -799,12 +842,18 @@ S.opp = ()=> appnav('Bán hàng nội địa','Cơ hội',['Trang chủ','Lead',
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="opp_list">Cơ hội</span> &rsaquo;',ico:'💼',color:'#0176d3',title:'Cty Hưng Thịnh — Cung cấp Medium Q3',sub:'Cơ hội · 1.200.000.000 ₫ · Đóng dự kiến 30/07/2026',
      fields:[['Số tiền','1.200.000.000 ₫'],['Giai đoạn',pill('info','Gửi mẫu')],['Xác suất','60%'],['Phụ trách','Trần Thị B']],
-     actions:[{t:'Tạo báo giá',pri:true},'Sửa','Gửi mẫu']})}
+     actions:[{t:'Tạo báo giá',pri:true,fn:'createQuote()'},{t:'Tạo hợp đồng',fn:'createContract()'},'Gửi mẫu','Sửa']})}
    ${path(['Phân tích nhu cầu','Gửi mẫu','Duyệt mẫu','Báo giá','Đàm phán','Đóng - Thắng'],1)}
    <div class="cols-side">
      <div>
      ${card('Chi tiết cơ hội', fg([['Khách hàng','Cty Hưng Thịnh Phát','link'],['Sản phẩm','Giấy Medium 125gsm'],
        ['Số lượng dự kiến','120 tấn/tháng'],['Nguồn','Khách hàng cũ'],['Ngày đóng dự kiến','30/07/2026'],['Đối thủ','Giấy An Bình']]))}
+     ${card('Báo giá (Quotes)',
+       `<div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Số báo giá</th><th>Ngày tạo</th><th class="num">Giá trị</th><th>Trạng thái</th><th></th></tr></thead>
+          <tbody id="quotes-tbody">${quotesRows()}</tbody>
+       </table></div>`,
+       {n:String(QUOTES.length), r:'<button class="btn sm" onclick="createQuote()">＋ Tạo báo giá</button>'})}
      ${card('Lịch sử gửi mẫu (Sampling)', tbl([{t:'Ngày gửi'},{t:'Mẫu'},{t:'ĐL/Khổ'},{t:'Kết quả'}],[
        ['05/07/2026','Medium M-01','125/200',pill('ok','Duyệt')],
        ['28/06/2026','Medium M-00','110/180',pill('err','Từ chối — độ ẩm')]]),{n:'2'})}
