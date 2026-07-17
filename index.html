@@ -105,7 +105,7 @@ a:hover{text-decoration:underline}
 .waffle{display:grid;grid-template-columns:repeat(3,4px);grid-gap:2px;padding:8px;border-radius:5px;flex-shrink:0}
 .waffle span{width:4px;height:4px;background:#fff;border-radius:1px;opacity:.9}
 .waffle:hover{background:rgba(255,255,255,.15)}
-.g-search{flex:1;max-width:640px;background:#fff;border-radius:16px;display:flex;align-items:center;
+.g-search{width:min(560px,46vw);flex:0 0 auto;background:#fff;border-radius:16px;display:flex;align-items:center;
   gap:8px;padding:5px 14px;color:#747474;position:relative}
 .g-search svg{flex-shrink:0}
 .g-search input{flex:1;border:0;outline:none;background:transparent;font-size:13px;color:#181818;font-family:inherit}
@@ -487,12 +487,12 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
       <button class="waffle" title="App Launcher" onclick="openLauncher()">
         <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
       </button>
+      <div class="g-spacer"></div>
       <div class="g-search">
         <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><circle cx="8" cy="8" r="6" stroke="#747474" stroke-width="2"/><path d="M13 13l5 5" stroke="#747474" stroke-width="2"/></svg>
         <input id="gsearch" type="text" autocomplete="off" placeholder="Tìm kiếm...">
         <div id="search-dd"></div>
       </div>
-      <button class="g-ico g-fav" title="Yêu thích">★</button>
       <div class="g-spacer"></div>
       <div class="g-icons">
         <span class="g-ico g-gear" title="Thiết lập (Setup)">⚙</span>
