@@ -854,6 +854,9 @@ S.opp = ()=> appnav('Bán hàng nội địa','Cơ hội',['Trang chủ','Lead',
           <tbody id="quotes-tbody">${quotesRows()}</tbody>
        </table></div>`,
        {n:String(QUOTES.length), r:'<button class="btn sm" onclick="createQuote()">＋ Tạo báo giá</button>'})}
+     ${card('Hợp đồng', tbl([{t:'Số HĐ'},{t:'Ngày ký'},{t:'Hiệu lực đến'},{t:'Giá trị'},{t:'Trạng thái'}],[
+       ['<a data-go="contract">HĐ-0388</a>','30/11/2025','30/11/2026','3.000.000.000 ₫',pill('ok','Hiệu lực')]]),
+       {n:'1',r:'<button class="btn sm" onclick="createContract()">＋ Tạo hợp đồng</button>'})}
      ${card('Lịch sử gửi mẫu (Sampling)', tbl([{t:'Ngày gửi'},{t:'Mẫu'},{t:'ĐL/Khổ'},{t:'Kết quả'}],[
        ['05/07/2026','Medium M-01','125/200',pill('ok','Duyệt')],
        ['28/06/2026','Medium M-00','110/180',pill('err','Từ chối — độ ẩm')]]),{n:'2'})}
