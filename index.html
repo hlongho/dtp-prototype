@@ -331,6 +331,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
 .ca.on{border-color:var(--sf-blue);color:var(--sf-blue);background:var(--sf-blue-l);font-weight:600}
 .composer{border:1px solid var(--line-2);border-radius:5px;padding:9px 11px;color:var(--ink-3);
   margin:10px 14px 6px;font-size:12.5px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.composer .composer-input{flex:1;border:0;background:none;font-size:12.5px;color:var(--ink);outline:none;min-width:0}
 .composer .composer-btn{color:var(--sf-blue);font-weight:700;font-size:12px;white-space:nowrap;cursor:pointer}
 .act-filter{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;
   border-top:1px solid var(--line);font-size:11.5px;color:var(--ink-3)}
@@ -658,6 +659,27 @@ const ACTSVG={
  note:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>',
  event:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>'};
 function actType(ic){ if(ic==='📞')return'call'; if(['✉','✆','📤','📧','📨','✉️'].includes(ic))return'email'; if(ic==='📅')return'event'; if(['📋','✔','✅','☑'].includes(ic))return'task'; return'note'; }
+function newTlItemHTML(type,title,who,date,check){
+  return `<div class="tl-item"><span class="tl-check" ${check?'':'style="visibility:hidden"'}></span>
+    <span class="tl-dot">${ACTSVG[type]||ACTSVG.note}</span>
+    <div class="m"><div class="h"><span>${title}</span><span class="date">${date}</span></div><div class="s">${who}</div></div></div>`;
+}
+function saveActivity(cb){
+  const card=cb.closest('.act'); if(!card) return;
+  const input=card.querySelector('.composer-input'); const val=(input&&input.value||'').trim();
+  if(!val){ toast('Nhập nội dung trước khi lưu'); if(input) input.focus(); return; }
+  const activeCa=card.querySelector('.ca.on'); const type=activeCa?activeCa.dataset.type:'note';
+  const groups=card.querySelectorAll('.tl-group'); // [0]=Sắp tới & Quá hạn, [1]=Đã qua
+  if(type==='task'){
+    const g=groups[0]; const nx=g.nextElementSibling; if(nx&&nx.classList.contains('tl-empty')) nx.remove();
+    g.insertAdjacentHTML('afterend', newTlItemHTML('task','Task: '+val,'Tôi','Hôm nay',true));
+  } else {
+    let tl=card.querySelector('.timeline');
+    if(!tl){ const g=groups[1]; const nx=g.nextElementSibling; if(nx&&nx.classList.contains('tl-empty')) nx.remove(); g.insertAdjacentHTML('afterend','<div class="timeline"></div>'); tl=card.querySelector('.timeline'); }
+    tl.insertAdjacentHTML('afterbegin', newTlItemHTML(type,val,'Tôi','Vừa xong',false));
+  }
+  input.value=''; toast('Đã thêm hoạt động mới');
+}
 function activity(items){
   items=items||[];
   const tlItem=(i,check)=>{ const type=actType(i[0]);
@@ -671,11 +693,11 @@ function activity(items){
   return `<div class="card act">
     <div class="act-tabs"><button class="t on">Hoạt động</button><button class="t">Chatter</button></div>
     <div class="act-actions">
-      <button class="ca on" data-ph="Ghi lại nội dung cuộc gọi đã thực hiện…">${ACTSVG.call}Ghi lại cuộc gọi</button>
-      <button class="ca" data-ph="Tiêu đề công việc mới…">${ACTSVG.task}Công việc mới</button>
-      <button class="ca" data-ph="Chủ đề & thời gian sự kiện…">${ACTSVG.event}Sự kiện mới</button>
-      <button class="ca" data-ph="Soạn email gửi khách hàng…">${ACTSVG.email}Email</button></div>
-    <div class="composer"><span>Ghi lại nội dung cuộc gọi đã thực hiện…</span><span class="composer-btn">Lưu</span></div>
+      <button class="ca on" data-type="call" data-ph="Ghi lại nội dung cuộc gọi đã thực hiện…">${ACTSVG.call}Ghi lại cuộc gọi</button>
+      <button class="ca" data-type="task" data-ph="Tiêu đề công việc mới…">${ACTSVG.task}Công việc mới</button>
+      <button class="ca" data-type="event" data-ph="Chủ đề &amp; thời gian sự kiện…">${ACTSVG.event}Sự kiện mới</button>
+      <button class="ca" data-type="email" data-ph="Soạn email gửi khách hàng…">${ACTSVG.email}Email</button></div>
+    <div class="composer"><input class="composer-input" placeholder="Ghi lại nội dung cuộc gọi đã thực hiện…" onkeydown="if(event.key==='Enter'){this.parentElement.querySelector('.composer-btn').click();}"><span class="composer-btn">Lưu</span></div>
     <div class="act-filter"><span>Sắp xếp: <b>Ngày</b> · Tất cả loại hoạt động</span><span>Lọc · Làm mới</span></div>
     <div class="tl-group">Sắp tới &amp; Quá hạn</div>
     ${up.length? up.map(i=>tlItem(i,true)).join('') : '<div class="tl-empty">Không có việc sắp tới. Bắt đầu bằng cách ghi cuộc gọi hoặc tạo công việc mới.</div>'}
@@ -1813,12 +1835,12 @@ function setupClicks(){
     // 5a) nút soạn thảo (Cuộc gọi / Công việc / Sự kiện / Email)
     const ca=e.target.closest('.ca');
     if(ca){ ca.parentElement.querySelectorAll('.ca').forEach(x=>x.classList.remove('on')); ca.classList.add('on');
-      const comp=ca.closest('.act').querySelector('.composer span'); if(comp&&ca.dataset.ph) comp.textContent=ca.dataset.ph; return; }
+      const inp=ca.closest('.act').querySelector('.composer-input'); if(inp&&ca.dataset.ph) inp.placeholder=ca.dataset.ph; if(inp) inp.focus(); return; }
     // 5a2) tick hoàn tất công việc
     const chk=e.target.closest('.tl-check');
     if(chk && chk.style.visibility!=='hidden'){ chk.classList.toggle('done'); toast(chk.classList.contains('done')?'Đã đánh dấu hoàn tất':'Đã bỏ đánh dấu'); return; }
-    // 5a3) nút Lưu trong composer
-    const cb=e.target.closest('.composer-btn'); if(cb){ toast('Đã lưu hoạt động'); return; }
+    // 5a3) nút Lưu trong composer -> tạo hoạt động mới
+    const cb=e.target.closest('.composer-btn'); if(cb){ saveActivity(cb); return; }
     // 5b) Related list tabs (cột giữa)
     const rt=e.target.closest('.rel-tab');
     if(rt){
