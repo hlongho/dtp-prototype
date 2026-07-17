@@ -1067,12 +1067,35 @@ function renderPOStage(){
      <tbody>${rows}</tbody></table>`;
   renderPOSummary();
 }
-function setSplitQty(gi,si,v){ PODRAFT[gi].splits[si].qty=parseNum(v); renderPOStage(); }
+function setSplitQty(gi,si,v){
+  const g=PODRAFT[gi];
+  let val=parseNum(v); if(val>g.total) val=g.total; if(val<0) val=0;
+  g.splits[si].qty=val;
+  // các dòng còn lại tự cân để tổng = tổng cần mua (theo tỉ lệ hiện tại)
+  const others=g.splits.map((s,i)=>i).filter(i=>i!==si);
+  if(others.length){
+    const remaining=g.total-val;
+    const cur=others.map(i=>parseNum(g.splits[i].qty));
+    const curSum=cur.reduce((a,b)=>a+b,0);
+    let assigned=0;
+    others.forEach((idx,k)=>{
+      let q;
+      if(k===others.length-1){ q=remaining-assigned; }
+      else { q = curSum>0 ? Math.round(remaining*cur[k]/curSum) : Math.round(remaining/others.length); assigned+=q; }
+      g.splits[idx].qty=Math.max(0,q);
+    });
+  }
+  renderPOStage();
+}
 function setSplitSup(gi,si,v){ const s=SUPPLIERS.find(x=>x.name===v); PODRAFT[gi].splits[si].supplier=v; PODRAFT[gi].splits[si].price=s?s.price:''; renderPOStage(); }
 function addSplit(gi){ const g=PODRAFT[gi]; const last=g.splits[g.splits.length-1]; const q=parseNum(last.qty); const h=Math.floor(q/2); last.qty=q-h; g.splits.push({supplier:'',qty:h,price:''}); renderPOStage(); }
 function removeSplit(gi,si){
   const g=PODRAFT[gi];
-  if(g.splits.length>1){ g.splits.splice(si,1); } else { PODRAFT.splice(gi,1); }
+  if(g.splits.length>1){
+    const removedQ=parseNum(g.splits[si].qty);
+    g.splits.splice(si,1);
+    const last=g.splits[g.splits.length-1]; last.qty=parseNum(last.qty)+removedQ; // dồn để tổng vẫn = total
+  } else { PODRAFT.splice(gi,1); }
   if(!PODRAFT.length){ closePO(); toast('Đã bỏ hết sản phẩm — huỷ tạo PO'); return; }
   renderPOStage();
 }
