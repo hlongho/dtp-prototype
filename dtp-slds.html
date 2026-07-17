@@ -1288,6 +1288,7 @@ function prLinesRows(){
     <td>${l.buyer ? pill('ok',l.buyer) : '<span style="color:var(--ink-3)">— Chưa gán —</span>'}</td></tr>`).join('');
 }
 function togglePRImport(i,el){ if(PR_LINES[i]){ PR_LINES[i].imported=el.checked; toast(PR_LINES[i].product+': '+(el.checked?'đánh dấu Hàng nhập khẩu':'bỏ đánh dấu Hàng nhập khẩu')); } }
+function togglePaid(el){ toast(el.checked?'Đã đánh dấu PO đã thanh toán':'Bỏ đánh dấu đã thanh toán'); }
 function renderPRLines(){ const tb=document.getElementById('pr-lines-tbody'); if(tb) tb.innerHTML=prLinesRows(); updatePRSel(); }
 function updatePRSel(){
   const boxes=[...document.querySelectorAll('.pr-row')];
@@ -1336,16 +1337,13 @@ function confirmMass(){
 S.ppo = ()=> appnav('Mua hàng','Đơn mua (PO)',['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'],'Đơn mua (PO)')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="ppo_list">Đơn mua hàng</span> &rsaquo;',ico:'🛒',color:'#2e844a',title:'PPO-0915 · Keo dán công nghiệp',sub:'Gộp từ PR-3301, PR-3302 · 3.500 kg',
-     fields:[['Giá trị','182.000.000 ₫'],['NCC được chọn','Cty Hóa chất Tân Tiến'],['Trạng thái',pill('warn','Chờ duyệt')],['SL','3.500 kg']],
+     fields:[['Giá trị','182.000.000 ₫'],['NCC được chọn','Cty Hóa chất Tân Tiến'],['Trạng thái',pill('warn','Chờ duyệt')],['SL','3.500 kg'],['Đã thanh toán','<input type="checkbox" style="width:16px;height:16px;vertical-align:middle" onchange="togglePaid(this)" title="Đã thanh toán">']],
      actions:[{t:'Trình duyệt',pri:true},'Export PDF']})}
    ${path(['Tạo PO','Chờ duyệt','Đã duyệt','Nhận hàng','Đóng PO'],1)}
    <div class="cols-side wide">
      <div>
      ${card('Theo dõi nhận hàng', tbl([{t:'Vật tư'},{t:'SL đặt',num:true},{t:'Đã nhận',num:true},{t:'Chưa nhận',num:true},{t:'Ngày nhận dự kiến'},{t:'Phiếu nhập'},{t:'Trạng thái'}],[
        ['Keo dán công nghiệp','3.500','3.200','300','30/07/2026','NK-2201',pill('warn','Còn thiếu 300 kg')]]),{n:'1',r:'<button class="btn sm">Ghi nhận nhận hàng</button>'})}
-     ${card('Kế hoạch thanh toán', tbl([{t:'Đợt'},{t:'Điều khoản'},{t:'Số tiền',num:true},{t:'Hạn'},{t:'Trạng thái'}],[
-       ['Cọc','TT trước','54.600.000 ₫','10/07/2026',pill('ok','Đã trả')],
-       ['Còn lại','Net 30 sau nhận','127.400.000 ₫','15/08/2026',pill('info','Chờ')]]),{n:'2'})}
      ${card('Shipment', tbl([{t:'Số lô / Booking'},{t:'Hãng tàu'},{t:'ETD'},{t:'ETA'},{t:'Trạng thái'}],[
        ['<a data-go="shipment">SHP-2026-018</a>','ONE','19/07/2026','02/08/2026',pill('info','Trên biển')]]),{n:'1'})}
      </div>
