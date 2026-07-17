@@ -654,18 +654,20 @@ function pill(cls,t){return `<span class="slds-badge">${t}</span>`;}
 const ACTSVG={
  call:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1l-2.2 2.2z"/></svg>',
  email:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
- task:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg>',
+ task:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3.2h6V6H9z"/><path d="M8.5 12.5l2 2 4-4.5"/></svg>',
+ note:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>',
  event:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>'};
-function actType(ic){ if(ic==='📞')return'call'; if(['✉','✆','📤','📧','📨','✉️'].includes(ic))return'email'; if(ic==='📅')return'event'; return'task'; }
+function actType(ic){ if(ic==='📞')return'call'; if(['✉','✆','📤','📧','📨','✉️'].includes(ic))return'email'; if(ic==='📅')return'event'; if(['📋','✔','✅','☑'].includes(ic))return'task'; return'note'; }
 function activity(items){
   items=items||[];
-  const tlItem=(i)=>{ const type=actType(i[0]); const isTask=(type==='task');
+  const tlItem=(i,check)=>{ const type=actType(i[0]);
     const p=(i[2]||'').split('·'); const who=(p[0]||'').trim(); const date=(p.slice(1).join(' · ')).trim();
-    return `<div class="tl-item"><span class="tl-check" ${isTask?'':'style="visibility:hidden"'}></span>
-      <span class="tl-dot">${ACTSVG[type]}</span>
+    return `<div class="tl-item"><span class="tl-check" ${check?'':'style="visibility:hidden"'}></span>
+      <span class="tl-dot">${ACTSVG[type]||ACTSVG.note}</span>
       <div class="m"><div class="h"><span>${i[1]}</span><span class="date">${date}</span></div><div class="s">${who}</div></div></div>`; };
-  const up=items.filter(i=>actType(i[0])==='task');
-  const past=items.filter(i=>actType(i[0])!=='task');
+  const isUp=i=>/^\s*task\b/i.test(i[1]);           // mục mở/quá hạn = tiêu đề bắt đầu bằng "Task"
+  const up=items.filter(isUp);
+  const past=items.filter(i=>!isUp(i));
   return `<div class="card act">
     <div class="act-tabs"><button class="t on">Hoạt động</button><button class="t">Chatter</button></div>
     <div class="act-actions">
@@ -676,9 +678,9 @@ function activity(items){
     <div class="composer"><span>Ghi lại nội dung cuộc gọi đã thực hiện…</span><span class="composer-btn">Lưu</span></div>
     <div class="act-filter"><span>Sắp xếp: <b>Ngày</b> · Tất cả loại hoạt động</span><span>Lọc · Làm mới</span></div>
     <div class="tl-group">Sắp tới &amp; Quá hạn</div>
-    ${up.length? up.map(tlItem).join('') : '<div class="tl-empty">Không có việc sắp tới. Bắt đầu bằng cách ghi cuộc gọi hoặc tạo công việc mới.</div>'}
+    ${up.length? up.map(i=>tlItem(i,true)).join('') : '<div class="tl-empty">Không có việc sắp tới. Bắt đầu bằng cách ghi cuộc gọi hoặc tạo công việc mới.</div>'}
     <div class="tl-group">Đã qua</div>
-    ${past.length? `<div class="timeline">${past.map(tlItem).join('')}</div>` : '<div class="tl-empty">Chưa có hoạt động đã qua.</div>'}
+    ${past.length? `<div class="timeline">${past.map(i=>tlItem(i,false)).join('')}</div>` : '<div class="tl-empty">Chưa có hoạt động đã qua.</div>'}
   </div>`;
 }
 const sampleActivity=[['📞','Gọi xác nhận số lượng đặt hàng','Nguyễn Văn Sales · Hôm nay 09:12'],
