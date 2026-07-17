@@ -1417,8 +1417,10 @@ S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',['Trang chủ','Kế ho�
    ${path(['Draft','Final Docx','Open tờ khai','Completed'],1)}
    <div class="cols-side">
      <div>
-     ${card('Mốc logistics', fg([['Số Bill (B/L)','ONEYSGN123456'],['Cảng đi / đến','Los Angeles / Cát Lái'],
-       ['ETD','28/06/2026'],['ETA','19/07/2026'],['Free time DEM','7 ngày từ ETA'],['Free time DET','10 ngày']]))}
+     ${card('Detail', fg([['Số Bill (B/L)','ONEYSGN123456'],['Invoice','INV-2026-041'],
+       ['Số lượng cont','32 x 40HC'],['Số lượng giao hàng','800 tấn'],
+       ['Cảng đi / đến','Los Angeles / Cát Lái'],['ETD','28/06/2026'],['ETA','19/07/2026'],
+       ['Free time DEM','7 ngày từ ETA'],['Free time DET','10 ngày']]))}
      ${card('Cảnh báo chi phí lưu bãi', banner('info','Sau ETA 19/07/2026, còn <b>7 ngày Free time</b> để kéo hàng. Quá hạn phát sinh Dem ≈ <b>$120/cont/ngày</b>.')
        + tbl([{t:'Loại phí'},{t:'Miễn phí đến'},{t:'Phí phát sinh',num:true}],[
        ['Demurrage (lưu bãi)','26/07/2026','$120/cont/ngày'],
