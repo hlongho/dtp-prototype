@@ -707,6 +707,21 @@ function createQuote(){
   toast('Đã tạo báo giá '+no+' (Nháp)');
 }
 function createContract(){ toast('Đã tạo Hợp đồng nháp từ cơ hội — chuyển sang màn Hợp đồng'); setTimeout(function(){ if(S.contract) go('contract'); }, 700); }
+
+/* ===== Sales Contract (NK): tạo PO từ hợp đồng + related list PO ===== */
+let IMPOS=[{no:'PO-NK-0088', ncc:'Recycling Corp USA', item:'Giấy OCC', qty:'800 tấn', val:'$168.000', status:'Đã duyệt'}];
+let impoSeq=89;
+function imposRows(){
+  return IMPOS.map(p=>`<tr><td><a data-go="ppo">${p.no}</a></td><td>${p.ncc}</td><td>${p.item}</td><td class="num">${p.qty}</td><td class="num">${p.val}</td><td><span class="slds-badge">${p.status}</span></td></tr>`).join('');
+}
+function renderImpos(){ const tb=document.getElementById('impo-tbody'); if(tb) tb.innerHTML=imposRows(); }
+function createPOfromContract(){
+  const no='PO-NK-0'+(impoSeq++);
+  // lấy thông tin từ Sales Contract IC-2026-041
+  IMPOS.unshift({no, ncc:'Recycling Corp USA', item:'Giấy OCC', qty:'800 tấn', val:'$168.000', status:'Nháp'});
+  renderImpos();
+  toast('Đã tạo '+no+' từ hợp đồng IC-2026-041 · NCC Recycling Corp USA · Giấy OCC 800 tấn · $210/tấn · CIF Cát Lái');
+}
 function exportQuotePDF(no){
   const q=QUOTES.find(x=>x.no===no)||QUOTES[0];
   const total = (typeof q.total==='string')?q.total:'';
@@ -1378,11 +1393,16 @@ S.imcontract = ()=> appnav('Mua nhập khẩu','Sales Contract',['Trang chủ','
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="imcontract_list">Sales Contract (NK)</span> &rsaquo;',ico:'💱',color:'#0b827c',title:'IC-2026-041 · OCC từ Mỹ',sub:'Đa tiền tệ · 800 tấn · Recycling Corp USA',
      fields:[['Trị giá','$168.000'],['Quy đổi','4.280.000.000 ₫'],['Tỷ giá','1 USD = 25.480'],['Trạng thái',pill('info','Đang thực hiện')]],
-     actions:['Sửa']})}
+     actions:[{t:'Tạo PO',pri:true,fn:'createPOfromContract()'},'Sửa']})}
    <div class="cols-side">
      <div>
      ${card('Chi tiết hợp đồng nhập', fg([['Nhà cung cấp','Recycling Corp USA','link'],['Mặt hàng','Giấy OCC'],
        ['Số lượng','800 tấn'],['Đơn giá','$210/tấn'],['Incoterm','CIF Cát Lái'],['Tiền tệ','USD']]))}
+     ${card('Đơn mua (PO)',
+       `<div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Số PO</th><th>NCC</th><th>Mặt hàng</th><th class="num">SL</th><th class="num">Trị giá</th><th>Trạng thái</th></tr></thead>
+          <tbody id="impo-tbody">${imposRows()}</tbody></table></div>`,
+       {n:String(IMPOS.length), r:'<button class="btn sm" onclick="createPOfromContract()">＋ Tạo PO</button>'})}
      ${card('Local charges theo hãng tàu', tbl([{t:'Hãng tàu'},{t:'THC',num:true},{t:'D/O',num:true},{t:'Vệ sinh',num:true},{t:'Tổng',num:true}],[
        ['ONE','4.200.000 ₫','1.100.000 ₫','800.000 ₫','6.100.000 ₫'],
        ['Maersk','4.800.000 ₫','1.300.000 ₫','900.000 ₫','7.000.000 ₫']]))}
