@@ -929,7 +929,7 @@ S.opp = ()=> appnav('Bán hàng nội địa','Cơ hội',['Trang chủ','Lead',
    ${hl({crumb:'<span data-go="opp_list">Cơ hội</span> &rsaquo;',ico:'💼',color:'#0176d3',title:'Cty Hưng Thịnh — Cung cấp Medium Q3',sub:'Cơ hội · 1.200.000.000 ₫ · Đóng dự kiến 30/07/2026',
      fields:[['Số tiền','1.200.000.000 ₫'],['Giai đoạn',pill('info','Gửi mẫu')],['Xác suất','60%'],['Phụ trách','Trần Thị B']],
      actions:[{t:'Tạo báo giá',pri:true,fn:'createQuote()'},{t:'Tạo hợp đồng',fn:'createContract()'},'Gửi mẫu','Sửa']})}
-   ${path(['Phân tích nhu cầu','Gửi mẫu','Báo giá','Hợp đồng','Đóng'],1)}
+   ${path(['Phân tích nhu cầu','Gửi mẫu','Báo giá','Lên đơn hàng (PO)','Hợp đồng','Đóng'],1)}
    <div class="cols-side">
      <div>
      ${card('Chi tiết cơ hội', fg([['Khách hàng','Cty Hưng Thịnh Phát','link'],['Sản phẩm','Giấy Medium 125gsm'],
@@ -940,6 +940,9 @@ S.opp = ()=> appnav('Bán hàng nội địa','Cơ hội',['Trang chủ','Lead',
           <tbody id="quotes-tbody">${quotesRows()}</tbody>
        </table></div>`,
        {n:String(QUOTES.length), r:'<button class="btn sm" onclick="createQuote()">＋ Tạo báo giá</button>'})}
+     ${card('Đơn hàng (PO)', tbl([{t:'Số PO'},{t:'Ngày nhận'},{t:'Giá trị'},{t:'Trạng thái'}],[
+       ['<a data-go="po">PO-2619</a>','13/07/2026','1.180.000.000 ₫',pill('warn','Chờ phê duyệt')]]),
+       {n:'1'})}
      ${card('Hợp đồng', tbl([{t:'Số HĐ'},{t:'Ngày ký'},{t:'Hiệu lực đến'},{t:'Giá trị'},{t:'Trạng thái'}],[
        ['<a data-go="contract">HĐ-0388</a>','30/11/2025','30/11/2026','3.000.000.000 ₫',pill('ok','Hiệu lực')]]),
        {n:'1',r:'<button class="btn sm" onclick="createContract()">＋ Tạo hợp đồng</button>'})}
