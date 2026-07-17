@@ -1065,13 +1065,29 @@ function renderPOStage(){
 }
 function setSplitQty(gi,si,v){
   const g=PODRAFT[gi]; const n=g.splits.length;
-  if(n<=1){ let val=parseNum(v); if(val>g.total) val=g.total; if(val<0) val=0; g.splits[si].qty=val; renderPOStage(); return; }
-  // chỉnh dòng i -> dòng kế tiếp (i+1) hấp thụ; nếu là dòng cuối -> dòng kế cuối (i-1). Giữ nguyên các dòng khác (ưu tiên giá trị đã nhập ở trên)
-  const freeIdx = (si < n-1) ? si+1 : si-1;
-  const fixedSum = g.splits.reduce((a,s,i)=> (i===si||i===freeIdx)?a:a+parseNum(s.qty),0);
-  let val=parseNum(v); const cap=g.total-fixedSum; if(val>cap) val=cap; if(val<0) val=0;
-  g.splits[si].qty=val;
-  g.splits[freeIdx].qty=g.total-fixedSum-val;
+  let val=parseNum(v); if(val<0) val=0;
+  if(n<=1){ if(val>g.total) val=g.total; g.splits[si].qty=val; renderPOStage(); return; }
+  if(si===n-1){
+    // chỉnh dòng cuối -> điều chỉnh dòng kế cuối; giữ các dòng còn lại
+    const fixed=g.splits.reduce((a,s,i)=> (i===si||i===si-1)?a:a+parseNum(s.qty),0);
+    const cap=g.total-fixed; if(val>cap) val=cap;
+    g.splits[si].qty=val; g.splits[si-1].qty=g.total-fixed-val;
+  } else {
+    // giữ các dòng TRÊN (0..si-1); các dòng DƯỚI (si+1..cuối) tính lại theo tỉ lệ
+    const above=g.splits.reduce((a,s,i)=> i<si ? a+parseNum(s.qty):a, 0);
+    const cap=g.total-above; if(val>cap) val=cap;
+    g.splits[si].qty=val;
+    let remaining=g.total-above-val;
+    const below=[]; for(let i=si+1;i<n;i++) below.push(i);
+    const cur=below.map(i=>parseNum(g.splits[i].qty)); const curSum=cur.reduce((a,b)=>a+b,0);
+    let assigned=0;
+    below.forEach((idx,k)=>{
+      let q;
+      if(k===below.length-1){ q=remaining-assigned; }
+      else { q = curSum>0 ? Math.round(remaining*cur[k]/curSum) : Math.round(remaining/below.length); assigned+=q; }
+      g.splits[idx].qty=Math.max(0,q);
+    });
+  }
   renderPOStage();
 }
 function setSplitSup(gi,si,v){ const s=SUPPLIERS.find(x=>x.name===v); PODRAFT[gi].splits[si].supplier=v; PODRAFT[gi].splits[si].price=s?s.price:''; renderPOStage(); }
