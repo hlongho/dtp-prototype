@@ -353,6 +353,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
 .tl-item .m .h{font-size:12.5px;color:var(--ink);font-weight:600;display:flex;justify-content:space-between;gap:8px}
 .tl-item .m .h .date{font-weight:400;color:var(--ink-3);font-size:11px;white-space:nowrap}
 .tl-item .m .s{font-size:11.5px;color:var(--ink-3);margin-top:2px}
+.tbl-grouped th.grp{text-align:center;border-left:2px solid var(--line-2)}
+.tbl-grouped td.grp{border-left:2px solid var(--line-2)}
+.tbl-grouped thead tr:first-child th{background:var(--nav)}
 
 /* progress */
 .prog{height:8px;background:var(--line);border-radius:5px;overflow:hidden}
@@ -958,16 +961,33 @@ S.po = ()=> appnav('Bán hàng nội địa','Đơn hàng',['Trang chủ','Lead'
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="order_list">Đơn hàng (PO)</span> &rsaquo;',ico:'🧾',color:'#0176d3',title:'PO-2619 · Cty Hưng Thịnh Phát',sub:'Đơn đặt hàng · Tạo từ file PO khách gửi',
      fields:[['Giá trị','1.180.000.000 ₫'],['Trạng thái',pill('warn','Chờ duyệt')],['Ngày nhận PO','13/07/2026'],['Sales','Trần Thị B']],
-     actions:[{t:'Trình duyệt',pri:true},'Sửa']})}
+     actions:[{t:'Trình duyệt',pri:true},{t:'Tạo Case',fn:'createCaseFromPO()'},'Sửa']})}
    ${path(['Đánh giá','Báo giá','Xử lý PO','Chờ phê duyệt','Đóng'],3)}
    ${banner('err','<b>Cảnh báo công nợ:</b> khách đang có <b>420.000.000 ₫ quá hạn 15 ngày</b>. Đơn có thể bị chặn giao — cần TGĐ duyệt ngoại lệ.')}
    ${banner('warn','<b>Cảnh báo tồn kho:</b> tồn thành phẩm Medium 125gsm chỉ còn <b>18 tấn</b> / nhu cầu 120 tấn — phần còn lại phải đưa vào kế hoạch sản xuất.')}
-   <div class="cols-side">
+   <div class="cols-side wide">
      <div>
-     ${card('Dòng sản phẩm đặt hàng', tbl([{t:'Sản phẩm'},{t:'ĐL/Khổ'},{t:'SL (tấn)',num:true},{t:'Đơn giá',num:true},{t:'Thành tiền',num:true}],[
-       ['Giấy Medium','125gsm / 200','120','12.250','1.470.000.000 ₫'],
-       ['— chiết khấu HĐ','','','','−290.000.000 ₫']]),{n:'2'})}
-     ${card('Theo dõi SX & giao hàng', `<div style="margin-bottom:10px">
+     ${card('Dòng sản phẩm đặt hàng',
+       `<div class="tbl-wrap"><table class="tbl tbl-grouped">
+          <thead>
+            <tr><th rowspan="2">Sản phẩm</th><th rowspan="2">ĐL/Khổ</th>
+              <th colspan="2" class="grp">Đã SX</th><th colspan="2" class="grp">Đang / Chưa SX</th><th colspan="2" class="grp">Tổng</th></tr>
+            <tr><th class="num grp">Cuộn</th><th class="num">Tấn (thực tế)</th><th class="num grp">Cuộn</th><th class="num">Tấn (dự kiến)</th><th class="num grp">Cuộn</th><th class="num">Tấn</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Giấy Medium</td><td>125gsm / 200</td><td class="num grp">—</td><td class="num">—</td><td class="num grp"><b>38</b></td><td class="num">20.058</td><td class="num grp"><b>38</b></td><td class="num">20.058</td></tr>
+            <tr><td>Giấy Medium</td><td>110gsm / 180</td><td class="num grp"><b>14</b></td><td class="num">9.942</td><td class="num grp">—</td><td class="num">—</td><td class="num grp"><b>14</b></td><td class="num">9.942</td></tr>
+            <tr><td>Giấy Medium</td><td>150gsm / 200</td><td class="num grp"><b>7</b></td><td class="num">5.190</td><td class="num grp">—</td><td class="num">—</td><td class="num grp"><b>7</b></td><td class="num">5.190</td></tr>
+            <tr><td>Giấy Kraft</td><td>170gsm / 200</td><td class="num grp"><b>9</b></td><td class="num">7.750</td><td class="num grp">—</td><td class="num">—</td><td class="num grp"><b>9</b></td><td class="num">7.750</td></tr>
+            <tr><td>Testliner</td><td>125gsm / 160</td><td class="num grp"><b>9</b></td><td class="num">8.182</td><td class="num grp">—</td><td class="num">—</td><td class="num grp"><b>9</b></td><td class="num">8.182</td></tr>
+          </tbody>
+       </table></div>`, {n:'5'})}
+     ${card('Case',
+       `<div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Số Case</th><th>Loại</th><th>Trạng thái</th><th>Ngày tạo</th></tr></thead>
+          <tbody id="pocase-tbody">${poCasesRows()}</tbody></table></div>`,
+       {n:String(POCASES.length), r:'<button class="btn sm" onclick="createCaseFromPO()">＋ Tạo Case</button>'})}
+     ${card('Xuất nhập kho', `<div style="margin-bottom:10px">
         <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>Giấy Medium 125gsm — 74/120 tấn · SO 7788 · giao cam kết 29/07/2026</span><b>62%</b></div>
         <div class="prog"><i style="width:62%"></i></div></div>`
        + tbl([{t:'Trạng thái'},{t:'SL (tấn)',num:true},{t:'Phiếu kho'}],[
@@ -1314,6 +1334,20 @@ function prLinesRows(){
 }
 function togglePRImport(i,el){ if(PR_LINES[i]){ PR_LINES[i].imported=el.checked; toast(PR_LINES[i].product+': '+(el.checked?'đánh dấu Hàng nhập khẩu':'bỏ đánh dấu Hàng nhập khẩu')); } }
 function togglePaid(el){ toast(el.checked?'Đã đánh dấu PO đã thanh toán':'Bỏ đánh dấu đã thanh toán'); }
+
+/* ===== PO bán nội địa: Case related list + tạo Case ===== */
+let POCASES=[{no:'CASE-EX-0031', type:'Giao hàng ngoại lệ', status:'Chờ TGĐ duyệt', date:'13/07/2026', go:'excase'}];
+let poCaseSeq=32;
+function poCasesRows(){
+  return POCASES.map(c=>`<tr><td><a data-go="${c.go||'case'}">${c.no}</a></td><td>${c.type}</td><td><span class="slds-badge">${c.status}</span></td><td>${c.date}</td></tr>`).join('');
+}
+function renderPOCases(){ const tb=document.getElementById('pocase-tbody'); if(tb) tb.innerHTML=poCasesRows(); }
+function createCaseFromPO(){
+  const no='CASE-0'+(poCaseSeq++);
+  POCASES.unshift({no, type:'Khiếu nại / Yêu cầu', status:'Mới', date:'Hôm nay', go:'case'});
+  renderPOCases();
+  toast('Đã tạo '+no+' từ đơn hàng PO-2619');
+}
 function renderPRLines(){ const tb=document.getElementById('pr-lines-tbody'); if(tb) tb.innerHTML=prLinesRows(); updatePRSel(); }
 function updatePRSel(){
   const boxes=[...document.querySelectorAll('.pr-row')];
