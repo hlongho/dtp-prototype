@@ -158,6 +158,8 @@ a:hover{text-decoration:underline}
 .po-add{width:22px;height:22px;border-radius:50%;border:1px solid var(--line-2);background:var(--card);
   color:var(--sf-blue);font-weight:700;font-size:15px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;margin-left:4px}
 .po-add:hover{background:#f0f0f0;border-color:var(--sf-blue)}
+.po-supcell{display:flex;gap:5px;align-items:center}
+.po-newsup{white-space:nowrap;flex-shrink:0}
 .po-qty{width:84px;padding:4px 7px;border:1px solid var(--line-2);border-radius:4px;font-family:inherit;font-size:12.5px;text-align:right;background:var(--card);color:var(--ink)}
 .po-qty:focus{outline:none;border-color:var(--sf-blue);box-shadow:0 0 0 2px var(--sf-blue-l)}
 .buy-cb,.buy-row,.pr-row,.pr-all,.lv-row,.lv-all{cursor:pointer;width:15px;height:15px}
@@ -1051,14 +1053,17 @@ function renderPOStage(){
         <td class="num"><input class="po-qty" value="${fmtN(s.qty)}" onchange="setSplitQty(${gi},${si},this.value)"></td>
         <td>${g.unit}</td>
         <td>${cover}</td>
-        <td><select onchange="setSplitSup(${gi},${si},this.value)">${opts(s.supplier)}</select></td>
+        <td><div class="po-supcell"><select onchange="setSplitSup(${gi},${si},this.value)">${opts(s.supplier)}</select><button class="btn sm po-newsup" title="Thêm NCC mới cho sản phẩm này" onclick="openSupModal(${gi},${si})">＋ NCC</button></div></td>
         <td class="num">${s.price?`${s.price} ₫`:'—'}</td>
       </tr>`;
     });
+    const sum=g.splits.reduce((a,s)=>a+parseNum(s.qty),0); const ok=sum===g.total;
+    if(g.splits.length>1 || sum!==g.total){
+      rows+=`<tr class="po-sumrow"><td></td><td colspan="6" style="font-size:11.5px;background:var(--bg)">Tổng đã chia: <b style="color:${ok?'var(--ok)':'var(--err)'}">${fmtN(sum)}</b> / cần mua <b>${fmtN(g.total)}</b> ${g.unit} ${ok?'✓':'— phải bằng tổng cần mua trong phiếu yêu cầu'}</td></tr>`;
+    }
   });
   document.getElementById('pm-body').innerHTML=
-    `<div style="text-align:right;margin-bottom:8px"><button class="btn sm" onclick="openSupModal()">＋ Thêm mới NCC</button></div>
-     <table class="tbl po-stage"><thead><tr><th style="width:62px"></th><th>Sản phẩm</th><th class="num">Số lượng</th><th>Đơn vị</th><th>Phiếu yêu cầu (phân bổ)</th><th>Nhà cung cấp</th><th class="num">Đơn giá</th></tr></thead>
+    `<table class="tbl po-stage"><thead><tr><th style="width:62px"></th><th>Sản phẩm</th><th class="num">Số lượng</th><th>Đơn vị</th><th>Phiếu yêu cầu (phân bổ)</th><th>Nhà cung cấp</th><th class="num">Đơn giá</th></tr></thead>
      <tbody>${rows}</tbody></table>`;
   renderPOSummary();
 }
@@ -1071,12 +1076,16 @@ function removeSplit(gi,si){
   if(!PODRAFT.length){ closePO(); toast('Đã bỏ hết sản phẩm — huỷ tạo PO'); return; }
   renderPOStage();
 }
-function openSupModal(){
+let SUP_CTX=null;
+function openSupModal(gi,si){
+  SUP_CTX = (gi!==undefined) ? {gi,si} : null;
+  const prod = SUP_CTX ? PODRAFT[gi].product : '';
   document.getElementById('sup-body').innerHTML=
-    `<div style="display:flex;flex-direction:column;gap:10px">
+    `${prod?`<p class="po-hint">Đơn giá nhập dưới đây là <b>giá NCC này báo cho sản phẩm "${prod}"</b>.</p>`:''}
+     <div style="display:flex;flex-direction:column;gap:10px">
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Tên nhà cung cấp *</label><input id="sup-name" class="mass-sel" placeholder="VD: Cty TNHH ABC"></div>
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Mã số thuế</label><input id="sup-tax" class="mass-sel" placeholder="03xxxxxxxx"></div>
-       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Đơn giá dự kiến (₫)</label><input id="sup-price" class="mass-sel" placeholder="VD: 52.000"></div>
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Đơn giá cho sản phẩm này (₫)</label><input id="sup-price" class="mass-sel" placeholder="VD: 52.000"></div>
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Điểm đánh giá (/100)</label><input id="sup-score" class="mass-sel" type="number" min="0" max="100" placeholder="VD: 82 (để trống = chưa đánh giá)"></div>
      </div>`;
   document.getElementById('supback').classList.add('show');
@@ -1088,6 +1097,8 @@ function confirmAddSupplier(){
   const price=(document.getElementById('sup-price').value||'').trim()||'—';
   const sc=parseInt(document.getElementById('sup-score').value||'0',10)||0;
   SUPPLIERS.push({name, price, score:sc, grade:gradeOf(sc)});
+  if(SUP_CTX){ const g=PODRAFT[SUP_CTX.gi]; if(g&&g.splits[SUP_CTX.si]){ g.splits[SUP_CTX.si].supplier=name; g.splits[SUP_CTX.si].price=price; } }
+  SUP_CTX=null;
   closeSupModal(); renderPOStage();
   toast('Đã thêm nhà cung cấp: '+name);
 }
@@ -1104,7 +1115,7 @@ function renderPOSummary(){
   const sups=Object.keys(groups);
   let html='';
   if(!sups.length){
-    html=`<div class="po-hint">Chọn NCC cho từng dòng để xem PO sẽ tạo. Bấm <b>Tách NCC</b> để chia 1 sản phẩm cho nhiều nhà cung cấp — số lượng mỗi NCC sẽ tự phân bổ về phiếu yêu cầu (phiếu cũ trước).</div>`;
+    html='';
   } else {
     html=`<div class="po-sum-h">Sẽ tạo <b>${sups.length} PO</b> · ${assigned}/${totalSplits} dòng đã gán NCC${fullyAlloc?'':' · <span style="color:var(--err)">còn sản phẩm chưa phân bổ đủ SL</span>'}</div>`;
     html+=sups.map((s,k)=>`<div class="po-card"><div class="po-card-h">PO ${k+1} — <b>${s}</b> <span>· ${groups[s].length} dòng</span></div>
