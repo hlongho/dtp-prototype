@@ -103,6 +103,9 @@ a:hover{text-decoration:underline}
 .n-dot{width:8px;height:8px;border-radius:50%;background:var(--sf-blue);flex-shrink:0;margin-top:6px}
 .notif-empty{padding:26px;text-align:center;color:var(--ink-3);font-size:12.5px}
 .waffle{display:grid;grid-template-columns:repeat(3,4px);grid-gap:2px;padding:8px;border-radius:5px;flex-shrink:0}
+.nav-waffle{align-self:center;margin:0 6px 0 2px;background:none;border:0}
+.nav-waffle span{background:#5c5c5c}
+.nav-waffle:hover{background:#eaeaea}
 .waffle span{width:4px;height:4px;background:#fff;border-radius:1px;opacity:.9}
 .waffle:hover{background:rgba(255,255,255,.15)}
 .g-search{width:min(560px,46vw);flex:0 0 auto;background:#fff;border-radius:16px;display:flex;align-items:center;
@@ -483,9 +486,6 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
   <div class="sf">
     <!-- Global header -->
     <header class="g-header">
-      <button class="waffle" title="App Launcher" onclick="openLauncher()">
-        <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
-      </button>
       <button class="g-burger" title="Ẩn/hiện danh sách màn hình (demo)" onclick="toggleNav()">☰</button>
       <div class="g-spacer"></div>
       <div class="g-search">
@@ -566,6 +566,7 @@ let INDEX=[]; // built after NAV defined
 
 function appnav(app, sub, tabs, active){
   return `<div class="a-nav slds-context-bar">
+    <button class="waffle nav-waffle" title="App Launcher" onclick="openLauncher()"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></button>
     <div class="slds-context-bar__primary a-app">
       <div class="slds-context-bar__item"><span class="slds-context-bar__label-action"><b>${app}</b>${sub?` <span class="wf-muted slds-m-left_xx-small">· ${sub}</span>`:''}</span></div>
     </div>
