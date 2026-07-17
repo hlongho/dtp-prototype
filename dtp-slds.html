@@ -1057,10 +1057,6 @@ function renderPOStage(){
         <td class="num">${s.price?`${s.price} ₫`:'—'}</td>
       </tr>`;
     });
-    const sum=g.splits.reduce((a,s)=>a+parseNum(s.qty),0); const ok=sum===g.total;
-    if(g.splits.length>1 || sum!==g.total){
-      rows+=`<tr class="po-sumrow"><td></td><td colspan="6" style="font-size:11.5px;background:var(--bg)">Tổng đã chia: <b style="color:${ok?'var(--ok)':'var(--err)'}">${fmtN(sum)}</b> / cần mua <b>${fmtN(g.total)}</b> ${g.unit} ${ok?'✓':'— phải bằng tổng cần mua trong phiếu yêu cầu'}</td></tr>`;
-    }
   });
   document.getElementById('pm-body').innerHTML=
     `<table class="tbl po-stage"><thead><tr><th style="width:62px"></th><th>Sản phẩm</th><th class="num">Số lượng</th><th>Đơn vị</th><th>Phiếu yêu cầu (phân bổ)</th><th>Nhà cung cấp</th><th class="num">Đơn giá</th></tr></thead>
@@ -1068,23 +1064,14 @@ function renderPOStage(){
   renderPOSummary();
 }
 function setSplitQty(gi,si,v){
-  const g=PODRAFT[gi];
-  let val=parseNum(v); if(val>g.total) val=g.total; if(val<0) val=0;
+  const g=PODRAFT[gi]; const n=g.splits.length;
+  if(n<=1){ let val=parseNum(v); if(val>g.total) val=g.total; if(val<0) val=0; g.splits[si].qty=val; renderPOStage(); return; }
+  // chỉnh dòng i -> dòng kế tiếp (i+1) hấp thụ; nếu là dòng cuối -> dòng kế cuối (i-1). Giữ nguyên các dòng khác (ưu tiên giá trị đã nhập ở trên)
+  const freeIdx = (si < n-1) ? si+1 : si-1;
+  const fixedSum = g.splits.reduce((a,s,i)=> (i===si||i===freeIdx)?a:a+parseNum(s.qty),0);
+  let val=parseNum(v); const cap=g.total-fixedSum; if(val>cap) val=cap; if(val<0) val=0;
   g.splits[si].qty=val;
-  // các dòng còn lại tự cân để tổng = tổng cần mua (theo tỉ lệ hiện tại)
-  const others=g.splits.map((s,i)=>i).filter(i=>i!==si);
-  if(others.length){
-    const remaining=g.total-val;
-    const cur=others.map(i=>parseNum(g.splits[i].qty));
-    const curSum=cur.reduce((a,b)=>a+b,0);
-    let assigned=0;
-    others.forEach((idx,k)=>{
-      let q;
-      if(k===others.length-1){ q=remaining-assigned; }
-      else { q = curSum>0 ? Math.round(remaining*cur[k]/curSum) : Math.round(remaining/others.length); assigned+=q; }
-      g.splits[idx].qty=Math.max(0,q);
-    });
-  }
+  g.splits[freeIdx].qty=g.total-fixedSum-val;
   renderPOStage();
 }
 function setSplitSup(gi,si,v){ const s=SUPPLIERS.find(x=>x.name===v); PODRAFT[gi].splits[si].supplier=v; PODRAFT[gi].splits[si].price=s?s.price:''; renderPOStage(); }
