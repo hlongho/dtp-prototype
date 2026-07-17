@@ -963,8 +963,6 @@ S.po = ()=> appnav('Bán hàng nội địa','Đơn hàng',['Trang chủ','Lead'
      fields:[['Giá trị','1.180.000.000 ₫'],['Trạng thái',pill('warn','Chờ duyệt')],['Ngày nhận PO','13/07/2026'],['Sales','Trần Thị B']],
      actions:[{t:'Trình duyệt',pri:true},{t:'Tạo Case',fn:'createCaseFromPO()'},'Sửa']})}
    ${path(['Đánh giá','Báo giá','Xử lý PO','Chờ phê duyệt','Đóng'],3)}
-   ${banner('err','<b>Cảnh báo công nợ:</b> khách đang có <b>420.000.000 ₫ quá hạn 15 ngày</b>. Đơn có thể bị chặn giao — cần TGĐ duyệt ngoại lệ.')}
-   ${banner('warn','<b>Cảnh báo tồn kho:</b> tồn thành phẩm Medium 125gsm chỉ còn <b>18 tấn</b> / nhu cầu 120 tấn — phần còn lại phải đưa vào kế hoạch sản xuất.')}
    <div class="cols-side wide">
      <div>
      ${card('Dòng sản phẩm đặt hàng', tbl([{t:'Sản phẩm'},{t:'ĐL/Khổ'},{t:'Đã SX (cuộn)',num:true},{t:'Đã SX (tấn)',num:true},{t:'Chưa SX (cuộn)',num:true},{t:'Chưa SX (tấn)',num:true},{t:'Tổng (cuộn)',num:true},{t:'Tổng (tấn)',num:true}],[
@@ -982,7 +980,7 @@ S.po = ()=> appnav('Bán hàng nội địa','Đơn hàng',['Trang chủ','Lead'
        ['XK-1120',pill('info','Phiếu xuất kho'),'20/07/2026','Giấy Medium 125gsm','40','Kho Long An',pill('ok','Đã xuất')],
        ['XK-1121',pill('info','Phiếu xuất kho'),'22/07/2026','Giấy Medium 125gsm','34','Kho Long An',pill('ok','Đã xuất')],
        ['NK-0885',pill('mut','Phiếu nhập kho'),'18/07/2026','Giấy Medium 125gsm (thành phẩm SX)','28','Kho Long An',pill('ok','Đã nhập')],
-       ['XK-1130',pill('info','Phiếu xuất kho'),'—','Giấy Medium 125gsm','18','Kho Long An',pill('warn','Chờ xuất')]]),{n:'4',r:'<button class="btn sm">Tạo phiếu</button>'})}
+       ['XK-1130',pill('info','Phiếu xuất kho'),'—','Giấy Medium 125gsm','18','Kho Long An',pill('warn','Chờ xuất')]]),{n:'4'})}
      ${card('Tồn kho & công nợ', fg([['Tồn trong hạn','18 tấn'],['Tồn quá hạn','0 tấn'],
        ['Dư nợ hiện tại','1.620.000.000 ₫'],['Quá hạn','420.000.000 ₫ (15 ngày)','link','excase'],['Hạn mức','2.000.000.000 ₫'],['Khả dụng','380.000.000 ₫']]))}
      ${card('Lịch sử phê duyệt', tbl([{t:'Bước'},{t:'Người duyệt'},{t:'Trạng thái'},{t:'Thời gian'}],[
