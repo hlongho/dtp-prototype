@@ -320,16 +320,38 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
 
 /* activity panel */
 .act-tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:0 8px}
-.act-tabs .t{padding:8px 12px;font-size:12.5px;color:var(--ink-2);border-bottom:2px solid transparent;background:none;border-top:0;border-left:0;border-right:0}
+.act-tabs .t{padding:8px 12px;font-size:12.5px;color:var(--ink-2);border-bottom:2px solid transparent;background:none;border-top:0;border-left:0;border-right:0;font-weight:600}
+.act-tabs .t:hover{color:var(--sf-blue)}
 .act-tabs .t.on{color:var(--sf-blue);border-bottom-color:var(--sf-blue);font-weight:700}
-.composer{border:1px solid var(--line-2);border-radius:5px;padding:8px 10px;color:var(--ink-3);
-  margin:12px 14px;font-size:12.5px}
-.timeline{padding:0 14px 12px}
-.tl-item{display:flex;gap:9px;padding:9px 0;border-bottom:1px solid var(--line)}
-.tl-dot{width:26px;height:26px;border-radius:5px;background:var(--sf-blue-l);color:var(--sf-blue);
-  display:grid;place-items:center;flex-shrink:0;font-size:13px}
-.tl-item .m .h{font-size:12.5px;color:var(--ink)}
-.tl-item .m .s{font-size:11px;color:var(--ink-3)}
+.act-actions{display:flex;gap:6px;flex-wrap:wrap;padding:12px 14px 0}
+.ca{border:1px solid var(--line-2);background:var(--card);color:var(--ink-2);border-radius:4px;
+  padding:5px 10px;font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer}
+.ca svg{width:14px;height:14px}
+.ca:hover{background:var(--sf-blue-l);color:var(--sf-blue)}
+.ca.on{border-color:var(--sf-blue);color:var(--sf-blue);background:var(--sf-blue-l);font-weight:600}
+.composer{border:1px solid var(--line-2);border-radius:5px;padding:9px 11px;color:var(--ink-3);
+  margin:10px 14px 6px;font-size:12.5px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.composer .composer-btn{color:var(--sf-blue);font-weight:700;font-size:12px;white-space:nowrap;cursor:pointer}
+.act-filter{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;
+  border-top:1px solid var(--line);font-size:11.5px;color:var(--ink-3)}
+.act-filter b{color:var(--ink)}
+.tl-group{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-3);
+  font-weight:700;padding:12px 14px 4px;background:var(--nav);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.tl-empty{font-size:11.5px;color:var(--ink-3);padding:8px 14px 10px}
+.timeline{padding:0 0 6px}
+.tl-item{display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);align-items:flex-start}
+.tl-item:hover{background:rgba(1,118,211,.03)}
+.tl-check{width:15px;height:15px;border:1px solid var(--line-2);border-radius:3px;margin-top:6px;
+  flex-shrink:0;position:relative;cursor:pointer}
+.tl-check.done{background:var(--ok);border-color:var(--ok)}
+.tl-check.done:after{content:"✓";position:absolute;inset:0;color:#fff;font-size:11px;line-height:14px;text-align:center}
+.tl-dot{width:28px;height:28px;border-radius:50%;background:var(--sf-blue-l);color:var(--sf-blue);
+  display:grid;place-items:center;flex-shrink:0}
+.tl-dot svg{width:15px;height:15px}
+.tl-item .m{flex:1;min-width:0}
+.tl-item .m .h{font-size:12.5px;color:var(--ink);font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.tl-item .m .h .date{font-weight:400;color:var(--ink-3);font-size:11px;white-space:nowrap}
+.tl-item .m .s{font-size:11.5px;color:var(--ink-3);margin-top:2px}
 
 /* progress */
 .prog{height:8px;background:var(--line);border-radius:5px;overflow:hidden}
@@ -629,10 +651,35 @@ function banner(type,txt){const ic={warn:'⚠',err:'⛔',info:'ⓘ',ok:'✓'}[ty
     <div class="slds-media__figure"><span aria-hidden="true">${ic}</span></div>
     <div class="slds-media__body">${txt}</div></div>`;}
 function pill(cls,t){return `<span class="slds-badge">${t}</span>`;}
+const ACTSVG={
+ call:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1l-2.2 2.2z"/></svg>',
+ email:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
+ task:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg>',
+ event:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>'};
+function actType(ic){ if(ic==='📞')return'call'; if(['✉','✆','📤','📧','📨','✉️'].includes(ic))return'email'; if(ic==='📅')return'event'; return'task'; }
 function activity(items){
-  return `<div class="card"><div class="act-tabs"><button class="t on">Hoạt động</button><button class="t">Chatter</button></div>
-   <div class="composer">✎ Ghi lại cuộc gọi · Tạo công việc mới · Lên lịch cuộc hẹn…</div>
-   <div class="timeline">${items.map(i=>`<div class="tl-item"><div class="tl-dot">${i[0]}</div><div class="m"><div class="h">${i[1]}</div><div class="s">${i[2]}</div></div></div>`).join('')}</div></div>`;
+  items=items||[];
+  const tlItem=(i)=>{ const type=actType(i[0]); const isTask=(type==='task');
+    const p=(i[2]||'').split('·'); const who=(p[0]||'').trim(); const date=(p.slice(1).join(' · ')).trim();
+    return `<div class="tl-item"><span class="tl-check" ${isTask?'':'style="visibility:hidden"'}></span>
+      <span class="tl-dot">${ACTSVG[type]}</span>
+      <div class="m"><div class="h"><span>${i[1]}</span><span class="date">${date}</span></div><div class="s">${who}</div></div></div>`; };
+  const up=items.filter(i=>actType(i[0])==='task');
+  const past=items.filter(i=>actType(i[0])!=='task');
+  return `<div class="card act">
+    <div class="act-tabs"><button class="t on">Hoạt động</button><button class="t">Chatter</button></div>
+    <div class="act-actions">
+      <button class="ca on" data-ph="Ghi lại nội dung cuộc gọi đã thực hiện…">${ACTSVG.call}Ghi lại cuộc gọi</button>
+      <button class="ca" data-ph="Tiêu đề công việc mới…">${ACTSVG.task}Công việc mới</button>
+      <button class="ca" data-ph="Chủ đề & thời gian sự kiện…">${ACTSVG.event}Sự kiện mới</button>
+      <button class="ca" data-ph="Soạn email gửi khách hàng…">${ACTSVG.email}Email</button></div>
+    <div class="composer"><span>Ghi lại nội dung cuộc gọi đã thực hiện…</span><span class="composer-btn">Lưu</span></div>
+    <div class="act-filter"><span>Sắp xếp: <b>Ngày</b> · Tất cả loại hoạt động</span><span>Lọc · Làm mới</span></div>
+    <div class="tl-group">Sắp tới &amp; Quá hạn</div>
+    ${up.length? up.map(tlItem).join('') : '<div class="tl-empty">Không có việc sắp tới. Bắt đầu bằng cách ghi cuộc gọi hoặc tạo công việc mới.</div>'}
+    <div class="tl-group">Đã qua</div>
+    ${past.length? `<div class="timeline">${past.map(tlItem).join('')}</div>` : '<div class="tl-empty">Chưa có hoạt động đã qua.</div>'}
+  </div>`;
 }
 const sampleActivity=[['📞','Gọi xác nhận số lượng đặt hàng','Nguyễn Văn Sales · Hôm nay 09:12'],
   ['✉','Gửi báo giá tháng 7','Trần Thị B · Hôm qua'],
@@ -1741,6 +1788,15 @@ function setupClicks(){
     // 5) Activity / detail tabs
     const at=e.target.closest('.act-tabs .t');
     if(at){ at.parentElement.querySelectorAll('.t').forEach(x=>x.classList.remove('on')); at.classList.add('on'); return; }
+    // 5a) nút soạn thảo (Cuộc gọi / Công việc / Sự kiện / Email)
+    const ca=e.target.closest('.ca');
+    if(ca){ ca.parentElement.querySelectorAll('.ca').forEach(x=>x.classList.remove('on')); ca.classList.add('on');
+      const comp=ca.closest('.act').querySelector('.composer span'); if(comp&&ca.dataset.ph) comp.textContent=ca.dataset.ph; return; }
+    // 5a2) tick hoàn tất công việc
+    const chk=e.target.closest('.tl-check');
+    if(chk && chk.style.visibility!=='hidden'){ chk.classList.toggle('done'); toast(chk.classList.contains('done')?'Đã đánh dấu hoàn tất':'Đã bỏ đánh dấu'); return; }
+    // 5a3) nút Lưu trong composer
+    const cb=e.target.closest('.composer-btn'); if(cb){ toast('Đã lưu hoạt động'); return; }
     // 5b) Related list tabs (cột giữa)
     const rt=e.target.closest('.rel-tab');
     if(rt){
