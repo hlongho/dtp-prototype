@@ -257,6 +257,19 @@ a:hover{text-decoration:underline}
 .cols-rec.no-rel .rec-col:first-child .wf-form{display:grid;grid-template-columns:1fr 1fr;column-gap:30px}
 .so-detail .wf-form{display:grid;grid-template-columns:1fr 1fr;column-gap:30px}
 .so-detail .wf-form .slds-form-element:has(.wide2){grid-column:1 / -1}
+/* ==== Page-layout sections (kiểu Detail của Salesforce) ==== */
+.pl-card{background:var(--card);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);margin-bottom:10px;overflow:hidden}
+.pl-section{border-top:1px solid var(--line)}
+.pl-section:first-child{border-top:0}
+.pl-sec-head{width:100%;text-align:left;background:none;border:0;padding:12px 18px;font-size:13px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:8px;cursor:pointer}
+.pl-sec-head:hover{background:var(--bg)}
+.pl-caret{font-size:10px;color:var(--ink-3);transition:transform .15s;display:inline-block}
+.pl-section.collapsed .pl-caret{transform:rotate(-90deg)}
+.pl-section.collapsed .pl-sec-body{display:none}
+.pl-sec-body{padding:0 18px 14px}
+.pl-grid{display:grid;grid-template-columns:1fr 1fr;column-gap:44px}
+.pl-grid .slds-form-element:has(.wide2){grid-column:1 / -1}
+@media(max-width:760px){.pl-grid{grid-template-columns:1fr}}
 .cols-rec.wide{grid-template-columns:minmax(0,1fr) 340px}
 @media(max-width:1200px){.cols-rec.wide{grid-template-columns:1fr}}
 .cols-rec .rec-col{min-width:0}
@@ -672,6 +685,17 @@ function fg(rows,one){
       <div class="slds-form-element__control"><div class="slds-form-element__static ${r[2]||''}" ${r[3]?`data-go="${r[3]}"`:''}>${r[1]}</div></div>
     </div>`).join('')}</div>`;
 }
+function plField(r){
+  return `<div class="slds-form-element slds-border_bottom" style="padding:5px 0">
+    <span class="slds-form-element__label wf-muted" style="padding:0">${r[0]}</span>
+    <div class="slds-form-element__control"><div class="slds-form-element__static ${r[2]||''}" ${r[3]?`data-go="${r[3]}"`:''}>${r[1]}</div></div></div>`;
+}
+function plSection(title, rows, extra){
+  return `<div class="pl-section">
+    <button class="pl-sec-head" onclick="this.parentElement.classList.toggle('collapsed')"><span class="pl-caret">▾</span>${title}</button>
+    <div class="pl-sec-body">${rows?`<div class="wf-form pl-grid">${rows.map(plField).join('')}</div>`:''}${extra||''}</div></div>`;
+}
+function plLayout(sections){ return `<article class="slds-card pl-card">${sections.join('')}</article>`; }
 function tbl(cols, rows){
   return `<div style="overflow-x:auto"><table class="slds-table slds-table_cell-buffer slds-table_bordered" style="min-width:520px">
    <thead><tr class="slds-line-height_reset">${cols.map(c=>`<th class="${c.num?'num':''}" scope="col"><div class="slds-truncate wf-muted">${(c&&c.t!==undefined)?c.t:c}</div></th>`).join('')}</tr></thead>
@@ -1896,27 +1920,29 @@ S.exso_list = ()=> appnav('Bán hàng xuất khẩu','SO',TAB_EX,'SO')
     {go:'exso',cells:['SO-XK-0139','KL Trading (Malaysia)','K2E-PO-2026-0765','08/07/2026','28/07/2026',pill('warn','Sắp đến hạn')]},
     {go:'exso',cells:['SO-XK-0135','Sunrise (Bangladesh)','K2E-PO-2026-0758','02/07/2026','20/07/2026',pill('ok','Đã giao đủ')]}]})}</div>`;
 S.exso = ()=> appnav('Bán hàng xuất khẩu','SO',TAB_EX,'SO')
- + `<div class="sf-body narrow so-detail">
+ + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="exso_list">Sales Order (SO)</span> &rsaquo;',ico:'📦',color:'#1b96ff',title:'SO-XK-0142 · Reliance Paper (Ấn Độ)',sub:'Đơn hàng bán xuất khẩu · đồng bộ từ Rosy',
      fields:[['Số SO','SO-XK-0142'],['Khách hàng','Reliance Paper Ltd'],['Hạn giao - nhận','05/08/2026'],['Trạng thái',pill('info','Đang xử lý')]],
      actions:[{t:'Lên kế hoạch SX',pri:true,fn:"go('explan')"},'Sửa']})}
-   ${card('Khối 1 · Thông tin chung', fg([
-     ['Số SO','SO-XK-0142'],
-     ['Khách hàng','Reliance Paper Ltd (Ấn Độ)','link','account'],
-     ['Số PO Khách hàng','K2E-PO-2026-0771'],
-     ['Ngày nhận đơn hàng','12/07/2026']]))}
-   ${card('Khối 2 · Theo dõi Kế hoạch & Giao hàng', fg([
-     ['Ngày dự kiến giao hàng (KH mong muốn)','02/08/2026'],
-     ['Hạn chót Giao - Nhận *','05/08/2026'],
-     ['Lịch giao hàng thực tế (đồng bộ từ Rosy — BP. Kế hoạch)','Đợt 1 · 30/07/2026: giao 20 cuộn Kraft Liner 150gsm. Đợt 2 · 03/08/2026: giao 18 cuộn Testliner + 14 cuộn Medium.','wide2']]))}
-   ${card('Khối 3 · Chi tiết Sản phẩm & Phân bổ Máy sản xuất',
-     `<div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Tên sản phẩm</th><th>Loại giấy</th><th>Định lượng</th><th>Khổ</th><th class="num">Số lượng</th><th class="num">Đơn giá</th><th>Phân bổ Máy SX</th></tr></thead>
-        <tbody>
-          <tr><td>Kraft Liner</td><td>Kraft</td><td>150 gsm</td><td>1.600 mm</td><td class="num">40 cuộn</td><td class="num">$495/tấn</td><td>${machineCell('PM5')}</td></tr>
-          <tr><td>Testliner</td><td>Testliner</td><td>125 gsm</td><td>1.600 mm</td><td class="num">18 cuộn</td><td class="num">$470/tấn</td><td>${machineCell('PM4')}</td></tr>
-          <tr><td>Medium</td><td>Medium</td><td>110 gsm</td><td>1.400 mm</td><td class="num">14 cuộn</td><td class="num">$455/tấn</td><td>${machineCell('PM5')}</td></tr>
-        </tbody></table></div>`, {n:'3'})}
+   ${plLayout([
+     plSection('Thông tin chung', [
+       ['Số SO','SO-XK-0142'],
+       ['Khách hàng','Reliance Paper Ltd (Ấn Độ)','link','account'],
+       ['Số PO Khách hàng','K2E-PO-2026-0771'],
+       ['Ngày nhận đơn hàng','12/07/2026']]),
+     plSection('Theo dõi Kế hoạch & Giao hàng', [
+       ['Ngày dự kiến giao hàng (KH mong muốn)','02/08/2026'],
+       ['Hạn chót Giao - Nhận *','05/08/2026'],
+       ['Lịch giao hàng thực tế (đồng bộ từ Rosy — BP. Kế hoạch)','Đợt 1 · 30/07/2026: giao 20 cuộn Kraft Liner 150gsm. Đợt 2 · 03/08/2026: giao 18 cuộn Testliner + 14 cuộn Medium.','wide2']]),
+     plSection('Chi tiết Sản phẩm & Phân bổ Máy sản xuất', null,
+       `<div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Tên sản phẩm</th><th>Loại giấy</th><th>Định lượng</th><th>Khổ</th><th class="num">Số lượng</th><th class="num">Đơn giá</th><th>Phân bổ Máy SX</th></tr></thead>
+          <tbody>
+            <tr><td>Kraft Liner</td><td>Kraft</td><td>150 gsm</td><td>1.600 mm</td><td class="num">40 cuộn</td><td class="num">$495/tấn</td><td>${machineCell('PM5')}</td></tr>
+            <tr><td>Testliner</td><td>Testliner</td><td>125 gsm</td><td>1.600 mm</td><td class="num">18 cuộn</td><td class="num">$470/tấn</td><td>${machineCell('PM4')}</td></tr>
+            <tr><td>Medium</td><td>Medium</td><td>110 gsm</td><td>1.400 mm</td><td class="num">14 cuộn</td><td class="num">$455/tấn</td><td>${machineCell('PM5')}</td></tr>
+          </tbody></table></div>`)
+   ])}
  </div>`;
 S.exquote_list = ()=> appnav('Bán hàng xuất khẩu','Báo giá XK',TAB_EX,'Báo giá XK')
  + `<div class="sf-body">${lv({crumb:'Báo giá XK',ico:'🚢',color:'#1b96ff',object:'Báo giá xuất khẩu (Quote)',view:'Báo giá gần đây',count:'21',newLabel:'Báo giá mới',
