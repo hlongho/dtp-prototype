@@ -1501,12 +1501,19 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
        ['Nhóm hàng cung cấp','Hóa chất, keo công nghiệp'],['Người liên hệ','Ông Phạm Văn K'],['Điện thoại','028 xxx xxxx'],
        ['Email','muahang@tantien.vn'],['Địa chỉ','KCN Sóng Thần, Bình Dương'],['Điều khoản TT','Net 30'],
        ['Đánh giá tổng','82/100 · Xếp loại B'],['Trạng thái',pill('ok','Đang hợp tác')]]))}
-     ${card('Lịch sử điểm trừ (phiếu nhập)', tbl([{t:'Ngày'},{t:'Bộ phận'},{t:'Sự cố'},{t:'Điểm trừ',num:true}],[
-       ['06/2026','QA','Chất lượng keo không đạt lô','−10'],
-       ['03/2026','Kho','Giao trễ 3 ngày','−5'],
-       ['—','Kỹ thuật','Không sự cố','0']]),{n:'2'})}
-     ${card('Tiêu chí đánh giá', `<div style="display:flex;flex-direction:column;gap:10px">
-       ${[['Chất lượng',78],['Giao hàng đúng hạn',85],['Giá cả',88],['Hỗ trợ sau bán',80]].map(x=>
+     ${card('Tiêu chí đánh giá (có trọng số)', tbl([{t:'Tiêu chí'},{t:'Bộ phận ghi nhận'},{t:'Trọng số',num:true},{t:'Điểm (/100)',num:true},{t:'Điểm quy đổi',num:true}],[
+       ['Chất lượng','QA','40%','78','31,2'],
+       ['Giao hàng đúng hạn','Kho','25%','85','21,3'],
+       ['Giá cả / Cạnh tranh giá','Mua hàng','20%','88','17,6'],
+       ['Hồ sơ & Tuân thủ chứng từ','Mua hàng','10%','80','8,0'],
+       ['Hỗ trợ & Phản hồi','—','5%','80','4,0'],
+       ['<b>Tổng điểm</b>','','<b>100%</b>','','<b>82 · Xếp loại B</b>']]),{n:'5'})}
+     ${card('Lịch sử trừ điểm (mặc định tối đa, trừ khi có lỗi)', tbl([{t:'Ngày'},{t:'Bộ phận'},{t:'Tiêu chí ảnh hưởng'},{t:'Sự cố'},{t:'Điểm trừ',num:true}],[
+       ['06/2026','QA','Chất lượng','Chất lượng keo không đạt lô','−10'],
+       ['05/2026','Mua hàng','Hồ sơ & Tuân thủ','Thiếu chứng từ CO/CQ','−3'],
+       ['03/2026','Kho','Giao hàng đúng hạn','Giao trễ 3 ngày','−5']]),{n:'3'})}
+     ${card('Điểm theo tiêu chí', `<div style="display:flex;flex-direction:column;gap:10px">
+       ${[['Chất lượng',78],['Giao hàng đúng hạn',85],['Giá cả / Cạnh tranh',88],['Hồ sơ & Tuân thủ',80],['Hỗ trợ & Phản hồi',80]].map(x=>
         `<div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>${x[0]}</span><b>${x[1]}</b></div><div class="prog blue"><i style="width:${x[1]}%"></i></div></div>`).join('')}</div>`)}
      </div>
      ${activity([['⚠','QA ghi nhận lô keo lỗi','QA · 06/2026'],['📦','17 đơn mua hoàn tất','—']])}
