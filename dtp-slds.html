@@ -793,6 +793,8 @@ const NAV = [
    ['pricebook','↳ Chi tiết bảng giá','','record'],
    ['contract_list','Hợp đồng nguyên tắc','Sales / Admin','list'],
    ['contract','↳ Chi tiết hợp đồng','','record'],
+   ['product_list','Sản phẩm','Admin','list'],
+   ['product','↳ Chi tiết sản phẩm','','record'],
    ['master','Khách hàng & NCC','Admin','list'],
    ['account','↳ Chi tiết Khách hàng (Account)','','record']]},
  {g:'Bán hàng nội địa', items:[
@@ -1670,6 +1672,37 @@ const TAB_EX=['Trang chủ','Báo giá XK','Sales Contract','Kế hoạch SX','C
 const TAB_PUR=['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'];
 const TAB_IM=['Trang chủ','Kế hoạch NVL','Sales Contract','Shipment'];
 const TAB_MD=['Bảng giá','Hợp đồng','Sản phẩm','Khách hàng','NCC'];
+S.product_list = ()=> appnav('Dữ liệu nền tảng','Sản phẩm',TAB_MD,'Sản phẩm')
+ + `<div class="sf-body">${lv({crumb:'Sản phẩm',ico:'📦',color:'#5867e8',object:'Sản phẩm (Product)',view:'Tất cả sản phẩm',count:'8',newLabel:'Sản phẩm mới',
+   cols:[{t:'Mã SP'},{t:'Tên sản phẩm'},{t:'Loại giấy'},{t:'Định lượng'},{t:'Khổ'},{t:'ĐVT'},{t:'Trạng thái'}],
+   rows:[
+    {go:'product',cells:['SP-M125','Giấy Medium 125gsm','Medium','125 gsm','200 cm','kg',pill('ok','Đang bán')]},
+    {go:'product',cells:['SP-M110','Giấy Medium 110gsm','Medium','110 gsm','180 cm','kg',pill('ok','Đang bán')]},
+    {go:'product',cells:['SP-M150','Giấy Medium 150gsm','Medium','150 gsm','200 cm','kg',pill('ok','Đang bán')]},
+    {go:'product',cells:['SP-K170','Giấy Kraft 170gsm','Kraft','170 gsm','200 cm','kg',pill('ok','Đang bán')]},
+    {go:'product',cells:['SP-T125','Testliner 125gsm','Testliner','125 gsm','160 cm','kg',pill('ok','Đang bán')]},
+    {go:'product',cells:['SP-DL150','Giấy Duplex 150gsm','Duplex','150 gsm','200 cm','kg',pill('mut','Ngừng bán')]}]})}</div>`;
+S.product = ()=> appnav('Dữ liệu nền tảng','Sản phẩm',TAB_MD,'Sản phẩm')
+ + `<div class="sf-body narrow">
+   ${hl({crumb:'<span data-go="product_list">Sản phẩm</span> &rsaquo;',ico:'📦',color:'#5867e8',title:'SP-M125 · Giấy Medium 125gsm',sub:'Sản phẩm · Giấy Medium',
+     fields:[['Loại giấy','Medium'],['Định lượng','125 gsm'],['Khổ','200 cm'],['Trạng thái',pill('ok','Đang bán')]],
+     actions:[{t:'Nhân bản',pri:true},'Sửa']})}
+   <div class="cols-side">
+     <div>
+     ${card('Thông tin sản phẩm', fg([['Mã sản phẩm','SP-M125'],['Tên sản phẩm','Giấy Medium 125gsm'],['Loại giấy','Medium'],
+       ['Định lượng','125 gsm'],['Khổ giấy','200 cm'],['Đơn vị tính','kg'],['Nhóm sản phẩm','Giấy công nghiệp'],
+       ['Giá tham chiếu','12.250 ₫/kg'],['Trạng thái',pill('ok','Đang bán')]]))}
+     ${card('Thông số kỹ thuật', tbl([{t:'Chỉ tiêu'},{t:'Giá trị'},{t:'Tiêu chuẩn'}],[
+       ['Định lượng','125 gsm','± 4%'],
+       ['Độ bục','≥ 3.8 kgf/cm²','TCVN'],
+       ['Độ ẩm','7–9%','QA'],
+       ['Độ chịu nén vòng (RCT)','≥ 210 N','QA']]),{n:'4'})}
+     ${card('Bảng giá áp dụng', tbl([{t:'Bảng giá'},{t:'Hiệu lực'},{t:'Giá',num:true}],[
+       ['<a data-go="pricebook">Giá chuẩn Medium 07/2026</a>','01/07/2026','12.250 ₫/kg']]),{n:'1'})}
+     </div>
+     ${activity([['📦','Tạo sản phẩm','Admin · —'],['₫','Cập nhật giá tham chiếu','Kế toán · 01/07/2026']])}
+   </div>
+ </div>`;
 
 S.lead_list = ()=> appnav('Bán hàng nội địa','Lead',TAB_SALES,'Lead')
  + `<div class="sf-body">${lv({crumb:'<span data-go="lead_list">Lead</span> &rsaquo;',ico:'👤',color:'#e07a00',object:'Lead',view:'Lead của tôi',views:['Lead của tôi','Lead mới tuần này','Chưa xử lý','Tất cả Lead','Xem gần đây'],count:'32',newLabel:'Lead mới',
@@ -1890,7 +1923,7 @@ function setupSearch(){
 /* ---- in-page interactivity ---- */
 const TAB2ID={'Trang chủ':'home','Lead':'lead_list','Cơ hội':'opp_list','Đơn hàng':'order_list','Khách hàng':'master',
  'NCC':'vendor_list','Case':'case_list','Báo cáo':'reports','Dashboard':'reports','Cảnh báo':'reports',
- 'Bảng giá':'pricebook_list','Hợp đồng':'contract_list','Sản phẩm':'master','Báo giá XK':'exquote_list','Chứng từ':'excontract_list',
+ 'Bảng giá':'pricebook_list','Hợp đồng':'contract_list','Sản phẩm':'product_list','Báo giá XK':'exquote_list','Chứng từ':'excontract_list',
  'Thanh toán':'lc','Phiếu yêu cầu':'pr_list','Đơn mua (PO)':'ppo_list','Kế hoạch NVL':'matinv',
  'Shipment':'shipment_list','Knowledge':'case_list','Kế hoạch SX':'explan'};
 function resolveTab(app,label){
