@@ -1088,14 +1088,17 @@ S.account = ()=> appnav('Dữ liệu nền tảng','Khách hàng',['Bảng giá'
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="master">Khách hàng & NCC</span> &rsaquo;',ico:'🏢',title:'Cty CP Minh Khang',sub:'Khách hàng · Nhà máy Long An',
      fields:[['Mã số thuế','0312765488'],['Hạn mức công nợ','2.000.000.000 ₫'],['Dư nợ hiện tại','1.620.000.000 ₫'],['Trạng thái',pill('ok','Hoạt động')]],
-     actions:['Sửa']})}
+     actions:[{t:'Tạo Opportunity PO',pri:true,fn:"go('oppo')"},{t:'Tạo Case',fn:'createCaseQuick()'},'Sửa']})}
    <div class="cols-side">
      <div>
      ${card('Thông tin khách hàng', fg([['Tên','Cty CP Minh Khang'],['Mã số thuế','0312765488'],['Loại','Khách hàng'],
        ['Nhà máy giao dịch','Long An'],['Điều khoản TT','Net 30'],['Người phụ trách','Trần Thị B'],['Điện thoại','028 xxx xxxx'],['Địa chỉ','KCN Long An']]))}
-     ${card('Cơ hội', tbl([{t:'Tên cơ hội'},{t:'Giai đoạn'},{t:'Số tiền',num:true},{t:'Đóng dự kiến'}],[
-       ['Cung cấp Medium Q3',pill('info','Báo giá'),'3.400.000.000 ₫','15/08/2026'],
-       ['Đơn giấy hai da',pill('mut','Tìm hiểu'),'600.000.000 ₫','30/09/2026']]),{n:'2',r:'<button class="btn sm">Cơ hội mới</button>'})}
+     ${card('Cơ hội PO', tbl([{t:'Tên Opportunity'},{t:'Giai đoạn'},{t:'Giá trị',num:true},{t:'Đóng dự kiến'}],[
+       ['<a data-go="oppo">Hưng Thịnh — PO Medium Q3</a>',pill('info','Đang sản xuất'),'1.180.000.000 ₫','30/07/2026'],
+       ['<a data-go="oppo">Minh Khang — PO tháng 8</a>',pill('info','Báo giá'),'2.100.000.000 ₫','12/08/2026']]),{n:'2',r:'<button class="btn sm" onclick="go(\'oppo\')">Opportunity PO mới</button>'})}
+     ${card('Case', tbl([{t:'Số Case'},{t:'Chủ đề'},{t:'Record Type'},{t:'Trạng thái'}],[
+       ['<a data-go="case">CASE-0087</a>','Hàng giấy bị ướt khi giao','Bán hàng trong nước',pill('warn','Thương lượng')],
+       ['<a data-go="case">CASE-0091</a>','Sai định lượng lô hàng','Bán hàng trong nước',pill('info','Thương lượng')]]),{n:'2',r:'<button class="btn sm" onclick="createCaseQuick()">Tạo Case</button>'})}
      ${card('Đơn hàng', tbl([{t:'Số đơn'},{t:'Giá trị',num:true},{t:'Trạng thái'},{t:'Ngày nhận'}],[
        ['PO-2601','980.000.000 ₫',pill('ok','Đã đóng'),'02/06/2026'],
        ['PO-2574','1.100.000.000 ₫',pill('ok','Đã đóng'),'12/05/2026']]),{n:'2'})}
@@ -1150,7 +1153,7 @@ S.opp = ()=> appnav('Bán hàng nội địa','Cơ hội',['Trang chủ','Lead',
    ${hl({crumb:'<span data-go="opp_list">Cơ hội</span> &rsaquo;',ico:'💼',color:'#0176d3',title:'Cty Hưng Thịnh — Cung cấp Medium Q3',sub:'Cơ hội · 1.200.000.000 ₫ · Đóng dự kiến 30/07/2026',
      fields:[['Số tiền','1.200.000.000 ₫'],['Giai đoạn',pill('info','Gửi mẫu')],['Xác suất','60%'],['Phụ trách','Trần Thị B']],
      actions:[{t:'Tạo báo giá',pri:true,fn:'openQuoteModal()'},{t:'Tạo hợp đồng',fn:'createContract()'},{t:'Tạo Case',fn:'createCaseQuick()'},{t:'Phê duyệt',fn:'openApproveModal()'},'Gửi mẫu','Sửa']})}
-   ${path(['Phân tích nhu cầu','Gửi mẫu','Báo giá','Lên đơn hàng (PO)','Hợp đồng','Đóng'],1)}
+   ${path(['Phân tích nhu cầu','Gửi mẫu','Báo giá','Hợp đồng','Đóng - Thắng','Đóng - Thua'],1)}
    <div class="cols-side">
      <div>
      ${card('Chi tiết cơ hội', fg([['Khách hàng','Cty Hưng Thịnh Phát','link','account'],['Sản phẩm','Giấy Medium 125gsm'],
@@ -1161,9 +1164,6 @@ S.opp = ()=> appnav('Bán hàng nội địa','Cơ hội',['Trang chủ','Lead',
           <tbody id="quotes-tbody">${quotesRows()}</tbody>
        </table></div>`,
        {n:String(QUOTES.length), r:'<button class="btn sm" onclick="openQuoteModal()">＋ Tạo báo giá</button>'})}
-     ${card('Đơn hàng (PO)', tbl([{t:'Số PO'},{t:'Ngày nhận'},{t:'Giá trị'},{t:'Trạng thái'}],[
-       ['<a data-go="po">PO-2619</a>','13/07/2026','1.180.000.000 ₫',pill('warn','Chờ phê duyệt')]]),
-       {n:'1'})}
      ${card('Hợp đồng', tbl([{t:'Số HĐ'},{t:'Ngày ký'},{t:'Hiệu lực đến'},{t:'Giá trị'},{t:'Trạng thái'}],[
        ['<a data-go="contract">HĐ-0388</a>','30/11/2025','30/11/2026','3.000.000.000 ₫',pill('ok','Hiệu lực')]]),
        {n:'1',r:'<button class="btn sm" onclick="createContract()">＋ Tạo hợp đồng</button>'})}
