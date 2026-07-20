@@ -580,6 +580,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     <div class="pm-body" id="slip-body"></div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeSlipModal()">Đóng</button><button class="btn pri">In phiếu</button></div></div>
   </div>
+  <!-- Modal chi tiết đợt đánh giá NCC -->
+  <div class="modal-back" id="evalback" onclick="closeEvalModal()" style="z-index:135"></div>
+  <div class="po-modal" id="evalmodal" style="z-index:140;width:min(680px,94vw)">
+    <div class="pm-head"><h3 id="eval-title">Chi tiết đợt đánh giá</h3><button title="Đóng" onclick="closeEvalModal()">✕</button></div>
+    <div class="pm-body" id="eval-body"></div>
+    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeEvalModal()">Đóng</button></div></div>
+  </div>
 </div>
 
 <script>
@@ -1306,6 +1313,44 @@ function openSlipModal(no){
   document.getElementById('slipmodal').classList.add('show');
 }
 function closeSlipModal(){ const b=document.getElementById('slipback'),m=document.getElementById('slipmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
+
+/* ===== Đánh giá NCC: bộ tiêu chí + các đợt đánh giá ===== */
+const CRIT_DEF=[
+  {cat:'1. Chất lượng sản phẩm', min:'28/40', std:40, subs:[['Phù hợp tiêu chuẩn kỹ thuật',15],['Độ ổn định chất lượng qua các lô',15],['Đáp ứng yêu cầu đặc biệt / cải tiến',10]]},
+  {cat:'2. Giá bán & Phương thức thanh toán', min:'18/30', std:30, subs:[['Tính cạnh tranh của giá bán',15],['Điều khoản & PTTT linh hoạt',10],['Tổng chi phí sở hữu (TCO)',5]]},
+  {cat:'3. Dịch vụ khách hàng', min:'12/20', std:20, subs:[['Giao hàng đúng hẹn / linh hoạt',10],['Hỗ trợ kỹ thuật & hậu mãi',5],['Ổn định nguồn cung',5]]},
+  {cat:'4. Cam kết môi trường & Uy tín', min:'3/6', std:6, subs:[['Chứng nhận môi trường (ISO 14001, FSC/ESG)',3],['Chính sách giảm tác động môi trường',3]]},
+  {cat:'5. Điểm tuyên dương', min:'', std:4, subs:[['Hỗ trợ nổi trội',4]]},
+];
+const EVALS=[
+  {period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Mua hàng', scores:[13,13,8,13,8,5,8,5,4,3,0,2]},
+  {period:'Kỳ 06/2026', date:'05/06/2026', by:'P. Mua hàng', scores:[12,11,7,12,8,5,7,4,3,3,0,3]},
+  {period:'Kỳ 05/2026', date:'06/05/2026', by:'P. Mua hàng', scores:[14,13,9,14,9,5,9,5,4,3,3,0]},
+];
+function evalGrade(t){ return t>=85?'A':t>=70?'B':t>=63?'C':'—'; }
+function critTableHTML(scores){
+  let rows='', k=0, total=0;
+  CRIT_DEF.forEach(c=>{
+    let catSum=0;
+    const subRows=c.subs.map(s=>{ const v=scores[k++]; catSum+=v; return `<tr><td>↳ ${s[0]}</td><td class="num">${s[1]}</td><td class="num">${v}</td></tr>`; }).join('');
+    total+=catSum;
+    rows+=`<tr><td><b>${c.cat}${c.min?` (tối thiểu ${c.min})`:''}</b></td><td class="num"><b>${c.std}</b></td><td class="num"><b>${catSum}</b></td></tr>`+subRows;
+  });
+  rows+=`<tr><td><b>TỔNG CỘNG — ngưỡng chọn ≥ 63</b></td><td class="num"><b>100</b></td><td class="num"><b>${total} · Xếp loại ${evalGrade(total)}</b></td></tr>`;
+  return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm chuẩn</th><th class="num">Điểm đạt</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function evalsListRows(){
+  return EVALS.map((e,i)=>{ const t=e.scores.reduce((a,b)=>a+b,0); const g=evalGrade(t);
+    return [`<a style="cursor:pointer" onclick="openEvalModal(${i})">${e.period}</a>`, e.date, t+'/100', pill(t>=63?'ok':'err', g+(t>=63?' — Đạt':' — Không đạt')), e.by]; });
+}
+function openEvalModal(i){
+  const e=EVALS[i]; if(!e) return; const t=e.scores.reduce((a,b)=>a+b,0);
+  document.getElementById('eval-title').textContent=e.period+' · '+t+'/100 · Xếp loại '+evalGrade(t);
+  document.getElementById('eval-body').innerHTML=`<p class="po-hint">Ngày đánh giá <b>${e.date}</b> · Người đánh giá <b>${e.by}</b></p>`+critTableHTML(e.scores);
+  document.getElementById('evalback').classList.add('show');
+  document.getElementById('evalmodal').classList.add('show');
+}
+function closeEvalModal(){ const b=document.getElementById('evalback'),m=document.getElementById('evalmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
 function openShipModal(){
   const f=(lbl,id,ph,type)=>`<div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">${lbl}</label><input id="${id}" class="mass-sel" ${type?`type="${type}"`:''} placeholder="${ph||''}"></div>`;
   document.getElementById('ship-body').innerHTML=
@@ -1501,24 +1546,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
        ['Nhóm hàng cung cấp','Hóa chất, keo công nghiệp'],['Người liên hệ','Ông Phạm Văn K'],['Điện thoại','028 xxx xxxx'],
        ['Email','muahang@tantien.vn'],['Địa chỉ','KCN Sóng Thần, Bình Dương'],['Điều khoản TT','Net 30'],
        ['Đánh giá tổng','82/100 · Xếp loại B'],['Trạng thái',pill('ok','Đang hợp tác')]]))}
-     ${card('Tiêu chí đánh giá NCC', tbl([{t:'Tiêu chí'},{t:'Điểm chuẩn',num:true},{t:'Điểm đạt',num:true}],[
-       ['<b>1. Chất lượng sản phẩm</b> (tối thiểu 28/40)','<b>40</b>','<b>34</b>'],
-       ['↳ Phù hợp tiêu chuẩn kỹ thuật','15','13'],
-       ['↳ Độ ổn định chất lượng qua các lô','15','13'],
-       ['↳ Đáp ứng yêu cầu đặc biệt / cải tiến','10','8'],
-       ['<b>2. Giá bán & Phương thức thanh toán</b> (tối thiểu 18/30)','<b>30</b>','<b>26</b>'],
-       ['↳ Tính cạnh tranh của giá bán','15','13'],
-       ['↳ Điều khoản & PTTT linh hoạt','10','8'],
-       ['↳ Tổng chi phí sở hữu (TCO)','5','5'],
-       ['<b>3. Dịch vụ khách hàng</b> (tối thiểu 12/20)','<b>20</b>','<b>17</b>'],
-       ['↳ Giao hàng đúng hẹn / linh hoạt','10','8'],
-       ['↳ Hỗ trợ kỹ thuật & hậu mãi','5','5'],
-       ['↳ Ổn định nguồn cung','5','4'],
-       ['<b>4. Cam kết môi trường & Uy tín</b> (tối thiểu 3/6)','<b>6</b>','<b>3</b>'],
-       ['↳ Chứng nhận môi trường (ISO 14001, FSC/ESG)','3','3'],
-       ['↳ Chính sách giảm tác động môi trường','3','0'],
-       ['<b>5. Điểm tuyên dương</b>','<b>4</b>','<b>2</b>'],
-       ['<b>TỔNG CỘNG — ngưỡng chọn ≥ 63</b>','<b>100</b>','<b>82 · Xếp loại B</b>']]),{n:'5'})}
+     ${card('Tiêu chí đánh giá NCC (kỳ hiện tại)', critTableHTML(EVALS[0].scores), {n:'5'})}
      ${card('Chi tiết điểm trừ theo tiêu chí', tbl([{t:'Tiêu chí'},{t:'Quy tắc cộng / trừ điểm'}],[
        ['Phù hợp tiêu chuẩn KT','−2đ mỗi lỗi: độ ẩm · lẫn loại · tạp chất · pH · độ nhớt · độ trắng · tỷ trọng · móp méo/cận date. Sai lệch vẫn dùng (QA duyệt) −5 · phải phân loại/sửa −4'],
        ['Độ ổn định chất lượng','Không lỗi +15 (mặc định) · 1 lần lỗi −3 · 2 lần −5 · ≥3 lần hoặc nghiêm trọng −15'],
@@ -1531,10 +1559,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
        ['Ổn định nguồn cung','Không ổn định −5 · đáp ứng 75% −1 · 50% −2,5'],
        ['Môi trường & Uy tín','Có chứng nhận môi trường +3 · có chính sách giảm tác động +3'],
        ['Điểm tuyên dương','Giao gấp 2–4h/lễ/CN +1 · chủ động giảm giá +1 · giải pháp tiết giảm CP +1 · hỗ trợ KT có mặt 2–4h +1']]),{n:'11'})}
-     ${card('Lịch sử trừ điểm (kỳ 07/2026)', tbl([{t:'Ngày'},{t:'Bộ phận'},{t:'Tiêu chí ảnh hưởng'},{t:'Sự cố'},{t:'Điểm trừ',num:true}],[
-       ['06/2026','QA','Độ ổn định chất lượng','2 lần lỗi chất lượng keo trong kỳ','−5'],
-       ['05/2026','Mua hàng','Hỗ trợ KT & hậu mãi','Lỗi chứng từ (thiếu CO/CQ)','−2'],
-       ['03/2026','Kho','Giao hàng đúng hẹn','Giao trễ / sai lịch','−1']]),{n:'3'})}
+     ${card('Lịch sử đánh giá', tbl([{t:'Kỳ đánh giá'},{t:'Ngày'},{t:'Điểm'},{t:'Xếp loại'},{t:'Người đánh giá'}], evalsListRows()),{n:String(EVALS.length)})}
      </div>
      ${activity([['⚠','QA ghi nhận lô keo lỗi','QA · 06/2026'],['📦','17 đơn mua hoàn tất','—']])}
    </div>
@@ -1944,7 +1969,7 @@ function setupSearch(){
   dd.addEventListener('click',e=>{const it=e.target.closest('.sr-item'); if(it) pickSearch(it.dataset.id);});
   document.addEventListener('click',e=>{ if(!e.target.closest('.g-search')) dd.classList.remove('show'); });
   document.getElementById('lmsearch').addEventListener('input',e=>renderLauncher(e.target.value));
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeSupModal(); closeMass(); closePO(); closeLauncher(); closeShipModal(); closeSlipModal(); } });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeSupModal(); closeMass(); closePO(); closeLauncher(); closeShipModal(); closeSlipModal(); closeEvalModal(); } });
 }
 
 /* ---- in-page interactivity ---- */
