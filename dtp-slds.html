@@ -1801,16 +1801,27 @@ S.oppo = ()=> appnav('Bán hàng nội địa','Opportunity PO',TAB_SALES,'Oppor
      fields:[['Giá trị','1.180.000.000 ₫'],['Giai đoạn',pill('info','Xử lý PO')],['Xác suất','70%'],['Phụ trách','Trần Thị B']],
      actions:[{t:'Tạo báo giá',pri:true,fn:'createQuote()'},{t:'Tạo đơn hàng (PO)',fn:"go('po')"},'Sửa']})}
    ${path(['Phân tích nhu cầu','Gửi mẫu','Báo giá','Lên đơn hàng (PO)','Hợp đồng','Đóng'],3)}
-   <div class="cols-side">
+   <div class="cols-side wide">
      <div>
-     ${card('Chi tiết Opportunity', fg([['Khách hàng','Cty Hưng Thịnh Phát','link'],['Sản phẩm','Giấy Medium 125gsm'],
-       ['Số lượng dự kiến','120 tấn'],['Nguồn','PO khách gửi'],['Ngày đóng dự kiến','30/07/2026'],['Đối thủ','Giấy An Bình']]))}
-     ${card('Báo giá (Quotes)', tbl([{t:'Số báo giá'},{t:'Ngày'},{t:'Giá trị'},{t:'Trạng thái'}],[
-       ['QUO-0451','12/07/2026','1.470.000.000 ₫',pill('ok','Đã gửi')]]),{n:'1'})}
-     ${card('Đơn hàng (PO)', tbl([{t:'Số PO'},{t:'Ngày nhận'},{t:'Giá trị'},{t:'Trạng thái'}],[
-       ['<a data-go="po">PO-2619</a>','13/07/2026','1.180.000.000 ₫',pill('warn','Chờ phê duyệt')]]),{n:'1'})}
-     ${card('Hợp đồng', tbl([{t:'Số HĐ'},{t:'Ngày ký'},{t:'Giá trị'},{t:'Trạng thái'}],[
-       ['<a data-go="contract">HĐ-0388</a>','30/11/2025','3.000.000.000 ₫',pill('ok','Hiệu lực')]]),{n:'1'})}
+     ${card('Dòng sản phẩm đặt hàng', tbl([{t:'Sản phẩm'},{t:'ĐL/Khổ'},{t:'Đã SX (cuộn)',num:true},{t:'Đã SX (tấn)',num:true},{t:'Chưa SX (cuộn)',num:true},{t:'Chưa SX (tấn)',num:true},{t:'Tổng (cuộn)',num:true},{t:'Tổng (tấn)',num:true}],[
+       ['Giấy Medium','125gsm / 200','—','—','38','20.058','38','20.058'],
+       ['Giấy Medium','110gsm / 180','14','9.942','—','—','14','9.942'],
+       ['Giấy Medium','150gsm / 200','6','4.449','1','741','7','5.190'],
+       ['Giấy Kraft','170gsm / 200','9','7.750','—','—','9','7.750'],
+       ['Testliner','125gsm / 160','9','8.182','—','—','9','8.182']]),{n:'5'})}
+     ${card('Case',
+       `<div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Số Case</th><th>Loại</th><th>Trạng thái</th><th>Ngày tạo</th></tr></thead>
+          <tbody id="pocase-tbody">${poCasesRows()}</tbody></table></div>`,
+       {n:String(POCASES.length), r:'<button class="btn sm" onclick="createCaseFromPO()">＋ Tạo Case</button>'})}
+     ${card('Xuất nhập kho', tbl([{t:'Số phiếu'},{t:'Loại phiếu'},{t:'Ngày'},{t:'Sản phẩm'},{t:'SL (tấn)',num:true},{t:'Kho'},{t:'Trạng thái'}],[
+       ['<a style="cursor:pointer" onclick="openSlipModal(\'XK-1120\')">XK-1120</a>',pill('info','Phiếu xuất kho'),'20/07/2026','Giấy Medium 125gsm','40','Kho Long An',pill('ok','Đã xuất')],
+       ['<a style="cursor:pointer" onclick="openSlipModal(\'XK-1121\')">XK-1121</a>',pill('info','Phiếu xuất kho'),'22/07/2026','Giấy Medium 125gsm','34','Kho Long An',pill('ok','Đã xuất')],
+       ['<a style="cursor:pointer" onclick="openSlipModal(\'NK-0885\')">NK-0885</a>',pill('mut','Phiếu nhập kho'),'18/07/2026','Giấy Medium 125gsm (thành phẩm SX)','28','Kho Long An',pill('ok','Đã nhập')],
+       ['<a style="cursor:pointer" onclick="openSlipModal(\'XK-1130\')">XK-1130</a>',pill('info','Phiếu xuất kho'),'—','Giấy Medium 125gsm','18','Kho Long An',pill('warn','Chờ xuất')]]),{n:'4'})}
+     ${card('Lịch sử phê duyệt', tbl([{t:'Bước'},{t:'Người duyệt'},{t:'Trạng thái'},{t:'Thời gian'}],[
+       ['1. Điều kiện sản xuất','P. Kế hoạch',pill('ok','Đã duyệt'),'13/07/2026 14:20'],
+       ['2. Phê duyệt cuối','Tổng Giám Đốc',pill('warn','Đang chờ'),'—']]),{n:'2',r:'<button class="btn sm">Phê duyệt</button><button class="btn sm">Từ chối</button>'})}
      </div>
      ${activity([['📞','Gọi xác nhận PO khách','Trần Thị B · Hôm nay'],['📎','Upload file PO khách','Hôm nay'],['✅','P.Kế hoạch duyệt điều kiện SX','13/07/2026']])}
    </div>
