@@ -617,6 +617,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     <div class="pm-body" id="fee-body"></div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeFeeModal()">Hủy</button><button class="btn pri" onclick="confirmFee()">Lưu phí</button></div></div>
   </div>
+  <!-- Modal tạo báo giá -->
+  <div class="modal-back" id="quoteback" onclick="closeQuoteModal()" style="z-index:135"></div>
+  <div class="po-modal" id="quotemodal" style="z-index:140;width:min(640px,94vw)">
+    <div class="pm-head"><h3>Tạo báo giá</h3><button title="Đóng" onclick="closeQuoteModal()">✕</button></div>
+    <div class="pm-body" id="quote-body"></div>
+    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeQuoteModal()">Hủy</button><button class="btn pri" onclick="confirmQuote()">Tạo báo giá</button></div></div>
+  </div>
 </div>
 
 <script>
@@ -787,11 +794,39 @@ function quotesRows(){
     <td class="num"><button class="btn sm" title="Xuất báo giá PDF" onclick="exportQuotePDF('${q.no}')">📄 PDF</button></td></tr>`).join('');
 }
 function renderQuotes(){ const tb=document.getElementById('quotes-tbody'); if(tb) tb.innerHTML=quotesRows(); }
-function createQuote(){
+function openQuoteModal(){
   const no='QUO-0'+(quoteSeq++);
   QUOTES.unshift({no, date:'Hôm nay', total:'1.470.000.000 ₫', status:'Nháp'});
   renderQuotes();
   toast('Đã tạo báo giá '+no+' (Nháp)');
+}
+function openQuoteModal(){
+  const no='QUO-0'+quoteSeq;
+  const F=(lbl,id,val,type,ro)=>`<div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">${lbl}</label><input id="${id}" class="mass-sel" ${type?`type="${type}"`:''} ${ro?'readonly':''} value="${val||''}"></div>`;
+  document.getElementById('quote-body').innerHTML=
+    `<p class="po-hint">Tạo báo giá mới cho cơ hội bán hàng nội địa.</p>
+     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+       ${F('Số báo giá','q-no',no,'',true)}
+       ${F('Khách hàng *','q-cust','Cty Hưng Thịnh Phát')}
+       ${F('Sản phẩm','q-prod','Giấy Medium 125gsm')}
+       ${F('Số lượng (tấn)','q-qty','120','number')}
+       ${F('Đơn giá (₫/kg)','q-price','12.250')}
+       ${F('Thành tiền','q-total','1.470.000.000 ₫')}
+       ${F('Hiệu lực đến','q-exp','','date')}
+     </div>
+     <div style="margin-top:10px"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Ghi chú</label><input id="q-note" class="mass-sel" placeholder="Điều khoản, ghi chú báo giá…"></div>`;
+  document.getElementById('quoteback').classList.add('show');
+  document.getElementById('quotemodal').classList.add('show');
+}
+function closeQuoteModal(){ const b=document.getElementById('quoteback'),m=document.getElementById('quotemodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
+function confirmQuote(){
+  const cust=(document.getElementById('q-cust').value||'').trim();
+  if(!cust){ toast('Nhập Khách hàng'); return; }
+  const no='QUO-0'+(quoteSeq++);
+  const total=(document.getElementById('q-total').value||'').trim()||'—';
+  QUOTES.unshift({no, date:'Hôm nay', total, status:'Nháp'});
+  renderQuotes(); closeQuoteModal();
+  toast('Đã tạo báo giá '+no+' cho '+cust+' (Nháp)');
 }
 function createContract(){ toast('Đã tạo Hợp đồng nháp từ cơ hội — chuyển sang màn Hợp đồng'); setTimeout(function(){ if(S.contract) go('contract'); }, 700); }
 
@@ -1000,7 +1035,7 @@ S.opp = ()=> appnav('Bán hàng nội địa','Cơ hội',['Trang chủ','Lead',
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="opp_list">Cơ hội</span> &rsaquo;',ico:'💼',color:'#0176d3',title:'Cty Hưng Thịnh — Cung cấp Medium Q3',sub:'Cơ hội · 1.200.000.000 ₫ · Đóng dự kiến 30/07/2026',
      fields:[['Số tiền','1.200.000.000 ₫'],['Giai đoạn',pill('info','Gửi mẫu')],['Xác suất','60%'],['Phụ trách','Trần Thị B']],
-     actions:[{t:'Tạo báo giá',pri:true,fn:'createQuote()'},{t:'Tạo hợp đồng',fn:'createContract()'},'Gửi mẫu','Sửa']})}
+     actions:[{t:'Tạo báo giá',pri:true,fn:'openQuoteModal()'},{t:'Tạo hợp đồng',fn:'createContract()'},'Gửi mẫu','Sửa']})}
    ${path(['Phân tích nhu cầu','Gửi mẫu','Báo giá','Lên đơn hàng (PO)','Hợp đồng','Đóng'],1)}
    <div class="cols-side">
      <div>
@@ -1011,7 +1046,7 @@ S.opp = ()=> appnav('Bán hàng nội địa','Cơ hội',['Trang chủ','Lead',
           <thead><tr><th>Số báo giá</th><th>Ngày tạo</th><th class="num">Giá trị</th><th>Trạng thái</th><th></th></tr></thead>
           <tbody id="quotes-tbody">${quotesRows()}</tbody>
        </table></div>`,
-       {n:String(QUOTES.length), r:'<button class="btn sm" onclick="createQuote()">＋ Tạo báo giá</button>'})}
+       {n:String(QUOTES.length), r:'<button class="btn sm" onclick="openQuoteModal()">＋ Tạo báo giá</button>'})}
      ${card('Đơn hàng (PO)', tbl([{t:'Số PO'},{t:'Ngày nhận'},{t:'Giá trị'},{t:'Trạng thái'}],[
        ['<a data-go="po">PO-2619</a>','13/07/2026','1.180.000.000 ₫',pill('warn','Chờ phê duyệt')]]),
        {n:'1'})}
@@ -1917,7 +1952,7 @@ S.oppo = ()=> appnav('Bán hàng nội địa','Opportunity PO',TAB_SALES,'Oppor
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="oppo_list">Opportunity PO</span> &rsaquo;',ico:'📄',color:'#0176d3',title:'Cty Hưng Thịnh — PO Medium Q3',sub:'Opportunity PO · 1.180.000.000 ₫ · Đóng dự kiến 30/07/2026',
      fields:[['Giá trị','1.180.000.000 ₫'],['Giai đoạn',pill('info','Đang sản xuất')],['Xác suất','70%'],['Phụ trách','Trần Thị B']],
-     actions:[{t:'Tạo báo giá',pri:true,fn:'createQuote()'},{t:'Tạo đơn hàng (PO)',fn:"go('po')"},'Sửa']})}
+     actions:[{t:'Tạo báo giá',pri:true,fn:'openQuoteModal()'},{t:'Tạo đơn hàng (PO)',fn:"go('po')"},'Sửa']})}
    ${path(['Mới tiếp nhận','Báo giá','Kiểm tra Đơn hàng','Đang sản xuất','Giao từng phần','Đóng đơn'],3)}
    <div class="cols-side">
      <div>
@@ -2187,7 +2222,7 @@ function setupSearch(){
   dd.addEventListener('click',e=>{const it=e.target.closest('.sr-item'); if(it) pickSearch(it.dataset.id);});
   document.addEventListener('click',e=>{ if(!e.target.closest('.g-search')) dd.classList.remove('show'); });
   document.getElementById('lmsearch').addEventListener('input',e=>renderLauncher(e.target.value));
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeSupModal(); closeMass(); closePO(); closeLauncher(); closeShipModal(); closeSlipModal(); closeEvalModal(); closeFeeModal(); } });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeSupModal(); closeMass(); closePO(); closeLauncher(); closeShipModal(); closeSlipModal(); closeEvalModal(); closeFeeModal(); closeQuoteModal(); } });
 }
 
 /* ---- in-page interactivity ---- */
