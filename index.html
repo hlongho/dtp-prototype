@@ -270,6 +270,8 @@ a:hover{text-decoration:underline}
 .pl-grid{display:grid;grid-template-columns:1fr 1fr;column-gap:44px}
 .pl-grid .slds-form-element:has(.wide2){grid-column:1 / -1}
 @media(max-width:760px){.pl-grid{grid-template-columns:1fr}}
+.so-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:10px;align-items:start}
+@media(max-width:1000px){.so-layout{grid-template-columns:1fr}}
 .cols-rec.wide{grid-template-columns:minmax(0,1fr) 340px}
 @media(max-width:1200px){.cols-rec.wide{grid-template-columns:1fr}}
 .cols-rec .rec-col{min-width:0}
@@ -1924,7 +1926,8 @@ S.exso = ()=> appnav('Bán hàng xuất khẩu','SO',TAB_EX,'SO')
    ${hl({crumb:'<span data-go="exso_list">Sales Order (SO)</span> &rsaquo;',ico:'📦',color:'#1b96ff',title:'SO-XK-0142 · Reliance Paper (Ấn Độ)',sub:'Đơn hàng bán xuất khẩu · đồng bộ từ Rosy',
      fields:[['Số SO','SO-XK-0142'],['Khách hàng','Reliance Paper Ltd'],['Hạn giao - nhận','05/08/2026'],['Trạng thái',pill('info','Đang xử lý')]],
      actions:[{t:'Lên kế hoạch SX',pri:true,fn:"go('explan')"},'Sửa']})}
-   ${plLayout([
+   <div class="so-layout">
+     <div>${plLayout([
      plSection('Thông tin chung', [
        ['Số SO','SO-XK-0142'],
        ['Khách hàng','Reliance Paper Ltd (Ấn Độ)','link','account'],
@@ -1942,7 +1945,9 @@ S.exso = ()=> appnav('Bán hàng xuất khẩu','SO',TAB_EX,'SO')
             <tr><td>Testliner</td><td>Testliner</td><td>125 gsm</td><td>1.600 mm</td><td class="num">18 cuộn</td><td class="num">$470/tấn</td><td>${machineCell('PM4')}</td></tr>
             <tr><td>Medium</td><td>Medium</td><td>110 gsm</td><td>1.400 mm</td><td class="num">14 cuộn</td><td class="num">$455/tấn</td><td>${machineCell('PM5')}</td></tr>
           </tbody></table></div>`)
-   ])}
+   ])}</div>
+     ${activity([['📥','Đồng bộ SO từ Rosy','Tự động · Hôm nay'],['📞','Xác nhận lịch giao với KH','Lê Thị XK · Hôm nay'],['📋','Task: Chốt phân bổ máy xeo','Được giao P.Kế hoạch · Cần xử lý']])}
+   </div>
  </div>`;
 S.exquote_list = ()=> appnav('Bán hàng xuất khẩu','Báo giá XK',TAB_EX,'Báo giá XK')
  + `<div class="sf-body">${lv({crumb:'Báo giá XK',ico:'🚢',color:'#1b96ff',object:'Báo giá xuất khẩu (Quote)',view:'Báo giá gần đây',count:'21',newLabel:'Báo giá mới',
