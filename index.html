@@ -966,7 +966,7 @@ const NAV = [
  {g:'Dữ liệu nền tảng', items:[
    ['pricebook_list','Bảng giá (Price Book)','Kế toán / Admin','list'],
    ['pricebook','↳ Chi tiết bảng giá','','record'],
-   ['contract_list','Hợp đồng nguyên tắc','Sales / Admin','list'],
+   ['contract_list','Hợp đồng khung (Contract)','Sales / Admin','list'],
    ['contract','↳ Chi tiết hợp đồng','','record'],
    ['product_list','Sản phẩm','Admin','list'],
    ['product','↳ Chi tiết sản phẩm','','record'],
@@ -1056,19 +1056,23 @@ S.pricebook = ()=> appnav('Dữ liệu nền tảng','Price Book',['Bảng giá'
 
 S.contract = ()=> appnav('Dữ liệu nền tảng','Hợp đồng',['Bảng giá','Hợp đồng','Sản phẩm','Khách hàng','NCC'],'Hợp đồng')
  + `<div class="sf-body narrow">
-   ${hl({crumb:'<span data-go="contract_list">Sales Contract</span> &rsaquo;',ico:'📄',title:'HĐ-0421 · Cty CP Minh Khang',sub:'Hợp đồng nguyên tắc · Còn 21 ngày hiệu lực',
-     fields:[['Giá trị HĐ','1 năm'],['Hiệu lực','15/08/2025 – 14/08/2026'],['Trạng thái',pill('warn','Sắp hết hạn')],['Phụ trách','Trần Thị B']],
-     actions:[{t:'Gia hạn',pri:true},{t:'Export PDF',fn:'exportContractPDF()'},'Sửa','Tạo đơn']})}
-   ${banner('warn','Hệ thống <b>tự động nhắc gia hạn trước 1 tháng</b>. Hợp đồng này còn <b>21 ngày</b> — hãy khởi tạo gia hạn hoặc thông báo khách hàng.')}
+   ${hl({crumb:'<span data-go="contract_list">Hợp đồng khung (Contract)</span> &rsaquo;',ico:'📄',title:'HĐ-0421 · Cty CP Minh Khang',sub:'Hợp đồng khung · Hiệu lực đến 31/12/2026',
+     fields:[['Giá trị HĐ','1 năm'],['Hiệu lực','21/07/2026 – 31/12/2026'],['Trạng thái',pill('ok','Còn hiệu lực')],['Phụ trách','Trần Thị B']],
+     actions:[{t:'Gia hạn',pri:true},{t:'Export PDF',fn:'exportContractPDF()'},'Sửa',{t:'Tạo Đơn hàng (Opty PO)',fn:"go('oppo')"}]})}
    <div class="cols-side">
      <div>
      ${card('Chi tiết hợp đồng', fg([['Số hợp đồng','HĐ-0421'],['Khách hàng','Cty CP Minh Khang','link','account'],
        ['Cơ hội','Cty CP Minh Khang — HĐ 2027','link','opp'],
-       ['Ngày ký','15/08/2025'],['Ngày hết hạn','14/08/2026'],['Điều khoản TT','Net 30'],['Hạn mức công nợ','2.000.000.000 ₫']]))}
-     ${card('Bảng giá áp dụng (Price Book liên kết)', tbl([{t:'Sản phẩm'},{t:'Định lượng'},{t:'Đơn giá',num:true}],[
-       ['Giấy Medium','125 gsm','12.250'],['Giấy hai da','—','15.800']]))}
+       ['Ngày ký','21/07/2026'],['Ngày hết hạn','31/12/2026'],['Cảnh báo gia hạn','30/11/2026'],['Điều khoản TT','Net 30'],['Hạn mức công nợ','2.000.000.000 ₫']]))}
+     ${card('Account', tbl([{t:'Khách hàng'},{t:'Mã số thuế'},{t:'Trạng thái'}],[
+       ['<a data-go="account">Cty CP Minh Khang</a>','0312765488',pill('ok','Hoạt động')]]),{n:'1'})}
+     ${card('Contact', tbl([{t:'Người liên hệ'},{t:'Chức vụ'},{t:'Điện thoại'},{t:'Email'}],[
+       ['Ông Phạm Văn K','Trưởng phòng Mua','090 xxx xxxx','muahang@minhkhang.vn'],
+       ['Bà Lê Thị M','Kế toán trưởng','091 xxx xxxx','ketoan@minhkhang.vn']]),{n:'2'})}
+     ${card('Cơ hội', tbl([{t:'Tên cơ hội'},{t:'Giai đoạn'},{t:'Giá trị',num:true},{t:'Đóng dự kiến'}],[
+       ['<a data-go="opp">Cty CP Minh Khang — HĐ 2027</a>',pill('info','Báo giá'),'3.400.000.000 ₫','15/08/2026']]),{n:'1'})}
      </div>
-     ${activity([['🔔','Nhắc gia hạn (T-30)','Hệ thống · Hôm nay'],['✍','Ký gia hạn năm trước','15/08/2025']])}
+     ${activity([['🔔','Nhắc gia hạn (T-30)','Hệ thống · Hôm nay'],['✍','Ký hợp đồng khung','21/07/2026']])}
    </div>
  </div>`;
 
@@ -1102,7 +1106,7 @@ S.account = ()=> appnav('Dữ liệu nền tảng','Khách hàng',['Bảng giá'
      ${card('Đơn hàng', tbl([{t:'Số đơn'},{t:'Giá trị',num:true},{t:'Trạng thái'},{t:'Ngày nhận'}],[
        ['PO-2601','980.000.000 ₫',pill('ok','Đã đóng'),'02/06/2026'],
        ['PO-2574','1.100.000.000 ₫',pill('ok','Đã đóng'),'12/05/2026']]),{n:'2'})}
-     ${card('Hợp đồng nguyên tắc', tbl([{t:'Số HĐ'},{t:'Hiệu lực'},{t:'Trạng thái'}],[
+     ${card('Hợp đồng khung', tbl([{t:'Số HĐ'},{t:'Hiệu lực'},{t:'Trạng thái'}],[
        ['HĐ-0421','15/08/2025 – 14/08/2026',pill('warn','Sắp hết hạn')]]),{n:'1'})}
      </div>
      ${activity([['📞','Trao đổi kế hoạch mua Q3','Trần Thị B · Hôm nay'],['✉','Gửi bảng giá tháng 7','Hôm qua'],['✔','Ký gia hạn hợp đồng năm trước','15/08/2025']])}
@@ -2152,7 +2156,7 @@ S.case_list = ()=> appnav('Chăm sóc KH','Case',['Trang chủ','Case','Khách h
     {go:'case_xk',cells:['CASE-XK-0105','Thiếu chứng từ CO/CQ','TIPS Industry (MY)','Bán hàng xuất khẩu',pill('mut','Thấp'),pill('info','Mới tiếp nhận')]}]})}</div>`;
 
 S.contract_list = ()=> appnav('Dữ liệu nền tảng','Hợp đồng',TAB_MD,'Hợp đồng')
- + `<div class="sf-body">${lv({crumb:'Hợp đồng',ico:'📄',color:'#5867e8',object:'Hợp đồng nguyên tắc',view:'Còn hiệu lực',count:'46',newLabel:'HĐ mới',
+ + `<div class="sf-body">${lv({crumb:'Hợp đồng',ico:'📄',color:'#5867e8',object:'Hợp đồng khung (Contract)',view:'Còn hiệu lực',count:'46',newLabel:'HĐ mới',
    cols:[{t:'Số HĐ'},{t:'Khách hàng'},{t:'Hiệu lực đến'},{t:'Hạn mức',num:true},{t:'Trạng thái'}],
    rows:[
     {go:'contract',cells:['HĐ-0421','CP Minh Khang','14/08/2026','2.000.000.000 ₫',pill('warn','Sắp hết hạn')]},
