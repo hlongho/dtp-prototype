@@ -624,6 +624,17 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     <div class="pm-body" id="quote-body"></div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeQuoteModal()">Hủy</button><button class="btn pri" onclick="confirmQuote()">Tạo báo giá</button></div></div>
   </div>
+  <!-- Modal phê duyệt (có lý do) -->
+  <div class="modal-back" id="apprback" onclick="closeApproveModal()" style="z-index:135"></div>
+  <div class="po-modal sm" id="apprmodal" style="z-index:140">
+    <div class="pm-head"><h3>Phê duyệt cơ hội</h3><button title="Đóng" onclick="closeApproveModal()">✕</button></div>
+    <div class="pm-body">
+      <p class="po-hint">Nhập lý do / ý kiến phê duyệt (bắt buộc).</p>
+      <label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Lý do *</label>
+      <textarea id="appr-reason" class="mass-sel" style="width:100%;min-height:84px;resize:vertical" placeholder="VD: Đủ điều kiện tín dụng & năng lực SX, đồng ý cho tiến hành…"></textarea>
+    </div>
+    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="confirmApprove(false)">Từ chối</button><button class="btn pri" onclick="confirmApprove(true)">Phê duyệt</button></div></div>
+  </div>
 </div>
 
 <script>
@@ -844,6 +855,10 @@ function confirmQuote(){
   toast('Đã tạo báo giá '+no+' · '+lines.length+' sản phẩm · '+fmtMoney(quoteTotal()));
 }
 function createContract(){ toast('Đã tạo Hợp đồng nháp từ cơ hội — chuyển sang màn Hợp đồng'); setTimeout(function(){ if(S.contract) go('contract'); }, 700); }
+function createCaseQuick(){ toast('Đã tạo Case khiếu nại từ cơ hội — mở màn Case'); setTimeout(function(){ if(S.case) go('case'); }, 700); }
+function openApproveModal(){ const r=document.getElementById('appr-reason'); if(r) r.value=''; document.getElementById('apprback').classList.add('show'); document.getElementById('apprmodal').classList.add('show'); if(r) setTimeout(()=>r.focus(),50); }
+function closeApproveModal(){ const b=document.getElementById('apprback'),m=document.getElementById('apprmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
+function confirmApprove(ok){ const reason=(document.getElementById('appr-reason').value||'').trim(); if(!reason){ toast('Nhập lý do trước khi '+(ok?'phê duyệt':'từ chối')); document.getElementById('appr-reason').focus(); return; } closeApproveModal(); toast((ok?'✓ Đã phê duyệt':'✗ Đã từ chối')+' · Lý do: '+reason); }
 
 /* ===== Sales Contract (NK): tạo PO từ hợp đồng + related list PO ===== */
 let IMPOS=[{no:'PO-NK-0088', ncc:'Recycling Corp USA', item:'Giấy OCC', qty:'800 tấn', val:'$168.000', status:'Đã duyệt'}];
@@ -1050,7 +1065,7 @@ S.opp = ()=> appnav('Bán hàng nội địa','Cơ hội',['Trang chủ','Lead',
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="opp_list">Cơ hội</span> &rsaquo;',ico:'💼',color:'#0176d3',title:'Cty Hưng Thịnh — Cung cấp Medium Q3',sub:'Cơ hội · 1.200.000.000 ₫ · Đóng dự kiến 30/07/2026',
      fields:[['Số tiền','1.200.000.000 ₫'],['Giai đoạn',pill('info','Gửi mẫu')],['Xác suất','60%'],['Phụ trách','Trần Thị B']],
-     actions:[{t:'Tạo báo giá',pri:true,fn:'openQuoteModal()'},{t:'Tạo hợp đồng',fn:'createContract()'},'Gửi mẫu','Sửa']})}
+     actions:[{t:'Tạo báo giá',pri:true,fn:'openQuoteModal()'},{t:'Tạo hợp đồng',fn:'createContract()'},{t:'Tạo Case',fn:'createCaseQuick()'},{t:'Phê duyệt',fn:'openApproveModal()'},'Gửi mẫu','Sửa']})}
    ${path(['Phân tích nhu cầu','Gửi mẫu','Báo giá','Lên đơn hàng (PO)','Hợp đồng','Đóng'],1)}
    <div class="cols-side">
      <div>
@@ -1968,7 +1983,7 @@ S.oppo = ()=> appnav('Bán hàng nội địa','Opportunity PO',TAB_SALES,'Oppor
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="oppo_list">Opportunity PO</span> &rsaquo;',ico:'📄',color:'#0176d3',title:'Cty Hưng Thịnh — PO Medium Q3',sub:'Opportunity PO · 1.180.000.000 ₫ · Đóng dự kiến 30/07/2026',
      fields:[['Giá trị','1.180.000.000 ₫'],['Giai đoạn',pill('info','Đang sản xuất')],['Xác suất','70%'],['Phụ trách','Trần Thị B']],
-     actions:[{t:'Tạo báo giá',pri:true,fn:'openQuoteModal()'},{t:'Tạo đơn hàng (PO)',fn:"go('po')"},'Sửa']})}
+     actions:[{t:'Tạo báo giá',pri:true,fn:'openQuoteModal()'},{t:'Tạo đơn hàng (PO)',fn:"go('po')"},{t:'Tạo Case',fn:'createCaseQuick()'},{t:'Phê duyệt',fn:'openApproveModal()'},'Sửa']})}
    ${path(['Mới tiếp nhận','Báo giá','Kiểm tra Đơn hàng','Đang sản xuất','Giao từng phần','Đóng đơn'],3)}
    <div class="cols-side">
      <div>
@@ -2238,7 +2253,7 @@ function setupSearch(){
   dd.addEventListener('click',e=>{const it=e.target.closest('.sr-item'); if(it) pickSearch(it.dataset.id);});
   document.addEventListener('click',e=>{ if(!e.target.closest('.g-search')) dd.classList.remove('show'); });
   document.getElementById('lmsearch').addEventListener('input',e=>renderLauncher(e.target.value));
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeSupModal(); closeMass(); closePO(); closeLauncher(); closeShipModal(); closeSlipModal(); closeEvalModal(); closeFeeModal(); closeQuoteModal(); } });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeSupModal(); closeMass(); closePO(); closeLauncher(); closeShipModal(); closeSlipModal(); closeEvalModal(); closeFeeModal(); closeQuoteModal(); closeApproveModal(); } });
 }
 
 /* ---- in-page interactivity ---- */
