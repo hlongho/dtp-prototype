@@ -805,39 +805,58 @@ function quotesRows(){
     <td class="num"><button class="btn sm" title="Xuất báo giá PDF" onclick="exportQuotePDF('${q.no}')">📄 PDF</button></td></tr>`).join('');
 }
 function renderQuotes(){ const tb=document.getElementById('quotes-tbody'); if(tb) tb.innerHTML=quotesRows(); }
+/* Sản phẩm & đơn giá nội địa (₫/kg) — theo Bảng giá T07/2026 */
+const DQ_PRODUCTS=[
+  {name:'Whitetop (WTN)',        spec:'140 gsm · khổ 1.400–2.400', price:'15.400'},
+  {name:'Whitetop (WTN)',        spec:'150–180 gsm · khổ 1.400–2.400', price:'15.200'},
+  {name:'Testliner (KA)',        spec:'150–200 gsm · khổ 1.400–2.400', price:'13.000'},
+  {name:'Testliner (KAT)',       spec:'150–200 gsm · khổ 1.400–2.400', price:'12.800'},
+  {name:'Testliner (K2E+K3E)',   spec:'150–200 gsm · khổ 1.400–2.400', price:'12.700'},
+  {name:'Testliner (K3Y)',       spec:'150–200 gsm · khổ 1.400–2.400', price:'11.400'},
+  {name:'Medium gia keo (M1S)',  spec:'100–185 gsm · khổ 1.400–2.400', price:'10.200'},
+];
+function dqLabel(l){ return l.prod+' — '+l.spec; }
 let QLINES=[];
 function qAmt(l){ return parseNum(l.qty)*1000*parseNum(l.price); }
-function quoteTotal(){ return QLINES.reduce((a,l)=>a+qAmt(l),0); }
+function qSubtotal(){ return QLINES.reduce((a,l)=>a+qAmt(l),0); }
+function qVat(){ return Math.round(qSubtotal()*0.1); }
+function qGrand(){ return qSubtotal()+qVat(); }
 function qLinesRows(){
   return QLINES.map((l,i)=>`<tr>
-    <td><input class="mass-sel" value="${l.prod}" oninput="QLINES[${i}].prod=this.value" placeholder="Tên sản phẩm"></td>
-    <td><input class="mass-sel" style="width:96px" value="${l.spec}" oninput="QLINES[${i}].spec=this.value" placeholder="gsm/khổ"></td>
-    <td><input class="mass-sel num" style="width:74px" type="number" value="${l.qty}" oninput="QLINES[${i}].qty=this.value;recalcQuote()"></td>
-    <td><input class="mass-sel num" style="width:94px" value="${l.price}" oninput="QLINES[${i}].price=this.value;recalcQuote()"></td>
+    <td><select class="mass-sel" onchange="qSetProd(${i},this.selectedIndex)">${DQ_PRODUCTS.map((p,pi)=>`<option ${(p.name===l.prod&&p.spec===l.spec)?'selected':''}>${p.name} · ${p.spec}</option>`).join('')}</select></td>
+    <td><input class="mass-sel num" style="width:70px" type="number" value="${l.qty}" oninput="QLINES[${i}].qty=this.value;recalcQuote()"></td>
+    <td><input class="mass-sel num" style="width:88px" value="${l.price}" oninput="QLINES[${i}].price=this.value;recalcQuote()"></td>
     <td class="num qline-amt">${fmtMoney(qAmt(l))}</td>
     <td class="num"><button class="btn sm" title="Xoá dòng" onclick="QLINES.splice(${i},1);renderQLines()">✕</button></td></tr>`).join('');
 }
+function qSetProd(i,pi){ const p=DQ_PRODUCTS[pi]; if(p&&QLINES[i]){ QLINES[i].prod=p.name; QLINES[i].spec=p.spec; QLINES[i].price=p.price; } renderQLines(); }
 function renderQLines(){ const tb=document.getElementById('qlines-tbody'); if(tb) tb.innerHTML=qLinesRows(); recalcQuote(); }
 function recalcQuote(){
   document.querySelectorAll('#qlines-tbody tr').forEach((tr,i)=>{ const c=tr.querySelector('.qline-amt'); if(c&&QLINES[i]) c.textContent=fmtMoney(qAmt(QLINES[i])); });
-  const t=document.getElementById('q-grandtotal'); if(t) t.textContent=fmtMoney(quoteTotal());
+  const set=(id,v)=>{const e=document.getElementById(id); if(e) e.textContent=v;};
+  set('q-subtotal',fmtMoney(qSubtotal())); set('q-vat',fmtMoney(qVat())); set('q-grandtotal',fmtMoney(qGrand()));
 }
-function addQLine(){ QLINES.push({prod:'',spec:'',qty:'',price:''}); renderQLines(); }
+function addQLine(){ const p=DQ_PRODUCTS[0]; QLINES.push({prod:p.name,spec:p.spec,qty:'',price:p.price}); renderQLines(); }
 function openQuoteModal(){
   const no='QUO-0'+quoteSeq;
-  QLINES=[{prod:'Giấy Medium',spec:'125gsm / 200',qty:'120',price:'12.250'},{prod:'Giấy Kraft',spec:'170gsm / 200',qty:'40',price:'11.900'}];
+  QLINES=[{prod:'Whitetop (WTN)',spec:'150–180 gsm · khổ 1.400–2.400',qty:'50',price:'15.200'},{prod:'Testliner (K2E+K3E)',spec:'150–200 gsm · khổ 1.400–2.400',qty:'40',price:'12.700'}];
   document.getElementById('quote-body').innerHTML=
-    `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+    `<p class="po-hint">Báo giá nội địa — đơn giá <b>₫/kg</b>, <b>chưa gồm VAT</b>, giao tại kho khách hàng. Theo Bảng giá T07/2026.</p>
+     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Số báo giá</label><input id="q-no" class="mass-sel" value="${no}" readonly></div>
-       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Khách hàng *</label><input id="q-cust" class="mass-sel" value="Cty Hưng Thịnh Phát"></div>
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Khách hàng *</label><input id="q-cust" class="mass-sel" value="Cty CP Tân Tấn Lộc"></div>
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Hiệu lực đến</label><input id="q-exp" class="mass-sel" type="date"></div>
-       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Ghi chú</label><input id="q-note" class="mass-sel" placeholder="Điều khoản…"></div>
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Điều khoản TT</label><input id="q-note" class="mass-sel" value="Theo Hợp đồng nguyên tắc · giao tại kho"></div>
      </div>
      <div class="wf-muted" style="font-size:12px;font-weight:700;margin-bottom:4px">Dòng sản phẩm</div>
      <div class="tbl-wrap"><table class="tbl">
-       <thead><tr><th>Sản phẩm</th><th>ĐL/Khổ</th><th class="num">SL (tấn)</th><th class="num">Đơn giá (₫/kg)</th><th class="num">Thành tiền</th><th></th></tr></thead>
+       <thead><tr><th>Sản phẩm (định lượng · khổ ghép)</th><th class="num">SL (tấn)</th><th class="num">Đơn giá (₫/kg)</th><th class="num">Thành tiền</th><th></th></tr></thead>
        <tbody id="qlines-tbody">${qLinesRows()}</tbody>
-       <tfoot><tr><td colspan="4"><b>Tổng giá trị báo giá</b></td><td class="num"><b id="q-grandtotal">${fmtMoney(quoteTotal())}</b></td><td></td></tr></tfoot>
+       <tfoot>
+         <tr><td colspan="3">Tổng (chưa VAT)</td><td class="num" id="q-subtotal">${fmtMoney(qSubtotal())}</td><td></td></tr>
+         <tr><td colspan="3">VAT 10%</td><td class="num" id="q-vat">${fmtMoney(qVat())}</td><td></td></tr>
+         <tr><td colspan="3"><b>Tổng cộng (gồm VAT)</b></td><td class="num"><b id="q-grandtotal">${fmtMoney(qGrand())}</b></td><td></td></tr>
+       </tfoot>
      </table></div>
      <div style="margin-top:8px"><button class="btn sm" onclick="addQLine()">＋ Thêm sản phẩm</button></div>`;
   document.getElementById('quoteback').classList.add('show');
@@ -847,12 +866,11 @@ function closeQuoteModal(){ const b=document.getElementById('quoteback'),m=docum
 function confirmQuote(){
   const cust=(document.getElementById('q-cust').value||'').trim();
   if(!cust){ toast('Nhập Khách hàng'); return; }
-  const lines=QLINES.filter(l=>(l.prod||'').trim());
-  if(!lines.length){ toast('Thêm ít nhất 1 dòng sản phẩm'); return; }
+  if(!QLINES.length){ toast('Thêm ít nhất 1 dòng sản phẩm'); return; }
   const no='QUO-0'+(quoteSeq++);
-  QUOTES.unshift({no, date:'Hôm nay', total:fmtMoney(quoteTotal()), status:'Nháp'});
+  QUOTES.unshift({no, date:'Hôm nay', total:fmtMoney(qGrand())+' (gồm VAT)', status:'Nháp'});
   renderQuotes(); closeQuoteModal();
-  toast('Đã tạo báo giá '+no+' · '+lines.length+' sản phẩm · '+fmtMoney(quoteTotal()));
+  toast('Đã tạo báo giá '+no+' · '+QLINES.length+' SP · '+fmtMoney(qGrand())+' (gồm VAT)');
 }
 function createContract(){ toast('Đã tạo Hợp đồng nháp từ cơ hội — chuyển sang màn Hợp đồng'); setTimeout(function(){ if(S.contract) go('contract'); }, 700); }
 function createCaseQuick(){ toast('Đã tạo Case khiếu nại từ cơ hội — mở màn Case'); setTimeout(function(){ if(S.case) go('case'); }, 700); }
@@ -1144,19 +1162,22 @@ S.excase = ()=> appnav('Bán hàng nội địa','Case',['Trang chủ','Cơ hộ
 
 S.exquote = ()=> appnav('Bán hàng xuất khẩu','Báo giá XK',['Trang chủ','Báo giá XK','Sales Contract','SO','Kế hoạch SX','Chứng từ','Thanh toán'],'Báo giá XK')
  + `<div class="sf-body narrow">
-   ${hl({crumb:'<span data-go="exquote_list">Báo giá xuất khẩu</span> &rsaquo;',ico:'🚢',color:'#1b96ff',title:'QXK-0182 · Kraft Liner → Ấn Độ (Nhava Sheva)',sub:'Điều kiện: CIF · 3x40HC',
-     fields:[['Giá CIF','$495/tấn'],['Trạng thái',pill('info','Nháp')],['Cảng đến','Nhava Sheva'],['Hiệu lực','7 ngày']],
+   ${hl({crumb:'<span data-go="exquote_list">Báo giá xuất khẩu</span> &rsaquo;',ico:'🚢',color:'#1b96ff',title:'QXK-0182 · White Top (WTN) → Macrolite (Philippines)',sub:'USD/MT · POL Cát Lái → POD Cagayan De Oro',
+     fields:[['Giá CFR','$680–690/MT'],['Trạng thái',pill('info','Nháp')],['Cảng đến (POD)','Cagayan De Oro'],['Hiệu lực','25/07/2026']],
      actions:[{t:'Gửi khách',pri:true},'Tính lại giá','Sửa']})}
    <div class="cols-side">
      <div>
-     ${card('Cấu thành giá (Price build-up)', tbl([{t:'Thành phần'},{t:'Loại'},{t:'Giá trị',num:true}],[
-       ['Giá FOB HCM','Giá gốc','$430/tấn'],
-       ['Ocean Freight','Cước tàu','$38/tấn'],
-       ['THC + CIC','Local charges','$12/tấn'],
-       ['Bảo hiểm','Insurance','$3/tấn'],
-       ['<b>Giá CIF Nhava Sheva</b>','','<b>$495/tấn</b>']]),{n:'5'})}
-     ${card('Lịch sử cước tàu tham chiếu', tbl([{t:'Thời điểm'},{t:'Hãng tàu'},{t:'Tuyến'},{t:'Cước',num:true}],[
-       ['07/2026','ONE','HCM–Nhava','$38'],['06/2026','Maersk','HCM–Nhava','$41'],['05/2026','ONE','HCM–Nhava','$44']]))}
+     ${card('Bảng báo giá (USD/MT)', tbl([{t:'Sản phẩm'},{t:'Định lượng (gsm)'},{t:'Khổ (mm)'},{t:'Cảng (POD)'},{t:'EXW',num:true},{t:'FOB',num:true},{t:'CFR',num:true}],[
+       ['White Top (WTN)','125–135','1.400–2.350','Cagayan De Oro','$600','$630','$690'],
+       ['White Top (WTN)','140–155','1.400–2.350','Cagayan De Oro','$595','$625','$685'],
+       ['White Top (WTN)','160–175','1.400–2.350','Cagayan De Oro','$590','$620','$680'],
+       ['White Top (WTN)','125–135','1.400–2.350','North Manila','$600','$630','$680'],
+       ['White Top (WTN)','140–155','1.400–2.350','North Manila','$595','$625','$675'],
+       ['White Top (WTN)','160–175','1.400–2.350','North Manila','$590','$620','$670']]),{n:'6'})}
+     ${card('Điều khoản thương mại (Trading Terms)', fg([['POL (cảng đi)','Cát Lái, Việt Nam'],['POD (cảng đến)','Cagayan De Oro, Philippines'],
+       ['Giá CFR bao gồm','CIC included · Free time 14 ngày (combine)'],['Đơn vị / Tiền tệ','USD / MT (tấn)'],
+       ['Thời gian giao','Trong 30 ngày kể từ ngày đặt cọc'],['Đóng gói','Tiêu chuẩn xuất khẩu đường biển'],
+       ['Thanh toán','30% cọc T/T trong 7 ngày từ SC · 70% T/T trước giao hàng'],['Hiệu lực đến','25/07/2026']]))}
      </div>
      ${activity([['💱','Cập nhật cước tàu ONE','Sales XK · Hôm nay'],['📤','Bản báo giá v1','Hôm nay']])}
    </div>
