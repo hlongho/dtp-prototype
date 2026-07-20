@@ -800,7 +800,7 @@ let QUOTES=[
 let quoteSeq=452;
 function quotesRows(){
   return QUOTES.map(q=>`<tr>
-    <td><a>${q.no}</a></td><td>${q.date}</td><td class="num">${q.total}</td>
+    <td><a data-go="quote">${q.no}</a></td><td>${q.date}</td><td class="num">${q.total}</td>
     <td><span class="slds-badge">${q.status}</span></td>
     <td class="num"><button class="btn sm" title="Xuất báo giá PDF" onclick="exportQuotePDF('${q.no}')">📄 PDF</button></td></tr>`).join('');
 }
@@ -1079,6 +1079,26 @@ S.lead = ()=> appnav('Bán hàng nội địa','Lead',['Trang chủ','Lead','Cơ
    </div>
  </div>`;
 
+S.quote = ()=> appnav('Bán hàng nội địa','Cơ hội',TAB_SALES,'Cơ hội')
+ + `<div class="sf-body narrow">
+   ${hl({crumb:'<span data-go="opp">Cơ hội</span> &rsaquo; Báo giá',ico:'₫',color:'#0176d3',title:'QUO-0451 · Cty Hưng Thịnh Phát',sub:'Báo giá nội địa · gồm VAT',
+     fields:[['Tổng (gồm VAT)','1.394.800.000 ₫'],['Trạng thái',pill('ok','Đã gửi')],['Ngày tạo','12/07/2026'],['Hiệu lực đến','27/07/2026']],
+     actions:[{t:'Xuất PDF',pri:true,fn:"exportQuotePDF('QUO-0451')"},'Gửi khách','Sửa']})}
+   <div class="cols-side">
+     <div>
+     ${card('Thông tin báo giá', fg([['Số báo giá','QUO-0451'],['Cơ hội','Cty Hưng Thịnh — Medium Q3','link','opp'],
+       ['Khách hàng','Cty Hưng Thịnh Phát','link','account'],['Ngày tạo','12/07/2026'],['Hiệu lực đến','27/07/2026'],
+       ['Người lập','Trần Thị B'],['Điều khoản','Đơn giá ₫/kg · chưa VAT · giao tại kho · theo HĐ nguyên tắc'],['Trạng thái',pill('ok','Đã gửi')]]))}
+     ${card('Dòng sản phẩm', tbl([{t:'Sản phẩm'},{t:'Định lượng · Khổ'},{t:'SL (tấn)',num:true},{t:'Đơn giá (₫/kg)',num:true},{t:'Thành tiền',num:true}],[
+       ['Whitetop (WTN)','150–180 gsm · 1.400–2.400','50','15.200','760.000.000 ₫'],
+       ['Testliner (K2E+K3E)','150–200 gsm · 1.400–2.400','40','12.700','508.000.000 ₫'],
+       ['<b>Tổng (chưa VAT)</b>','','','','<b>1.268.000.000 ₫</b>'],
+       ['VAT 10%','','','','126.800.000 ₫'],
+       ['<b>Tổng cộng (gồm VAT)</b>','','','','<b>1.394.800.000 ₫</b>']]),{n:'2'})}
+     </div>
+     ${activity([['📤','Gửi báo giá cho khách','Trần Thị B · 12/07/2026'],['✍','Lập báo giá QUO-0451','12/07/2026']])}
+   </div>
+ </div>`;
 S.opp = ()=> appnav('Bán hàng nội địa','Cơ hội',['Trang chủ','Lead','Cơ hội','Opportunity PO','Đơn hàng','Khách hàng','Case'],'Cơ hội')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="opp_list">Cơ hội</span> &rsaquo;',ico:'💼',color:'#0176d3',title:'Cty Hưng Thịnh — Cung cấp Medium Q3',sub:'Cơ hội · 1.200.000.000 ₫ · Đóng dự kiến 30/07/2026',
@@ -2016,6 +2036,11 @@ S.oppo = ()=> appnav('Bán hàng nội địa','Opportunity PO',TAB_SALES,'Oppor
        ['Ngày nhận PO','13/07/2026'],['Ngày đóng dự kiến','30/07/2026'],['Ngày giao cam kết','29/07/2026'],
        ['Điều khoản thanh toán','Net 30'],['Người phụ trách','Trần Thị B'],['Đối thủ','Giấy An Bình'],
        ['Ghi chú','Ưu tiên giao đủ 120 tấn trước 29/07; phần thiếu đưa vào kế hoạch SX máy xeo 2']]))}
+     ${card('Báo giá (Quotes)',
+       `<div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Số báo giá</th><th>Ngày tạo</th><th class="num">Giá trị</th><th>Trạng thái</th><th></th></tr></thead>
+          <tbody id="quotes-tbody">${quotesRows()}</tbody></table></div>`,
+       {n:String(QUOTES.length), r:'<button class="btn sm" onclick="openQuoteModal()">＋ Tạo báo giá</button>'})}
      ${card('Dòng sản phẩm đặt hàng', tbl([{t:'Sản phẩm'},{t:'ĐL/Khổ'},{t:'Đã SX (cuộn)',num:true},{t:'Đã SX (tấn)',num:true},{t:'Chưa SX (cuộn)',num:true},{t:'Chưa SX (tấn)',num:true},{t:'Tổng (cuộn)',num:true},{t:'Tổng (tấn)',num:true},{t:'Máy SX'}],[
        ['Giấy Medium','125gsm / 200','—','—','38','20.058','38','20.058',pill('info','PM5')],
        ['Giấy Medium','110gsm / 180','14','9.942','—','—','14','9.942',pill('info','PM5')],
