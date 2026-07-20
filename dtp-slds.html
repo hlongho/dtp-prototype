@@ -815,6 +815,8 @@ const NAV = [
    ['order_list','Đơn hàng (Order)','Sales','list'],
    ['po','↳ Đơn PO (cảnh báo tồn/công nợ)','','record']]},
  {g:'Bán hàng xuất khẩu', items:[
+   ['exopp_list','Cơ hội XK','Sales XK','list'],
+   ['exopp','↳ Chi tiết Cơ hội XK','','record'],
    ['exquote_list','Báo giá XK','Sales XK','list'],
    ['exquote','↳ Chi tiết báo giá (cước tàu)','','record'],
    ['excontract_list','Sales Contract XK','Sales XK','list'],
@@ -1030,7 +1032,7 @@ S.excase = ()=> appnav('Bán hàng nội địa','Case',['Trang chủ','Cơ hộ
    </div>
  </div>`;
 
-S.exquote = ()=> appnav('Bán hàng xuất khẩu','Báo giá XK',['Trang chủ','Báo giá XK','Sales Contract','Kế hoạch SX','Chứng từ','Thanh toán'],'Báo giá XK')
+S.exquote = ()=> appnav('Bán hàng xuất khẩu','Báo giá XK',['Trang chủ','Cơ hội XK','Báo giá XK','Sales Contract','Kế hoạch SX','Chứng từ','Thanh toán'],'Báo giá XK')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="exquote_list">Báo giá xuất khẩu</span> &rsaquo;',ico:'🚢',color:'#1b96ff',title:'QXK-0182 · Kraft Liner → Ấn Độ (Nhava Sheva)',sub:'Điều kiện: CIF · 3x40HC',
      fields:[['Giá CIF','$495/tấn'],['Trạng thái',pill('info','Nháp')],['Cảng đến','Nhava Sheva'],['Hiệu lực','7 ngày']],
@@ -1050,7 +1052,7 @@ S.exquote = ()=> appnav('Bán hàng xuất khẩu','Báo giá XK',['Trang chủ'
    </div>
  </div>`;
 
-S.excontract = ()=> appnav('Bán hàng xuất khẩu','Sales Contract',['Trang chủ','Báo giá XK','Sales Contract','Kế hoạch SX','Chứng từ','Thanh toán'],'Sales Contract')
+S.excontract = ()=> appnav('Bán hàng xuất khẩu','Sales Contract',['Trang chủ','Cơ hội XK','Báo giá XK','Sales Contract','Kế hoạch SX','Chứng từ','Thanh toán'],'Sales Contract')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="excontract_list">Sales Contract (XK)</span> &rsaquo;',ico:'📑',color:'#1b96ff',title:'TI2619 · Kraft Liner → Ấn Độ',sub:'Từ PO khách · 3x40HC · $495/tấn CIF',
      fields:[['Trị giá','$148.500'],['Trạng thái',pill('info','Đang thực hiện')],['Payment','L/C at sight'],['Invoice','TI2619-01']],
@@ -1093,7 +1095,7 @@ S.explan = ()=> appnav('Bán hàng xuất khẩu','Kế hoạch SX',TAB_EX,'Kế
    </div>
  </div>`;
 
-S.lc = ()=> appnav('Bán hàng xuất khẩu','Thanh toán',['Trang chủ','Báo giá XK','Sales Contract','Kế hoạch SX','Chứng từ','Thanh toán'],'Thanh toán')
+S.lc = ()=> appnav('Bán hàng xuất khẩu','Thanh toán',['Trang chủ','Cơ hội XK','Báo giá XK','Sales Contract','Kế hoạch SX','Chứng từ','Thanh toán'],'Thanh toán')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="excontract_list">Thanh toán · L/C</span> &rsaquo;',ico:'🏦',color:'#0b827c',title:'L/C TI2619 · ABC Papers',sub:'L/C at sight · Ngân hàng HDFC',
      fields:[['Trị giá','$148.500'],['LSD (giao trễ nhất)','25/07/2026'],['Expiry Date','10/08/2026'],['Trạng thái',pill('warn','Sắp đến LSD')]],
@@ -1731,7 +1733,7 @@ function lv({crumb,ico,color,object,view,count,cols,rows,newLabel,views,bulk}){
   </div></article>`;
 }
 const TAB_SALES=['Trang chủ','Lead','Cơ hội','Đơn hàng','Khách hàng','Case'];
-const TAB_EX=['Trang chủ','Báo giá XK','Sales Contract','Kế hoạch SX','Chứng từ','Thanh toán'];
+const TAB_EX=['Trang chủ','Cơ hội XK','Báo giá XK','Sales Contract','Kế hoạch SX','Chứng từ','Thanh toán'];
 const TAB_PUR=['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'];
 const TAB_IM=['Trang chủ','Kế hoạch NVL','Sales Contract','Shipment'];
 const TAB_MD=['Bảng giá','Hợp đồng','Sản phẩm','Khách hàng','NCC'];
@@ -1819,6 +1821,35 @@ S.pricebook_list = ()=> appnav('Dữ liệu nền tảng','Bảng giá',TAB_MD,'
     {go:'pricebook',cells:['Giá chuẩn Hai da 07/2026','Giấy hai da','01/07/2026',pill('ok','Đang áp dụng')]},
     {go:'pricebook',cells:['Giá Medium 04/2026','Giấy Medium','01/04/2026',pill('mut','Hết hiệu lực')]}]})}</div>`;
 
+S.exopp_list = ()=> appnav('Bán hàng xuất khẩu','Cơ hội XK',TAB_EX,'Cơ hội XK')
+ + `<div class="sf-body">${lv({crumb:'Cơ hội XK',ico:'🌏',color:'#1b96ff',object:'Cơ hội xuất khẩu',view:'Cơ hội đang mở',views:['Cơ hội đang mở','Cơ hội của tôi','Sắp đóng (7 ngày)','Tất cả cơ hội','Xem gần đây'],count:'11',newLabel:'Cơ hội mới',
+   cols:[{t:'Tên cơ hội'},{t:'Khách hàng'},{t:'Cảng đến'},{t:'Giai đoạn'},{t:'Giá trị',num:true},{t:'Phụ trách'}],
+   rows:[
+    {go:'exopp',cells:['Reliance — Kraft Liner Q3','Reliance Paper (Ấn Độ)','Nhava Sheva',pill('info','Gửi mẫu'),'$420.000','Lê Thị XK']},
+    {go:'exopp',cells:['KL Trading — Testliner','KL Trading (Malaysia)','Port Klang',pill('info','Báo giá'),'$310.000','Lê Thị XK']},
+    {go:'exopp',cells:['Sunrise — Medium','Sunrise (Bangladesh)','Chittagong',pill('mut','Tìm hiểu'),'$260.000','N.V.XK']},
+    {go:'exopp',cells:['ABC Papers — HĐ 2027','ABC Papers (Ấn Độ)','Mundra',pill('warn','Đàm phán'),'$680.000','Lê Thị XK']}]})}</div>`;
+S.exopp = ()=> appnav('Bán hàng xuất khẩu','Cơ hội XK',TAB_EX,'Cơ hội XK')
+ + `<div class="sf-body narrow">
+   ${hl({crumb:'<span data-go="exopp_list">Cơ hội XK</span> &rsaquo;',ico:'🌏',color:'#1b96ff',title:'Reliance Paper (Ấn Độ) — Kraft Liner Q3',sub:'Cơ hội XK · $420.000 · CIF Nhava Sheva',
+     fields:[['Giá trị','$420.000'],['Giai đoạn',pill('info','Gửi mẫu')],['Xác suất','55%'],['Phụ trách','Lê Thị XK']],
+     actions:[{t:'Tạo báo giá XK',pri:true,fn:"go('exquote')"},{t:'Tạo hợp đồng',fn:"go('excontract')"},'Gửi mẫu','Sửa']})}
+   ${path(['Phân tích nhu cầu','Gửi mẫu','Báo giá','Lên đơn hàng (PO)','Hợp đồng','Đóng'],1)}
+   <div class="cols-side">
+     <div>
+     ${card('Chi tiết cơ hội', fg([['Khách hàng','Reliance Paper Ltd (Ấn Độ)','link'],['Sản phẩm','Kraft Liner 150gsm'],
+       ['Số lượng dự kiến','800 tấn'],['Điều kiện giao','CIF Nhava Sheva'],['Tiền tệ','USD'],['Ngày đóng dự kiến','15/08/2026'],['Đối thủ','APP (Indonesia)']]))}
+     ${card('Báo giá XK', tbl([{t:'Số báo giá'},{t:'Điều kiện'},{t:'Giá',num:true},{t:'Trạng thái'}],[
+       ['<a data-go="exquote">QXK-0182</a>','CIF','$495/tấn',pill('info','Đã gửi')]]),{n:'1',r:'<button class="btn sm" onclick="go(\'exquote\')">＋ Tạo báo giá</button>'})}
+     ${card('Sales Contract (XK)', tbl([{t:'Số Contract'},{t:'Trị giá'},{t:'Trạng thái'}],[
+       ['<a data-go="excontract">SC-XK-0091</a>','$396.000',pill('warn','Đang đàm phán')]]),{n:'1',r:'<button class="btn sm" onclick="go(\'excontract\')">＋ Tạo hợp đồng</button>'})}
+     ${card('Lịch sử gửi mẫu (Sampling)', tbl([{t:'Ngày gửi'},{t:'Mẫu'},{t:'ĐL/Khổ'},{t:'Kết quả'}],[
+       ['08/07/2026','Kraft KL-01','150/1600',pill('ok','Duyệt')],
+       ['28/06/2026','Kraft KL-00','150/1600',pill('err','Từ chối — độ bục')]]),{n:'2'})}
+     </div>
+     ${activity([['📞','Call đàm phán giá CIF','Lê Thị XK · Hôm nay'],['📤','Gửi mẫu Kraft Liner','Hôm qua'],['💱','Cập nhật cước tàu tuyến Nhava','—']])}
+   </div>
+ </div>`;
 S.exquote_list = ()=> appnav('Bán hàng xuất khẩu','Báo giá XK',TAB_EX,'Báo giá XK')
  + `<div class="sf-body">${lv({crumb:'Báo giá XK',ico:'🚢',color:'#1b96ff',object:'Báo giá xuất khẩu (Quote)',view:'Báo giá gần đây',count:'21',newLabel:'Báo giá mới',
    cols:[{t:'Số báo giá'},{t:'Khách hàng'},{t:'Cảng đến'},{t:'Điều kiện'},{t:'Giá',num:true},{t:'Trạng thái'}],
@@ -1986,7 +2017,7 @@ function setupSearch(){
 /* ---- in-page interactivity ---- */
 const TAB2ID={'Trang chủ':'home','Lead':'lead_list','Cơ hội':'opp_list','Đơn hàng':'order_list','Khách hàng':'master',
  'NCC':'vendor_list','Case':'case_list','Báo cáo':'reports','Dashboard':'reports','Cảnh báo':'reports',
- 'Bảng giá':'pricebook_list','Hợp đồng':'contract_list','Sản phẩm':'product_list','Báo giá XK':'exquote_list','Chứng từ':'excontract_list',
+ 'Bảng giá':'pricebook_list','Hợp đồng':'contract_list','Sản phẩm':'product_list','Cơ hội XK':'exopp_list','Báo giá XK':'exquote_list','Chứng từ':'excontract_list',
  'Thanh toán':'lc','Phiếu yêu cầu':'pr_list','Đơn mua (PO)':'ppo_list','Kế hoạch NVL':'matinv',
  'Shipment':'shipment_list','Knowledge':'case_list','Kế hoạch SX':'explan'};
 function resolveTab(app,label){
