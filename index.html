@@ -794,27 +794,41 @@ function quotesRows(){
     <td class="num"><button class="btn sm" title="Xuất báo giá PDF" onclick="exportQuotePDF('${q.no}')">📄 PDF</button></td></tr>`).join('');
 }
 function renderQuotes(){ const tb=document.getElementById('quotes-tbody'); if(tb) tb.innerHTML=quotesRows(); }
-function openQuoteModal(){
-  const no='QUO-0'+(quoteSeq++);
-  QUOTES.unshift({no, date:'Hôm nay', total:'1.470.000.000 ₫', status:'Nháp'});
-  renderQuotes();
-  toast('Đã tạo báo giá '+no+' (Nháp)');
+let QLINES=[];
+function qAmt(l){ return parseNum(l.qty)*1000*parseNum(l.price); }
+function quoteTotal(){ return QLINES.reduce((a,l)=>a+qAmt(l),0); }
+function qLinesRows(){
+  return QLINES.map((l,i)=>`<tr>
+    <td><input class="mass-sel" value="${l.prod}" oninput="QLINES[${i}].prod=this.value" placeholder="Tên sản phẩm"></td>
+    <td><input class="mass-sel" style="width:96px" value="${l.spec}" oninput="QLINES[${i}].spec=this.value" placeholder="gsm/khổ"></td>
+    <td><input class="mass-sel num" style="width:74px" type="number" value="${l.qty}" oninput="QLINES[${i}].qty=this.value;recalcQuote()"></td>
+    <td><input class="mass-sel num" style="width:94px" value="${l.price}" oninput="QLINES[${i}].price=this.value;recalcQuote()"></td>
+    <td class="num qline-amt">${fmtMoney(qAmt(l))}</td>
+    <td class="num"><button class="btn sm" title="Xoá dòng" onclick="QLINES.splice(${i},1);renderQLines()">✕</button></td></tr>`).join('');
 }
+function renderQLines(){ const tb=document.getElementById('qlines-tbody'); if(tb) tb.innerHTML=qLinesRows(); recalcQuote(); }
+function recalcQuote(){
+  document.querySelectorAll('#qlines-tbody tr').forEach((tr,i)=>{ const c=tr.querySelector('.qline-amt'); if(c&&QLINES[i]) c.textContent=fmtMoney(qAmt(QLINES[i])); });
+  const t=document.getElementById('q-grandtotal'); if(t) t.textContent=fmtMoney(quoteTotal());
+}
+function addQLine(){ QLINES.push({prod:'',spec:'',qty:'',price:''}); renderQLines(); }
 function openQuoteModal(){
   const no='QUO-0'+quoteSeq;
-  const F=(lbl,id,val,type,ro)=>`<div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">${lbl}</label><input id="${id}" class="mass-sel" ${type?`type="${type}"`:''} ${ro?'readonly':''} value="${val||''}"></div>`;
+  QLINES=[{prod:'Giấy Medium',spec:'125gsm / 200',qty:'120',price:'12.250'},{prod:'Giấy Kraft',spec:'170gsm / 200',qty:'40',price:'11.900'}];
   document.getElementById('quote-body').innerHTML=
-    `<p class="po-hint">Tạo báo giá mới cho cơ hội bán hàng nội địa.</p>
-     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-       ${F('Số báo giá','q-no',no,'',true)}
-       ${F('Khách hàng *','q-cust','Cty Hưng Thịnh Phát')}
-       ${F('Sản phẩm','q-prod','Giấy Medium 125gsm')}
-       ${F('Số lượng (tấn)','q-qty','120','number')}
-       ${F('Đơn giá (₫/kg)','q-price','12.250')}
-       ${F('Thành tiền','q-total','1.470.000.000 ₫')}
-       ${F('Hiệu lực đến','q-exp','','date')}
+    `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Số báo giá</label><input id="q-no" class="mass-sel" value="${no}" readonly></div>
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Khách hàng *</label><input id="q-cust" class="mass-sel" value="Cty Hưng Thịnh Phát"></div>
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Hiệu lực đến</label><input id="q-exp" class="mass-sel" type="date"></div>
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Ghi chú</label><input id="q-note" class="mass-sel" placeholder="Điều khoản…"></div>
      </div>
-     <div style="margin-top:10px"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Ghi chú</label><input id="q-note" class="mass-sel" placeholder="Điều khoản, ghi chú báo giá…"></div>`;
+     <div class="wf-muted" style="font-size:12px;font-weight:700;margin-bottom:4px">Dòng sản phẩm</div>
+     <div class="tbl-wrap"><table class="tbl">
+       <thead><tr><th>Sản phẩm</th><th>ĐL/Khổ</th><th class="num">SL (tấn)</th><th class="num">Đơn giá (₫/kg)</th><th class="num">Thành tiền</th><th></th></tr></thead>
+       <tbody id="qlines-tbody">${qLinesRows()}</tbody>
+       <tfoot><tr><td colspan="4"><b>Tổng giá trị báo giá</b></td><td class="num"><b id="q-grandtotal">${fmtMoney(quoteTotal())}</b></td><td></td></tr></tfoot>
+     </table></div>
+     <div style="margin-top:8px"><button class="btn sm" onclick="addQLine()">＋ Thêm sản phẩm</button></div>`;
   document.getElementById('quoteback').classList.add('show');
   document.getElementById('quotemodal').classList.add('show');
 }
@@ -822,11 +836,12 @@ function closeQuoteModal(){ const b=document.getElementById('quoteback'),m=docum
 function confirmQuote(){
   const cust=(document.getElementById('q-cust').value||'').trim();
   if(!cust){ toast('Nhập Khách hàng'); return; }
+  const lines=QLINES.filter(l=>(l.prod||'').trim());
+  if(!lines.length){ toast('Thêm ít nhất 1 dòng sản phẩm'); return; }
   const no='QUO-0'+(quoteSeq++);
-  const total=(document.getElementById('q-total').value||'').trim()||'—';
-  QUOTES.unshift({no, date:'Hôm nay', total, status:'Nháp'});
+  QUOTES.unshift({no, date:'Hôm nay', total:fmtMoney(quoteTotal()), status:'Nháp'});
   renderQuotes(); closeQuoteModal();
-  toast('Đã tạo báo giá '+no+' cho '+cust+' (Nháp)');
+  toast('Đã tạo báo giá '+no+' · '+lines.length+' sản phẩm · '+fmtMoney(quoteTotal()));
 }
 function createContract(){ toast('Đã tạo Hợp đồng nháp từ cơ hội — chuyển sang màn Hợp đồng'); setTimeout(function(){ if(S.contract) go('contract'); }, 700); }
 
@@ -1458,8 +1473,9 @@ const FEE_PENALTY=['DEM (lưu bãi)','DET (lưu vỏ)','Phí lưu bãi','Gia h�
 function fmtMoney(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,'.')+' ₫'; }
 function feeAmt(f){ return f.cur==='USD' ? ('$'+f.amount.toLocaleString('en-US')) : fmtMoney(f.amount); }
 function shipFeesRows(){
-  return SHIPFEES.map(f=>`<tr><td>${f.type}</td><td>${f.stage}</td><td class="num">${feeAmt(f)}</td><td>${f.cur}</td><td>${f.ext||'—'}</td><td>${f.reason||'—'}</td></tr>`).join('');
+  return SHIPFEES.map(f=>`<tr><td>${f.type}</td><td>${f.stage}</td><td class="num">${feeAmt(f)}</td><td>${f.cur}</td><td>${f.ext||'—'}</td><td>${f.reason||'—'}</td><td class="num"><button class="btn sm" title="Tạo Case khiếu nại cho phí này" onclick="createCaseFromFee('${f.type}')">Tạo Case</button></td></tr>`).join('');
 }
+function createCaseFromFee(type){ toast('Đã tạo Case khiếu nại cho phí "'+type+'" — mở màn Case'); setTimeout(function(){ if(S.case) go('case'); }, 700); }
 function shipFeesTotal(){ return SHIPFEES.filter(f=>f.cur==='VNĐ').reduce((a,f)=>a+f.amount,0); }
 function renderShipFees(){
   const tb=document.getElementById('ship-fee-tbody'); if(tb) tb.innerHTML=shipFeesRows();
@@ -1773,9 +1789,9 @@ S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',['Trang chủ','Kế ho�
           <div>${IC_INCLUDED_FEES}</div>
           <div class="wf-muted" style="margin-top:4px;font-size:11.5px">Kế thừa tự động từ Sale Contract <b>IC-2026-041</b>. Nếu bị thu trùng các phí này → làm thủ tục khiếu nại.</div></div>
         <div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Tên loại phí</th><th>Giai đoạn phí</th><th class="num">Số tiền</th><th>Tiền tệ</th><th>Ngày gia hạn lệnh</th><th>Lý do phát sinh</th></tr></thead>
+          <thead><tr><th>Tên loại phí</th><th>Giai đoạn phí</th><th class="num">Số tiền</th><th>Tiền tệ</th><th>Ngày gia hạn lệnh</th><th>Lý do phát sinh</th><th></th></tr></thead>
           <tbody id="ship-fee-tbody">${shipFeesRows()}</tbody>
-          <tfoot><tr><td colspan="2"><b>Tổng phí Local Charge</b></td><td class="num"><b id="ship-fee-foot">${fmtMoney(shipFeesTotal())}</b></td><td colspan="3"></td></tr></tfoot>
+          <tfoot><tr><td colspan="2"><b>Tổng phí Local Charge</b></td><td class="num"><b id="ship-fee-foot">${fmtMoney(shipFeesTotal())}</b></td><td colspan="4"></td></tr></tfoot>
         </table></div>`,
        {n:String(SHIPFEES.length), r:'<button class="btn sm" onclick="openFeeModal()">＋ Thêm phí phát sinh</button>'})}
      ${card('Cảnh báo chi phí lưu bãi', banner('info','Sau ETA 19/07/2026, còn <b>7 ngày Free time</b> để kéo hàng. Quá hạn phát sinh Dem ≈ <b>$120/cont/ngày</b>.')
