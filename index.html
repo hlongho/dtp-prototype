@@ -1802,8 +1802,16 @@ S.oppo = ()=> appnav('Bán hàng nội địa','Opportunity PO',TAB_SALES,'Oppor
      fields:[['Giá trị','1.180.000.000 ₫'],['Giai đoạn',pill('info','Xử lý PO')],['Xác suất','70%'],['Phụ trách','Trần Thị B']],
      actions:[{t:'Tạo báo giá',pri:true,fn:'createQuote()'},{t:'Tạo đơn hàng (PO)',fn:"go('po')"},'Sửa']})}
    ${path(['Phân tích nhu cầu','Gửi mẫu','Báo giá','Lên đơn hàng (PO)','Hợp đồng','Đóng'],3)}
-   <div class="cols-side wide">
+   <div class="cols-side">
      <div>
+     ${card('Chi tiết Opportunity PO', fg([['Tên Opportunity','Cty Hưng Thịnh — PO Medium Q3'],
+       ['Khách hàng','Cty Hưng Thịnh Phát','link','account'],['Mã PO khách','PO-KH-8842'],
+       ['Sản phẩm chính','Giấy Medium 125gsm','link','product'],['Số lượng dự kiến','120 tấn'],
+       ['Giá trị','1.180.000.000 ₫'],['Giai đoạn','Xử lý PO'],['Xác suất','70%'],
+       ['Nguồn','PO khách gửi'],['Loại đơn','Bán hàng nội địa'],
+       ['Ngày nhận PO','13/07/2026'],['Ngày đóng dự kiến','30/07/2026'],['Ngày giao cam kết','29/07/2026'],
+       ['Điều khoản thanh toán','Net 30'],['Người phụ trách','Trần Thị B'],['Đối thủ','Giấy An Bình'],
+       ['Ghi chú','Ưu tiên giao đủ 120 tấn trước 29/07; phần thiếu đưa vào kế hoạch SX máy xeo 2']]))}
      ${card('Dòng sản phẩm đặt hàng', tbl([{t:'Sản phẩm'},{t:'ĐL/Khổ'},{t:'Đã SX (cuộn)',num:true},{t:'Đã SX (tấn)',num:true},{t:'Chưa SX (cuộn)',num:true},{t:'Chưa SX (tấn)',num:true},{t:'Tổng (cuộn)',num:true},{t:'Tổng (tấn)',num:true}],[
        ['Giấy Medium','125gsm / 200','—','—','38','20.058','38','20.058'],
        ['Giấy Medium','110gsm / 180','14','9.942','—','—','14','9.942'],
