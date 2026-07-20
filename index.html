@@ -1732,10 +1732,7 @@ S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',['Trang chủ','Kế ho�
        ['Cảng đi / đến','Los Angeles / Cát Lái'],['ETD','28/06/2026'],['ETA','19/07/2026'],
        ['Free time DEM','7 ngày từ ETA'],['Free time DET','10 ngày']]))}
      ${card('Chi phí (Shipment Fees)',
-       `<div class="fee-inc"><div class="fee-inc-t">Phí đã bao gồm trong Hợp đồng (read-only)</div>
-          <div>Include DTHC · Include Phí vệ sinh · Include CIC · Include Phí chứng từ (Documentation)</div>
-          <div class="wf-muted" style="margin-top:4px;font-size:11.5px">Kế thừa tự động từ Sale Contract <b>IC-2026-041</b>. Nếu bị thu trùng các phí này → làm thủ tục khiếu nại.</div></div>
-        <div class="tbl-wrap"><table class="tbl">
+       `<div class="tbl-wrap"><table class="tbl">
           <thead><tr><th>Tên loại phí</th><th>Giai đoạn phí</th><th class="num">Số tiền</th><th>Tiền tệ</th><th>Ngày gia hạn lệnh</th><th>Lý do phát sinh</th></tr></thead>
           <tbody id="ship-fee-tbody">${shipFeesRows()}</tbody>
           <tfoot><tr><td colspan="2"><b>Tổng phí Local Charge</b></td><td class="num"><b id="ship-fee-foot">${fmtMoney(shipFeesTotal())}</b></td><td colspan="3"></td></tr></tfoot>
