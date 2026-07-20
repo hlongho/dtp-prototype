@@ -253,7 +253,8 @@ a:hover{text-decoration:underline}
 
 /* Record layout: Detail (trái) | Related tabs (giữa) | Activity (phải) */
 .cols-rec{display:grid;grid-template-columns:300px minmax(0,1fr) 340px;gap:10px;align-items:start}
-.cols-rec.no-rel{grid-template-columns:300px minmax(0,1fr)}
+.cols-rec.no-rel{grid-template-columns:minmax(0,1fr) 340px}
+.cols-rec.no-rel .rec-col:first-child .fg{grid-template-columns:1fr 1fr}
 .cols-rec.wide{grid-template-columns:minmax(0,1fr) 340px}
 @media(max-width:1200px){.cols-rec.wide{grid-template-columns:1fr}}
 .cols-rec .rec-col{min-width:0}
