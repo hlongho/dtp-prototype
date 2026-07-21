@@ -2580,12 +2580,12 @@ S.issuenote = ()=> appnav('Bán hàng xuất khẩu','Phiếu xuất kho',TAB_EX
      ])}
      ${card('Chi tiết Sản phẩm & Đo lường (Line Items)',
        `<div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Mã số cuộn (Reel No)</th><th>Sản phẩm</th><th class="num">GSM</th><th>Khổ (mm)</th><th class="num">Net Weight (kg)</th><th class="num">Gross Weight (kg)</th><th>Số PO Khách</th></tr></thead>
+          <thead><tr><th>Mã số cuộn (Reel No)</th><th>Sản phẩm</th><th class="num">GSM</th><th>Khổ (mm)</th><th class="num">Net Weight (kg)</th><th class="num">Gross Weight (kg)</th><th>SO liên quan</th></tr></thead>
           <tbody>
-            <tr><td>R-24072601</td><td>Kraft Liner</td><td class="num">150</td><td>1.600</td><td class="num">1.245</td><td class="num">1.262</td><td>K2E-PO-2026-0771</td></tr>
-            <tr><td>R-24072602</td><td>Kraft Liner</td><td class="num">150</td><td>1.600</td><td class="num">1.238</td><td class="num">1.255</td><td>K2E-PO-2026-0771</td></tr>
-            <tr><td>R-24072603</td><td>Testliner</td><td class="num">125</td><td>1.600</td><td class="num">1.102</td><td class="num">1.118</td><td>K2E-PO-2026-0771</td></tr>
-            <tr><td>R-24072604</td><td>Medium</td><td class="num">110</td><td>1.400</td><td class="num">986</td><td class="num">1.001</td><td>K2E-PO-2026-0771</td></tr>
+            <tr><td>R-24072601</td><td>Kraft Liner</td><td class="num">150</td><td>1.600</td><td class="num">1.245</td><td class="num">1.262</td><td><a data-go="exso">SO-XK-0142</a></td></tr>
+            <tr><td>R-24072602</td><td>Kraft Liner</td><td class="num">150</td><td>1.600</td><td class="num">1.238</td><td class="num">1.255</td><td><a data-go="exso">SO-XK-0142</a></td></tr>
+            <tr><td>R-24072603</td><td>Testliner</td><td class="num">125</td><td>1.600</td><td class="num">1.102</td><td class="num">1.118</td><td><a data-go="exso">SO-XK-0142</a></td></tr>
+            <tr><td>R-24072604</td><td>Medium</td><td class="num">110</td><td>1.400</td><td class="num">986</td><td class="num">1.001</td><td><a data-go="exso">SO-XK-0142</a></td></tr>
           </tbody></table></div>`,{n:'4'})}
      </div>
      ${activity([['📥','Đồng bộ phiếu xuất từ Rosy','Tự động · Hôm nay'],['⚓','Đẩy Số xe / Số Cont / Seal sang Shipment SHP-XK-0067','Tự động · Hôm nay'],['📋','Task: Đối chiếu cân thực tế với PO khách','Được giao P.XNK · Cần xử lý']])}
