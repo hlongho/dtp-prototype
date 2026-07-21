@@ -2503,16 +2503,18 @@ S.issuenote = ()=> appnav('Bán hàng xuất khẩu','Phiếu xuất kho',TAB_EX
    ${path(['Nháp','Đã xuất kho','Đẩy chứng từ','Đóng'],1)}
    <div class="cols-side act-tab">
      <div>
-     ${card('Thông tin chung', fg([
-       ['Mã Phiếu xuất kho (Issue Note No)','PXK-XK-0231'],
-       ['Ngày xuất kho (Issue Date)','26/07/2026 10:20'],
-       ['Đơn bán hàng liên quan (Related SO)','SO-XK-0142','link','exso'],
-       ['Lô hàng liên quan (Related Shipment)','SHP-XK-0067','link','shipment_xk']]))}
-     ${card('Thông tin Vận tải & Container', fg([
-       ['Số xe (Truck No)','51C-123.45'],
-       ['Số Container (Container No)','TCLU1234567'],
-       ['Số Seal (Seal No)','SEAL-778899'],
-       ['Trọng lượng vỏ (Tare)','3.850 kg']]))}
+     ${plLayout([
+       plSection('Thông tin chung', [
+         ['Mã Phiếu xuất kho (Issue Note No)','PXK-XK-0231'],
+         ['Ngày xuất kho (Issue Date)','26/07/2026 10:20'],
+         ['Đơn bán hàng liên quan (Related SO)','SO-XK-0142','link','exso'],
+         ['Lô hàng liên quan (Related Shipment)','SHP-XK-0067','link','shipment_xk']]),
+       plSection('Thông tin Vận tải & Container', [
+         ['Số xe (Truck No)','51C-123.45'],
+         ['Số Container (Container No)','TCLU1234567'],
+         ['Số Seal (Seal No)','SEAL-778899'],
+         ['Trọng lượng vỏ (Tare)','3.850 kg']])
+     ])}
      ${card('Chi tiết Sản phẩm & Đo lường (Line Items)',
        `<div class="tbl-wrap"><table class="tbl">
           <thead><tr><th>Mã số cuộn (Reel No)</th><th>Sản phẩm</th><th class="num">GSM</th><th>Khổ (mm)</th><th class="num">Net Weight (kg)</th><th class="num">Gross Weight (kg)</th><th>Số PO Khách</th></tr></thead>
@@ -2521,8 +2523,7 @@ S.issuenote = ()=> appnav('Bán hàng xuất khẩu','Phiếu xuất kho',TAB_EX
             <tr><td>R-24072602</td><td>Kraft Liner</td><td class="num">150</td><td>1.600</td><td class="num">1.238</td><td class="num">1.255</td><td>K2E-PO-2026-0771</td></tr>
             <tr><td>R-24072603</td><td>Testliner</td><td class="num">125</td><td>1.600</td><td class="num">1.102</td><td class="num">1.118</td><td>K2E-PO-2026-0771</td></tr>
             <tr><td>R-24072604</td><td>Medium</td><td class="num">110</td><td>1.400</td><td class="num">986</td><td class="num">1.001</td><td>K2E-PO-2026-0771</td></tr>
-          </tbody></table>
-          <div class="fee-inc">Tổng: 4 cuộn · Net 22.450 kg · Gross 22.762 kg — dữ liệu chốt sản lượng & in Bảng kê chi tiết (Packing List).</div></div>`,{n:'4'})}
+          </tbody></table></div>`,{n:'4'})}
      </div>
      ${activity([['📥','Đồng bộ phiếu xuất từ Rosy','Tự động · Hôm nay'],['⚓','Đẩy Số xe / Số Cont / Seal sang Shipment SHP-XK-0067','Tự động · Hôm nay'],['📋','Task: Đối chiếu cân thực tế với PO khách','Được giao P.XNK · Cần xử lý']])}
    </div>
