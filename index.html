@@ -2333,9 +2333,9 @@ S.oppo = ()=> appnav('Bán hàng nội địa','Opportunity PO',TAB_SALES,'Oppor
        ['Overdue Days (Số ngày quá hạn)','15 ngày'],
        ['Debt Status (Trạng thái công nợ)',pill('warn','Nợ 15–30 ngày · Giao 70% hàng')],
        ['Ghi chú','Ưu tiên giao đủ 120 tấn trước 29/07; phần thiếu đưa vào kế hoạch SX máy xeo 2']]))}
-     ${card('SO (Sales Order)', tbl([{t:'Số SO'},{t:'Ngày tạo'},{t:'SL (tấn)',num:true},{t:'Hạn giao'},{t:'Trạng thái'}],[
-       ['<a data-go="po">SO-2026-0771</a>','13/07/2026','120','29/07/2026',pill('info','Đang sản xuất')],
-       ['<a data-go="po">SO-2026-0772</a>','15/07/2026','30','02/08/2026',pill('mut','Nháp')]]),{n:'2',r:'<button class="btn sm" onclick="go(\'po\')">SO mới</button>'})}
+     ${card('SO (Sales Order)', tbl([{t:'Số SO'},{t:'Từ PO'},{t:'Ngày tạo'},{t:'SL (tấn)',num:true},{t:'Hạn giao'},{t:'Trạng thái'}],[
+       ['<a data-go="so">SO-7788</a>','PO-2619','13/07/2026','120','29/07/2026',pill('info','Đang SX')],
+       ['<a data-go="so">SO-7801</a>','PO-2619','15/07/2026','30','02/08/2026',pill('mut','Chờ SX')]]),{n:'2',r:'<button class="btn sm" onclick="go(\'so\')">SO mới</button>'})}
      ${card('Dòng sản phẩm đặt hàng', tbl([{t:'Sản phẩm'},{t:'ĐL/Khổ'},{t:'Đã SX (cuộn)',num:true},{t:'Đã SX (tấn)',num:true},{t:'Chưa SX (cuộn)',num:true},{t:'Chưa SX (tấn)',num:true},{t:'Tổng (cuộn)',num:true},{t:'Tổng (tấn)',num:true},{t:'Máy SX'}],[
        ['Giấy Medium','125gsm / 200','—','—','38','20.058','38','20.058',pill('info','PM5')],
        ['Giấy Medium','110gsm / 180','14','9.942','—','—','14','9.942',pill('info','PM5')],
