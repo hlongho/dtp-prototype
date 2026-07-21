@@ -923,6 +923,14 @@ function contractFilesRows(){
   return CONTRACT_FILES.map(f=>`<tr><td><a>📎 ${f.name}</a></td><td>${f.type}</td><td>${f.size}</td><td>${f.by}</td><td>${f.date}</td></tr>`).join('');
 }
 function renderContractFiles(){ const tb=document.getElementById('cfile-tbody'); if(tb) tb.innerHTML=contractFilesRows(); }
+let OPPO_FILES=[
+  {name:'PO_khach_HungThinh.pdf', type:'PDF', size:'0,9 MB', by:'Trần Thị B', date:'13/07/2026'},
+  {name:'Xac_nhan_dieu_kien_SX.xlsx', type:'Excel', size:'62 KB', by:'P.Kế hoạch', date:'13/07/2026'},
+];
+let ofSeq=1;
+function oppoFilesRows(){ return OPPO_FILES.map(f=>`<tr><td><a>📎 ${f.name}</a></td><td>${f.type}</td><td>${f.size}</td><td>${f.by}</td><td>${f.date}</td></tr>`).join(''); }
+function renderOppoFiles(){ const tb=document.getElementById('ofile-tbody'); if(tb) tb.innerHTML=oppoFilesRows(); }
+function uploadOppoFile(){ OPPO_FILES.unshift({name:'file_upload_'+(ofSeq++)+'.pdf', type:'PDF', size:'1,0 MB', by:'Tôi', date:'Hôm nay'}); renderOppoFiles(); toast('Đã upload file — thêm vào tab File'); }
 function uploadContract(){
   CONTRACT_FILES.unshift({name:'HĐ-0421_upload_'+(cfSeq++)+'.pdf', type:'PDF', size:'1,0 MB', by:'Tôi', date:'Hôm nay'});
   renderContractFiles();
@@ -2237,6 +2245,11 @@ S.oppo = ()=> appnav('Bán hàng nội địa','Opportunity PO',TAB_SALES,'Oppor
      ${card('Lịch sử phê duyệt', tbl([{t:'Bước'},{t:'Người duyệt'},{t:'Trạng thái'},{t:'Thời gian'}],[
        ['1. Điều kiện sản xuất','P. Kế hoạch',pill('ok','Đã duyệt'),'13/07/2026 14:20'],
        ['2. Phê duyệt cuối','Tổng Giám Đốc',pill('warn','Đang chờ'),'—']]),{n:'2',r:'<button class="btn sm">Phê duyệt</button><button class="btn sm">Từ chối</button>'})}
+     ${card('File',
+       `<div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Tên file</th><th>Loại</th><th>Kích thước</th><th>Người tải</th><th>Ngày</th></tr></thead>
+          <tbody id="ofile-tbody">${oppoFilesRows()}</tbody></table></div>`,
+       {n:String(OPPO_FILES.length), r:'<button class="btn sm" onclick="uploadOppoFile()">⤴ Upload file</button>'})}
      </div>
      ${activity([['📞','Gọi xác nhận PO khách','Trần Thị B · Hôm nay'],['📎','Upload file PO khách','Hôm nay'],['✅','P.Kế hoạch duyệt điều kiện SX','13/07/2026']])}
    </div>
