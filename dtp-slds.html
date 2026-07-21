@@ -2477,6 +2477,9 @@ S.exso = ()=> appnav('Bán hàng xuất khẩu','SO',TAB_EX,'SO')
      ${card('Shipment', tbl([{t:'Số lô / Booking'},{t:'Hãng tàu'},{t:'Invoice'},{t:'ETD'},{t:'ETA'},{t:'Trạng thái'}],[
        ['<a data-go="shipment_xk">SHP-XK-0067</a>','ONE','INV-XK-0142','28/07/2026','10/08/2026',pill('info','Đang trên biển')],
        ['<a data-go="shipment_xk">SHP-XK-0069</a>','Maersk','INV-XK-0143','—','—',pill('mut','Chờ booking')]]),{n:'2'})}
+     ${card('Phiếu xuất kho', tbl([{t:'Mã Phiếu xuất kho'},{t:'Ngày xuất kho'},{t:'Số Container'},{t:'Net Weight (kg)',num:true},{t:'Trạng thái'}],[
+       ['<a data-go="issuenote">PXK-XK-0231</a>','26/07/2026 10:20','TCLU1234567','22.450',pill('info','Đã xuất kho')],
+       ['<a data-go="issuenote">PXK-XK-0232</a>','26/07/2026 14:05','TCLU1234568','24.010',pill('info','Đã xuất kho')]]),{n:'2',r:'<button class="btn sm" onclick="go(\'issuenote\')">Mở phiếu</button>'})}
      </div>
      ${activity([['📥','Đồng bộ SO từ Rosy','Tự động · Hôm nay'],['📞','Xác nhận lịch giao với KH','Lê Thị XK · Hôm nay'],['📋','Task: Chốt phân bổ máy xeo','Được giao P.Kế hoạch · Cần xử lý']])}
    </div>
