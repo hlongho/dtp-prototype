@@ -2413,38 +2413,27 @@ S.exso = ()=> appnav('Bán hàng xuất khẩu','SO',TAB_EX,'SO')
      fields:[['Số SO','SO-XK-0142'],['Khách hàng','Reliance Paper Ltd'],['Hạn giao - nhận','05/08/2026'],['Trạng thái',pill('info','Đang xử lý')]],
      actions:[{t:'Lên kế hoạch SX',pri:true,fn:"go('explan')"},'Sửa']})}
    ${path(['Nháp','Đang sản xuất','Xuất kho','Giao hàng','Đóng'],1)}
-   <div class="so-layout">
-     <div>${plLayout([
-     plSection('Thông tin chung', [
-       ['Số SO','SO-XK-0142'],
-       ['Khách hàng','Reliance Paper Ltd (Ấn Độ)','link','account'],
-       ['Số PO Khách hàng','K2E-PO-2026-0771'],
-       ['Ngày nhận đơn hàng','12/07/2026']]),
-     plSection('Theo dõi Kế hoạch & Giao hàng', [
-       ['Ngày dự kiến giao hàng (KH mong muốn)','02/08/2026'],
-       ['Hạn chót Giao - Nhận *','05/08/2026'],
-       ['Lịch giao hàng thực tế (đồng bộ từ Rosy — BP. Kế hoạch)','Đợt 1 · 30/07/2026: giao 20 cuộn Kraft Liner 150gsm. Đợt 2 · 03/08/2026: giao 18 cuộn Testliner + 14 cuộn Medium.','wide2']]),
-     plSection('Chi tiết Sản phẩm & Phân bổ Máy sản xuất', null,
+   <div class="cols-side act-tab">
+     <div>
+     ${card('Thông tin SO', fg([['Số SO','SO-XK-0142'],['Khách hàng','Reliance Paper Ltd (Ấn Độ)','link','account'],
+       ['Số PO Khách hàng','K2E-PO-2026-0771'],['Ngày nhận đơn hàng','12/07/2026'],
+       ['Ngày dự kiến giao hàng (KH mong muốn)','02/08/2026'],['Hạn chót Giao - Nhận','05/08/2026'],
+       ['Lịch giao hàng thực tế (từ Rosy — BP. Kế hoạch)','Đợt 1 · 30/07: giao 20 cuộn Kraft Liner 150gsm. Đợt 2 · 03/08: giao 18 cuộn Testliner + 14 cuộn Medium.'],
+       ['Incoterm','CIF Nhava Sheva'],['Trạng thái',pill('info','Đang sản xuất')]]))}
+     ${card('Dòng sản phẩm & Phân bổ Máy SX',
        `<div class="tbl-wrap"><table class="tbl">
           <thead><tr><th>Tên sản phẩm</th><th>Loại giấy</th><th>Định lượng</th><th>Khổ</th><th class="num">Số lượng</th><th class="num">Đơn giá</th><th>Phân bổ Máy SX</th></tr></thead>
           <tbody>
             <tr><td>Kraft Liner</td><td>Kraft</td><td>150 gsm</td><td>1.600 mm</td><td class="num">40 cuộn</td><td class="num">$495/tấn</td><td>${machineCell('PM5')}</td></tr>
             <tr><td>Testliner</td><td>Testliner</td><td>125 gsm</td><td>1.600 mm</td><td class="num">18 cuộn</td><td class="num">$470/tấn</td><td>${machineCell('PM4')}</td></tr>
             <tr><td>Medium</td><td>Medium</td><td>110 gsm</td><td>1.400 mm</td><td class="num">14 cuộn</td><td class="num">$455/tấn</td><td>${machineCell('PM5')}</td></tr>
-          </tbody></table></div>`),
-     plSection('Kế hoạch sản xuất (Production Plan)', null,
-       `<div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Mã KHSX</th><th>Sản phẩm</th><th>Máy SX</th><th>Ngày giao dự kiến</th><th>Tiến độ %</th></tr></thead>
-          <tbody><tr><td><a data-go="explan">KHSX-0074</a></td><td>Kraft Liner 150gsm</td><td>${pill('info','PM5')}</td><td>05/08/2026</td><td>${progCell(20)}</td></tr></tbody>
-       </table></div>`),
-     plSection('Shipment', null,
-       `<div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Số lô / Booking</th><th>Hãng tàu</th><th>Invoice</th><th>ETD</th><th>ETA</th><th>Trạng thái</th></tr></thead>
-          <tbody>
-            <tr><td><a data-go="shipment_xk">SHP-XK-0067</a></td><td>ONE</td><td>INV-XK-0142</td><td>28/07/2026</td><td>10/08/2026</td><td>${pill('info','Đang trên biển')}</td></tr>
-            <tr><td><a data-go="shipment_xk">SHP-XK-0069</a></td><td>Maersk</td><td>INV-XK-0143</td><td>—</td><td>—</td><td>${pill('mut','Chờ booking')}</td></tr>
-          </tbody></table></div>`)
-   ])}</div>
+          </tbody></table></div>`,{n:'3'})}
+     ${card('Kế hoạch sản xuất', tbl([{t:'Mã KHSX'},{t:'Sản phẩm'},{t:'Máy SX'},{t:'Ngày giao dự kiến'},{t:'Tiến độ %'}],[
+       ['<a data-go="explan">KHSX-0074</a>','Kraft Liner 150gsm',pill('info','PM5'),'05/08/2026',progCell(20)]]),{n:'1'})}
+     ${card('Shipment', tbl([{t:'Số lô / Booking'},{t:'Hãng tàu'},{t:'Invoice'},{t:'ETD'},{t:'ETA'},{t:'Trạng thái'}],[
+       ['<a data-go="shipment_xk">SHP-XK-0067</a>','ONE','INV-XK-0142','28/07/2026','10/08/2026',pill('info','Đang trên biển')],
+       ['<a data-go="shipment_xk">SHP-XK-0069</a>','Maersk','INV-XK-0143','—','—',pill('mut','Chờ booking')]]),{n:'2'})}
+     </div>
      ${activity([['📥','Đồng bộ SO từ Rosy','Tự động · Hôm nay'],['📞','Xác nhận lịch giao với KH','Lê Thị XK · Hôm nay'],['📋','Task: Chốt phân bổ máy xeo','Được giao P.Kế hoạch · Cần xử lý']])}
    </div>
  </div>`;
