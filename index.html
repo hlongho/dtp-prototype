@@ -2362,7 +2362,14 @@ S.exso = ()=> appnav('Bán hàng xuất khẩu','SO',TAB_EX,'SO')
        `<div class="tbl-wrap"><table class="tbl">
           <thead><tr><th>Mã KHSX</th><th>Sản phẩm</th><th>Máy SX</th><th>Ngày giao dự kiến</th><th>Tiến độ %</th></tr></thead>
           <tbody><tr><td><a data-go="explan">KHSX-0074</a></td><td>Kraft Liner 150gsm</td><td>${pill('info','PM5')}</td><td>05/08/2026</td><td>${progCell(20)}</td></tr></tbody>
-       </table></div>`)
+       </table></div>`),
+     plSection('Shipment', null,
+       `<div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Số lô / Booking</th><th>Hãng tàu</th><th>Invoice</th><th>ETD</th><th>ETA</th><th>Trạng thái</th></tr></thead>
+          <tbody>
+            <tr><td><a data-go="shipment">SHP-XK-0067</a></td><td>ONE</td><td>INV-XK-0142</td><td>28/07/2026</td><td>10/08/2026</td><td>${pill('info','Đang trên biển')}</td></tr>
+            <tr><td><a data-go="shipment">SHP-XK-0069</a></td><td>Maersk</td><td>INV-XK-0143</td><td>—</td><td>—</td><td>${pill('mut','Chờ booking')}</td></tr>
+          </tbody></table></div>`)
    ])}</div>
      ${activity([['📥','Đồng bộ SO từ Rosy','Tự động · Hôm nay'],['📞','Xác nhận lịch giao với KH','Lê Thị XK · Hôm nay'],['📋','Task: Chốt phân bổ máy xeo','Được giao P.Kế hoạch · Cần xử lý']])}
    </div>
