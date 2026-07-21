@@ -1585,8 +1585,7 @@ function openPOModal(){
   if(!sel.length) return;
   // mỗi sản phẩm = 1 nhóm, mặc định 1 dòng (split) = toàn bộ SL; có thể "Tách NCC"
   PODRAFT=sel.map(b=>{ const total=b.prBreak.reduce((a,x)=>a+x.qty,0);
-    // mỗi phiếu yêu cầu (PR) = 1 line riêng; SP thuộc 2 PR -> 2 line
-    return {product:b.product, unit:b.unit, prBreak:b.prBreak, total, splits:b.prBreak.map(x=>({supplier:'',qty:x.qty,price:''}))}; });
+    return {product:b.product, unit:b.unit, prBreak:b.prBreak, total, splits:[{supplier:'',qty:total,price:''}]}; });
   MERGE_DECISION={};
   document.getElementById('pomback').classList.add('show');
   document.getElementById('pomodal').classList.add('show');
@@ -1849,7 +1848,11 @@ function renderPOSummary(){
     const sum=g.splits.reduce((a,s)=>a+parseNum(s.qty),0);
     if(sum!==g.total) fullyAlloc=false;
     g.splits.forEach((s,si)=>{ totalSplits++;
-      if(s.supplier){ assigned++; (groups[s.supplier]=groups[s.supplier]||[]).push({product:g.product,unit:g.unit,qty:parseNum(s.qty),price:s.price,cover:allocs[si]}); }
+      if(s.supplier){ assigned++;
+        const cov=allocs[si].length?allocs[si]:[{pr:'—',qty:parseNum(s.qty)}];
+        // mỗi phiếu yêu cầu (PR) -> 1 line riêng trong PO preview
+        cov.forEach(c=>{ (groups[s.supplier]=groups[s.supplier]||[]).push({product:g.product,unit:g.unit,qty:c.qty,pr:c.pr,price:s.price}); });
+      }
     });
   });
   const sups=Object.keys(groups);
@@ -1871,7 +1874,7 @@ function renderPOSummary(){
       }
       k++;
       let card=`<div class="po-card"><div class="po-card-h">PO ${k} (mới) — <b>${s}</b> <span>· ${groups[s].length} dòng</span></div>
-        ${groups[s].map(l=>lineHtml(l,'('+(l.cover.map(c=>c.pr+' '+fmtN(c.qty)).join(', ')||'—')+')')+((l.price&&l.price!=='—')?'':'')).join('')}`;
+        ${groups[s].map(l=>lineHtml(l,'· '+(l.pr||'—'))).join('')}`;
       if(ex && !dec){
         card+=`<div class="po-merge-warn">⚠ NCC <b>${s}</b> đã có PO <b>${ex.no}</b> trước đó (${ex.lines.length} dòng). Gộp để thêm các dòng này vào PO đó (mỗi dòng là 1 line mới, kể cả SP trùng)?
           <div class="po-merge-prev">${ex.lines.map(l=>lineHtml(l,'· PO cũ')).join('')}</div>
