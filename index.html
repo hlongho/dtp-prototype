@@ -2271,12 +2271,14 @@ S.so = ()=> appnav('Bán hàng nội địa','SO',TAB_SALES,'SO')
    ${hl({crumb:'<span data-go="so_list">Đơn hàng bán (SO)</span> &rsaquo;',ico:'🧾',color:'#0176d3',title:'SO-7788 · Cty Hưng Thịnh Phát',sub:'Sales Order · lên từ PO-2619 trên ERP Rosy',
      fields:[['Giá trị','1.180.000.000 ₫'],['Trạng thái',pill('info','Đang sản xuất')],['Từ PO','PO-2619'],['Ngày giao cam kết','29/07/2026']],
      actions:[{t:'Cập nhật tiến độ',pri:true},{t:'Tạo Case',fn:'createCaseFromPO()'},'Sửa']})}
-   ${path(['Tạo SO','Đang sản xuất','Xuất kho','Giao hàng','Đóng SO'],1)}
+   ${path(['Đánh giá & Kế hoạch sản xuất','Thực hiện sản xuất','Xuất kho / Giao hàng','Theo dõi công nợ','Đóng đơn'],1)}
    <div class="cols-side">
      <div>
-     ${card('Thông tin SO', fg([['Số SO','SO-7788'],['Từ PO','PO-2619','link','oppo'],['Khách hàng','Cty Hưng Thịnh Phát','link','account'],
+     ${card('Thông tin SO', fg([['Số SO','SO-7788'],['Record Type','Bán hàng nội địa'],['Từ PO','PO-2619','link','oppo'],['Khách hàng','Cty Hưng Thịnh Phát','link','account'],
        ['Cơ hội PO','Cty Hưng Thịnh — PO Medium Q3','link','oppo'],['Giá trị','1.180.000.000 ₫'],
-       ['Ngày lên SO (Rosy)','14/07/2026'],['Ngày giao cam kết','29/07/2026'],['Nhà máy','Long An'],['Sales','Trần Thị B'],['Trạng thái',pill('info','Đang sản xuất')]]))}
+       ['Ngày nhận PO','21/07/2026'],['Ngày Khách hàng yêu cầu giao hàng','18/08/2026'],['Hạn chót Giao - Nhận','15/08/2026'],
+       ['Ngày lên SO (Rosy)','14/07/2026'],['Nhà máy','Long An'],['Sales','Trần Thị B'],
+       ['Ghi chú Kế hoạch','Đã giao đợt 1'],['Trạng thái',pill('info','Thực hiện sản xuất')]]))}
      ${card('Dòng sản phẩm đặt hàng', tbl([{t:'Sản phẩm'},{t:'ĐL/Khổ'},{t:'Đã SX (cuộn)',num:true},{t:'Đã SX (tấn)',num:true},{t:'Chưa SX (cuộn)',num:true},{t:'Chưa SX (tấn)',num:true},{t:'Tổng (cuộn)',num:true},{t:'Tổng (tấn)',num:true},{t:'Máy SX'}],[
        ['Giấy Medium','125gsm / 200','—','—','38','20.058','38','20.058',pill('info','PM5')],
        ['Giấy Medium','110gsm / 180','14','9.942','—','—','14','9.942',pill('info','PM5')],
