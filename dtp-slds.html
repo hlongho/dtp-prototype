@@ -635,6 +635,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     </div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="confirmApprove(false)">Từ chối</button><button class="btn pri" onclick="confirmApprove(true)">Phê duyệt</button></div></div>
   </div>
+  <!-- Modal tạo Sample Request -->
+  <div class="modal-back" id="srback" onclick="closeSampleModal()" style="z-index:135"></div>
+  <div class="po-modal" id="srmodal" style="z-index:140;width:min(640px,94vw)">
+    <div class="pm-head"><h3>Tạo Sample Request</h3><button title="Đóng" onclick="closeSampleModal()">✕</button></div>
+    <div class="pm-body" id="sr-body"></div>
+    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeSampleModal()">Hủy</button><button class="btn pri" onclick="confirmSample()">Tạo yêu cầu</button></div></div>
+  </div>
 </div>
 
 <script>
@@ -874,6 +881,37 @@ function confirmQuote(){
 }
 function createContract(){ toast('Đã tạo Hợp đồng nháp từ cơ hội — chuyển sang màn Hợp đồng'); setTimeout(function(){ if(S.contract) go('contract'); }, 700); }
 function createCaseQuick(){ toast('Đã tạo Case khiếu nại từ cơ hội — mở màn Case'); setTimeout(function(){ if(S.case) go('case'); }, 700); }
+function openSampleModal(){
+  const lab=(t)=>`<label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">${t}</label>`;
+  document.getElementById('sr-body').innerHTML=
+    `<p class="po-hint">Tạo Sample Request trực tiếp từ Cơ hội của khách hàng.</p>
+     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+       <div>${lab('Sản phẩm quan tâm *')}<input id="sr-prod" class="mass-sel" value="Giấy Medium 125gsm"></div>
+       <div>${lab('Loại mẫu *')}<select id="sr-type" class="mass-sel" onchange="toggleSampleType()"><option>Mẫu có sẵn</option><option>Mẫu tuỳ chỉnh</option></select></div>
+       <div>${lab('Người nhận *')}<input id="sr-recv" class="mass-sel" value="Ông Trần Q"></div>
+       <div>${lab('Số lượng yêu cầu *')}<input id="sr-qty" class="mass-sel" value="5 cuộn mẫu"></div>
+     </div>
+     <div style="margin-top:10px">${lab('Địa chỉ nhận hàng *')}<input id="sr-addr" class="mass-sel" style="width:100%" value="KCN Bình Dương"></div>
+     <div id="sr-custom" style="display:none;margin-top:12px;border-top:1px solid var(--line);padding-top:10px">
+       <div class="wf-muted" style="font-size:12px;font-weight:700;margin-bottom:6px">Thông số mẫu tuỳ chỉnh (bắt buộc)</div>
+       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+         <div>${lab('Grammage (Định lượng yêu cầu) *')}<input id="sr-gram" class="mass-sel" placeholder="VD: 130 gsm"></div>
+         <div>${lab('Width (Khổ giấy yêu cầu) *')}<input id="sr-width" class="mass-sel" placeholder="VD: 1.600 mm"></div>
+       </div>
+       <div style="margin-top:10px">${lab('Customer Requirement (Mô tả kỹ thuật) *')}<textarea id="sr-req" class="mass-sel" style="width:100%;min-height:64px" placeholder="Độ bục, bề mặt in, độ ẩm…"></textarea></div>
+     </div>`;
+  document.getElementById('srback').classList.add('show'); document.getElementById('srmodal').classList.add('show'); toggleSampleType();
+}
+function toggleSampleType(){ const c=document.getElementById('sr-custom'),t=document.getElementById('sr-type'); if(c&&t) c.style.display=/tuỳ chỉnh/.test(t.value)?'':'none'; }
+function closeSampleModal(){ const b=document.getElementById('srback'),m=document.getElementById('srmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
+function confirmSample(){
+  const custom=/tuỳ chỉnh/.test(document.getElementById('sr-type').value);
+  if(custom){ if(!(document.getElementById('sr-gram').value||'').trim()||!(document.getElementById('sr-width').value||'').trim()||!(document.getElementById('sr-req').value||'').trim()){ toast('Mẫu tuỳ chỉnh: nhập đủ Grammage, Width, Customer Requirement'); return; } }
+  closeSampleModal();
+  if(custom){ toast('Đã tạo Sample Request (Mẫu tuỳ chỉnh) — gửi P.CN & QA đánh giá khả thi'); setTimeout(function(){ if(S.sample_c) go('sample_c'); },700); }
+  else { toast('Đã tạo Sample Request (Mẫu có sẵn) — Mới gửi · đã tạo Task cho Kho chuẩn bị mẫu'); setTimeout(function(){ if(S.sample) go('sample'); },700); }
+}
+function approveFeasible(){ toast('P.CN & QA: Đã bấm "Duyệt khả thi" — mẫu tuỳ chỉnh khả thi chạy máy xeo'); }
 function exportContractPDF(){
   const w=window.open('','_blank'); if(!w){ toast('Trình duyệt chặn popup — cho phép để xuất PDF'); return; }
   w.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Hợp đồng nguyên tắc HĐ-0421</title>
@@ -1152,11 +1190,47 @@ S.quote = ()=> appnav('Bán hàng nội địa','Cơ hội',TAB_SALES,'Cơ hội
      ${activity([['📤','Gửi báo giá cho khách','Trần Thị B · 12/07/2026'],['✍','Lập báo giá QUO-0451','12/07/2026']])}
    </div>
  </div>`;
+S.sample = ()=> appnav('Bán hàng nội địa','Cơ hội',TAB_SALES,'Cơ hội')
+ + `<div class="sf-body narrow">
+   ${hl({crumb:'<span data-go="opp">Cơ hội</span> &rsaquo; Sample Request',ico:'🧪',color:'#0176d3',title:'SR-0207 · Giấy Medium 125gsm',sub:'Sample Request · Mẫu có sẵn · Cty Hưng Thịnh',
+     fields:[['Loại mẫu','Mẫu có sẵn'],['Trạng thái',pill('info','Chờ phản hồi')],['Số lượng','5 cuộn mẫu'],['Người nhận','Ông Trần Q']],
+     actions:[{t:'Cập nhật: Đạt',pri:true},'Không đạt','Sửa']})}
+   ${path(['Mới gửi','Chờ phản hồi','Đạt'],1)}
+   <div class="cols-side">
+     <div>
+     ${card('Chi tiết Sample Request', fg([['Sản phẩm quan tâm','Giấy Medium 125gsm','link','product'],['Loại mẫu','Mẫu có sẵn'],
+       ['Người nhận','Ông Trần Q (Cty Hưng Thịnh)'],['Địa chỉ nhận hàng','KCN Bình Dương'],['Số lượng yêu cầu','5 cuộn mẫu'],
+       ['Cơ hội','Cty Hưng Thịnh — Medium Q3','link','opp'],['Trạng thái','Chờ phản hồi']]))}
+     </div>
+     ${activity([['📋','Task: Kho chuẩn bị & gửi mẫu chuẩn','Được giao Kho · Cần xử lý'],['📤','Đã gửi mẫu cho khách hàng','Sales · Hôm nay']])}
+   </div>
+ </div>`;
+S.sample_c = ()=> appnav('Bán hàng nội địa','Cơ hội',TAB_SALES,'Cơ hội')
+ + `<div class="sf-body narrow">
+   ${hl({crumb:'<span data-go="opp">Cơ hội</span> &rsaquo; Sample Request',ico:'🧪',color:'#0176d3',title:'SR-0208 · Medium 130gsm (tuỳ chỉnh)',sub:'Sample Request · Mẫu tuỳ chỉnh · Cty CP Minh Khang',
+     fields:[['Loại mẫu','Mẫu tuỳ chỉnh'],['Trạng thái',pill('warn','Chờ P.CN & QA duyệt')],['Grammage','130 gsm'],['Width','1.600 mm']],
+     actions:[{t:'Gửi P.CN & QA duyệt',pri:true},{t:'Duyệt khả thi',fn:'approveFeasible()'},{t:'Tạo báo giá',fn:'openQuoteModal()'},'Sửa']})}
+   ${path(['Mới','Chờ P.CN & QA duyệt','Duyệt khả thi','Báo giá mẫu','SO mẫu thử'],1)}
+   <div class="cols-side">
+     <div>
+     ${card('Chi tiết Sample Request — Mẫu tuỳ chỉnh', fg([['Sản phẩm quan tâm','Giấy Medium (tuỳ chỉnh)'],['Loại mẫu','Mẫu tuỳ chỉnh'],
+       ['Grammage (Định lượng yêu cầu)','130 gsm'],['Width (Khổ giấy yêu cầu)','1.600 mm'],
+       ['Customer Requirement','Độ bục ≥ 4.0 kgf/cm² · bề mặt in offset tốt · độ ẩm 7–8%'],
+       ['Người nhận','Bà Lê Thị M'],['Địa chỉ nhận hàng','KCN Long An'],['Số lượng yêu cầu','3 cuộn mẫu'],
+       ['Mã sản phẩm nháp (Draft SKU)','— (chờ tạo trên Rosy)'],['Mã PO mẫu thử','—'],
+       ['Cơ hội','Cty CP Minh Khang — HĐ 2027','link','opp'],['Trạng thái','Chờ P.CN & QA duyệt']]))}
+     ${card('Đánh giá khả thi (P.CN & QA)', tbl([{t:'Bộ phận'},{t:'Nội dung đánh giá'},{t:'Kết quả'}],[
+       ['P. Công nghệ','Khả năng chạy máy xeo (PM5)',pill('warn','Đang đánh giá')],
+       ['QA','Đạt chỉ tiêu cơ lý theo yêu cầu',pill('warn','Đang đánh giá')]]),{n:'2'})}
+     </div>
+     ${activity([['📤','Gửi yêu cầu P.CN & QA đánh giá','Sales · Hôm nay'],['📋','Task: Đánh giá khả năng chạy máy xeo','P.CN & QA · Cần xử lý']])}
+   </div>
+ </div>`;
 S.opp = ()=> appnav('Bán hàng nội địa','Cơ hội',['Trang chủ','Lead','Cơ hội','Opportunity PO','Đơn hàng','Khách hàng','Case'],'Cơ hội')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="opp_list">Cơ hội</span> &rsaquo;',ico:'💼',color:'#0176d3',title:'Cty Hưng Thịnh — Cung cấp Medium Q3',sub:'Cơ hội · 1.200.000.000 ₫ · Đóng dự kiến 30/07/2026',
      fields:[['Số tiền','1.200.000.000 ₫'],['Giai đoạn',pill('info','Gửi mẫu')],['Xác suất','60%'],['Phụ trách','Trần Thị B']],
-     actions:[{t:'Tạo báo giá',pri:true,fn:'openQuoteModal()'},{t:'Tạo hợp đồng',fn:'createContract()'},{t:'Tạo Case',fn:'createCaseQuick()'},{t:'Phê duyệt',fn:'openApproveModal()'},'Gửi mẫu','Sửa']})}
+     actions:[{t:'Tạo báo giá',pri:true,fn:'openQuoteModal()'},{t:'Tạo hợp đồng',fn:'createContract()'},{t:'Tạo Case',fn:'createCaseQuick()'},{t:'Phê duyệt',fn:'openApproveModal()'},{t:'Tạo Sample Request',fn:'openSampleModal()'},'Sửa']})}
    ${path(['Phân tích nhu cầu','Gửi mẫu','Báo giá','Hợp đồng','Đóng - Thắng','Đóng - Thua'],1)}
    <div class="cols-side">
      <div>
@@ -1171,9 +1245,9 @@ S.opp = ()=> appnav('Bán hàng nội địa','Cơ hội',['Trang chủ','Lead',
      ${card('Hợp đồng', tbl([{t:'Số HĐ'},{t:'Ngày ký'},{t:'Hiệu lực đến'},{t:'Giá trị'},{t:'Trạng thái'}],[
        ['<a data-go="contract">HĐ-0388</a>','30/11/2025','30/11/2026','3.000.000.000 ₫',pill('ok','Hiệu lực')]]),
        {n:'1',r:'<button class="btn sm" onclick="createContract()">＋ Tạo hợp đồng</button>'})}
-     ${card('Lịch sử gửi mẫu (Sampling)', tbl([{t:'Ngày gửi'},{t:'Mẫu'},{t:'ĐL/Khổ'},{t:'Kết quả'}],[
-       ['05/07/2026','Medium M-01','125/200',pill('ok','Duyệt')],
-       ['28/06/2026','Medium M-00','110/180',pill('err','Từ chối — độ ẩm')]]),{n:'2'})}
+     ${card('Sample Request', tbl([{t:'Số SR'},{t:'Sản phẩm'},{t:'Loại mẫu'},{t:'SL'},{t:'Trạng thái'}],[
+       ['<a data-go="sample">SR-0207</a>','Giấy Medium 125gsm','Mẫu có sẵn','5 cuộn',pill('info','Chờ phản hồi')],
+       ['<a data-go="sample_c">SR-0208</a>','Medium 130gsm (tuỳ chỉnh)','Mẫu tuỳ chỉnh','3 cuộn',pill('warn','Chờ P.CN & QA')]]),{n:'2',r:'<button class="btn sm" onclick="openSampleModal()">＋ Tạo Sample Request</button>'})}
      </div>
      ${activity(sampleActivity)}
    </div>
@@ -2371,7 +2445,7 @@ function setupSearch(){
   dd.addEventListener('click',e=>{const it=e.target.closest('.sr-item'); if(it) pickSearch(it.dataset.id);});
   document.addEventListener('click',e=>{ if(!e.target.closest('.g-search')) dd.classList.remove('show'); });
   document.getElementById('lmsearch').addEventListener('input',e=>renderLauncher(e.target.value));
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeSupModal(); closeMass(); closePO(); closeLauncher(); closeShipModal(); closeSlipModal(); closeEvalModal(); closeFeeModal(); closeQuoteModal(); closeApproveModal(); } });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeSupModal(); closeMass(); closePO(); closeLauncher(); closeShipModal(); closeSlipModal(); closeEvalModal(); closeFeeModal(); closeQuoteModal(); closeApproveModal(); closeSampleModal(); } });
 }
 
 /* ---- in-page interactivity ---- */
