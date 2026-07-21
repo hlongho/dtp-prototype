@@ -1222,7 +1222,9 @@ S.quote = ()=> appnav('Bán hàng nội địa','Cơ hội',TAB_SALES,'Cơ hội
      <div>
      ${card('Thông tin báo giá', fg([['Số báo giá','QUO-0451'],['Cơ hội','Cty Hưng Thịnh — Medium Q3','link','opp'],
        ['Khách hàng','Cty Hưng Thịnh Phát','link','account'],['Ngày tạo','12/07/2026'],['Hiệu lực đến','27/07/2026'],
-       ['Người lập','Trần Thị B'],['Điều khoản','Đơn giá ₫/kg · chưa VAT · giao tại kho · theo HĐ nguyên tắc'],['Trạng thái',pill('ok','Đã gửi')]]))}
+       ['Người lập','Trần Thị B'],['Điều khoản','Đơn giá ₫/kg · chưa VAT · giao tại kho · theo HĐ nguyên tắc'],
+       ['Xử lý bản cứng','<input type="checkbox" style="width:16px;height:16px;vertical-align:middle" onchange="toast(this.checked?\'Đã đánh dấu Xử lý bản cứng\':\'Bỏ đánh dấu Xử lý bản cứng\')">'],
+       ['Trạng thái',pill('ok','Đã gửi')]]))}
      ${card('Dòng sản phẩm', tbl([{t:'Sản phẩm'},{t:'Định lượng · Khổ'},{t:'SL (tấn)',num:true},{t:'Đơn giá (₫/kg)',num:true},{t:'Thành tiền',num:true}],[
        ['Whitetop (WTN)','150–180 gsm · 1.400–2.400','50','15.200','760.000.000 ₫'],
        ['Testliner (K2E+K3E)','150–200 gsm · 1.400–2.400','40','12.700','508.000.000 ₫'],
