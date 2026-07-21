@@ -1052,6 +1052,7 @@ const NAV = [
    ['exso','↳ Chi tiết SO (phân bổ máy SX)','','record'],
    ['explan_list','Kế hoạch sản xuất','SX / Sales XK','list'],
    ['explan','↳ Chi tiết Kế hoạch SX','','record'],
+   ['shipment_xk','↳ Shipment (Bán hàng XK)','Logistics','record'],
    ['lc','↳ Theo dõi L/C & T/T','Kế toán','record']]},
  {g:'Mua hàng nội địa', items:[
    ['pr_list','Phiếu yêu cầu (PR)','Mua hàng','list'],
@@ -1993,9 +1994,32 @@ S.imcontract = ()=> appnav('Mua nhập khẩu','Sales Contract',['Trang chủ','
    </div>
  </div>`;
 
+S.shipment_xk = ()=> appnav('Bán hàng xuất khẩu','Shipment XK',TAB_EX,'SO')
+ + `<div class="sf-body narrow">
+   ${hl({crumb:'<span data-go="exso">Shipment (Bán hàng xuất khẩu)</span> &rsaquo;',ico:'⚓',color:'#1b96ff',title:'SHP-XK-0067 · Kraft Liner 40 cuộn (3x40HC)',sub:'Record Type: Bán hàng xuất khẩu · SO-XK-0142 · Hãng ONE',
+     fields:[['Record Type','Bán hàng xuất khẩu'],['Trạng thái',pill('info','Đóng hàng')],['ETD','28/07/2026'],['ETA','10/08/2026']],
+     actions:[{t:'Xác nhận lên tàu',pri:true},'Sửa']})}
+   ${path(['Nháp','Xác nhận booking','Lấy rỗng','Đóng hàng','Hạ bãi','Hải quan','Lên tàu','Completed'],3)}
+   <div class="cols-side">
+     <div>
+     ${card('Detail', fg([['SO liên quan','SO-XK-0142','link','exso'],['Sales Contract (XK)','SC-XK-0091','link','excontract'],
+       ['Số Booking','ONEYSGN778899'],['Invoice','INV-XK-0142'],
+       ['Số lượng cont','3'],['Loại cont','40HC'],['Số lượng giao hàng','40 cuộn'],
+       ['Số Công','TCLU1234567 · TCLU1234568 · TCLU1234569'],['Số Seal','SEAL-778899 · SEAL-778900 · SEAL-778901'],['Số Xe','51C-123.45 · 51C-678.90'],
+       ['Cảng đi (POL)','Cát Lái'],['Cảng đến (POD)','Nhava Sheva'],['ETD','28/07/2026'],['ETA','10/08/2026'],['Ngày LSD (Latest Shipment Date)','30/07/2026'],
+       ['Hãng tàu','ONE'],['Khách hàng','Reliance Paper (Ấn Độ)','link','account']]))}
+     ${card('Chứng từ (Docs)', tbl([{t:'Chứng từ'},{t:'Trạng thái'},{t:'Ngày'}],[
+       ['Booking Confirmation',pill('ok','Đã có'),'26/07/2026'],
+       ['Shipping Instruction (SI)',pill('warn','Đang lập'),'—'],
+       ['Bill of Lading (B/L)',pill('mut','Chờ lên tàu'),'—'],
+       ['Packing List / Invoice',pill('warn','Đang lập'),'—']]),{n:'4'})}
+     </div>
+     ${activity([['📦','Đóng hàng tại kho Long An','Logistics · Hôm nay'],['📋','Task: Hạ bãi & làm hải quan','Logistics · Cần xử lý'],['🚢','Dự kiến lên tàu 28/07','—']])}
+   </div>
+ </div>`;
 S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',['Trang chủ','Kế hoạch NVL','Sales Contract','Shipment'],'Shipment')
  + `<div class="sf-body narrow">
-   ${hl({crumb:'<span data-go="shipment_list">Theo dõi Shipment</span> &rsaquo;',ico:'⚓',color:'#0b827c',title:'SHP-041 · OCC 800 tấn (32x40HC)',sub:'HĐ IC-2026-041 · Hãng ONE',
+   ${hl({crumb:'<span data-go="shipment_list">Theo dõi Shipment</span> &rsaquo;',ico:'⚓',color:'#0b827c',title:'SHP-041 · OCC 800 tấn (32x40HC)',sub:'Record Type: Mua hàng nhập khẩu · HĐ IC-2026-041 · Hãng ONE',
      fields:[['Trạng thái',pill('info','Đang trên biển')],['ETA','19/07/2026'],['Free time','7 ngày'],['Tổng phí Local Charge','<span id="ship-fee-total">12.900.000 ₫</span>']],
      actions:[{t:'Lên kế hoạch kéo hàng',pri:true},'Sửa']})}
    ${path(['Draft','Final Docx','Open tờ khai','Completed'],1)}
@@ -2378,8 +2402,8 @@ S.exso = ()=> appnav('Bán hàng xuất khẩu','SO',TAB_EX,'SO')
        `<div class="tbl-wrap"><table class="tbl">
           <thead><tr><th>Số lô / Booking</th><th>Hãng tàu</th><th>Invoice</th><th>ETD</th><th>ETA</th><th>Trạng thái</th></tr></thead>
           <tbody>
-            <tr><td><a data-go="shipment">SHP-XK-0067</a></td><td>ONE</td><td>INV-XK-0142</td><td>28/07/2026</td><td>10/08/2026</td><td>${pill('info','Đang trên biển')}</td></tr>
-            <tr><td><a data-go="shipment">SHP-XK-0069</a></td><td>Maersk</td><td>INV-XK-0143</td><td>—</td><td>—</td><td>${pill('mut','Chờ booking')}</td></tr>
+            <tr><td><a data-go="shipment_xk">SHP-XK-0067</a></td><td>ONE</td><td>INV-XK-0142</td><td>28/07/2026</td><td>10/08/2026</td><td>${pill('info','Đang trên biển')}</td></tr>
+            <tr><td><a data-go="shipment_xk">SHP-XK-0069</a></td><td>Maersk</td><td>INV-XK-0143</td><td>—</td><td>—</td><td>${pill('mut','Chờ booking')}</td></tr>
           </tbody></table></div>`)
    ])}</div>
      ${activity([['📥','Đồng bộ SO từ Rosy','Tự động · Hôm nay'],['📞','Xác nhận lịch giao với KH','Lê Thị XK · Hôm nay'],['📋','Task: Chốt phân bổ máy xeo','Được giao P.Kế hoạch · Cần xử lý']])}
