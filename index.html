@@ -1863,7 +1863,7 @@ function renderPOSummary(){
       const lineHtml=(l,extra)=>`<div class="po-line"><span>${l.product} <span style="color:var(--ink-3)">${extra||''}</span></span><span>${fmtN(l.qty)} ${l.unit||''}</span></div>`;
       if(ex && dec==='merge'){
         const merged=ex.lines.map(l=>({product:l.product,qty:l.qty,unit:l.unit,tag:'PO cũ'}));
-        groups[s].forEach(nl=>{ const m=merged.find(x=>x.product===nl.product); if(m){ m.qty=parseNum(m.qty)+nl.qty; m.tag='cộng gộp'; } else merged.push({product:nl.product,qty:nl.qty,unit:nl.unit,tag:'dòng mới'}); });
+        groups[s].forEach(nl=>{ merged.push({product:nl.product,qty:nl.qty,unit:nl.unit,tag:'dòng mới'}); }); // luôn thêm dòng mới, kể cả SP trùng
         return `<div class="po-card"><div class="po-card-h">Gộp vào <b>${ex.no}</b> — <b>${s}</b> <span>· ${merged.length} dòng</span></div>
           ${merged.map(l=>lineHtml(l,'· '+l.tag)).join('')}
           <div class="po-line" style="color:var(--ok)">✓ Đã gộp vào ${ex.no} — <a style="cursor:pointer" onclick="setMerge('${s}','')">hoàn tác</a></div></div>`;
@@ -1872,7 +1872,7 @@ function renderPOSummary(){
       let card=`<div class="po-card"><div class="po-card-h">PO ${k} (mới) — <b>${s}</b> <span>· ${groups[s].length} dòng</span></div>
         ${groups[s].map(l=>lineHtml(l,'('+(l.cover.map(c=>c.pr+' '+fmtN(c.qty)).join(', ')||'—')+')')+((l.price&&l.price!=='—')?'':'')).join('')}`;
       if(ex && !dec){
-        card+=`<div class="po-merge-warn">⚠ NCC <b>${s}</b> đã có PO <b>${ex.no}</b> trước đó (${ex.lines.length} dòng). Gộp để cộng dồn SL các item trùng?
+        card+=`<div class="po-merge-warn">⚠ NCC <b>${s}</b> đã có PO <b>${ex.no}</b> trước đó (${ex.lines.length} dòng). Gộp để thêm các dòng này vào PO đó (mỗi dòng là 1 line mới, kể cả SP trùng)?
           <div class="po-merge-prev">${ex.lines.map(l=>lineHtml(l,'· PO cũ')).join('')}</div>
           <div style="margin-top:6px;display:flex;gap:8px"><button class="btn sm pri" onclick="setMerge('${s}','merge')">Gộp vào ${ex.no}</button><button class="btn sm" onclick="setMerge('${s}','new')">Không gộp (tạo PO mới)</button></div></div>`;
       } else if(ex && dec==='new'){
