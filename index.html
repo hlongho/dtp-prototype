@@ -1585,7 +1585,8 @@ function openPOModal(){
   if(!sel.length) return;
   // mỗi sản phẩm = 1 nhóm, mặc định 1 dòng (split) = toàn bộ SL; có thể "Tách NCC"
   PODRAFT=sel.map(b=>{ const total=b.prBreak.reduce((a,x)=>a+x.qty,0);
-    return {product:b.product, unit:b.unit, prBreak:b.prBreak, total, splits:[{supplier:'',qty:total,price:''}]}; });
+    // mỗi phiếu yêu cầu (PR) = 1 line riêng; SP thuộc 2 PR -> 2 line
+    return {product:b.product, unit:b.unit, prBreak:b.prBreak, total, splits:b.prBreak.map(x=>({supplier:'',qty:x.qty,price:''}))}; });
   MERGE_DECISION={};
   document.getElementById('pomback').classList.add('show');
   document.getElementById('pomodal').classList.add('show');
