@@ -1403,6 +1403,8 @@ S.excontract = ()=> appnav('Bán hàng xuất khẩu','Sales Contract',['Trang c
        ['Tài khoản ngân hàng thụ hưởng','<select class="mass-sel"><option>VCB · Đồng Tiến Long An</option><option>MB Bank · Đồng Tiến Bình Dương</option><option>VCB · Mizu Paper</option></select>'],
        ['Account No','0111000123456'],['SWIFT','BFTVVNVX'],['Beneficiary','DONG TIEN - LONG AN PAPER JSC'],
        ['Insurance','<input class="mass-sel" style="width:100%" value="Covering clause A for 110% invoice value">']]))}
+     ${card('PO xuất khẩu', tbl([{t:'Tên PO'},{t:'Khách hàng'},{t:'Mã PO khách'},{t:'Cảng đến (POD)'},{t:'Giá trị',num:true},{t:'Giai đoạn'}],[
+       ['<a data-go="exoppo">Macrolite — PO White Top Q3</a>','Macrolite (Philippines)','MCL-PO-2026-0442','Cagayan De Oro','$148.500',pill('info','Đã duyệt PO & Chờ xử lý')]]),{n:'1',r:'<button class="btn sm" onclick="go(\'exoppo\')">Mở PO</button>'})}
      ${card('Chi tiết sản phẩm (Grade / PO / Weight)',
        `<div class="tbl-wrap"><table class="tbl">
           <thead><tr><th>Grade / Type</th><th>Reel diameter & Core</th><th>RW (khổ)</th><th>PO No</th><th class="num">Weight (MT)</th><th class="num">Unit Price</th></tr></thead>
