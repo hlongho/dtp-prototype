@@ -2218,11 +2218,6 @@ S.oppo = ()=> appnav('Bán hàng nội địa','Opportunity PO',TAB_SALES,'Oppor
        ['Ngày nhận PO','13/07/2026'],['Ngày đóng dự kiến','30/07/2026'],['Ngày giao cam kết','29/07/2026'],
        ['Điều khoản thanh toán','Net 30'],['Người phụ trách','Trần Thị B'],['Đối thủ','Giấy An Bình'],
        ['Ghi chú','Ưu tiên giao đủ 120 tấn trước 29/07; phần thiếu đưa vào kế hoạch SX máy xeo 2']]))}
-     ${card('Báo giá (Quotes)',
-       `<div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Số báo giá</th><th>Ngày tạo</th><th class="num">Giá trị</th><th>Trạng thái</th><th></th></tr></thead>
-          <tbody id="quotes-tbody">${quotesRows()}</tbody></table></div>`,
-       {n:String(QUOTES.length), r:'<button class="btn sm" onclick="openQuoteModal()">＋ Tạo báo giá</button>'})}
      ${card('Dòng sản phẩm đặt hàng', tbl([{t:'Sản phẩm'},{t:'ĐL/Khổ'},{t:'Đã SX (cuộn)',num:true},{t:'Đã SX (tấn)',num:true},{t:'Chưa SX (cuộn)',num:true},{t:'Chưa SX (tấn)',num:true},{t:'Tổng (cuộn)',num:true},{t:'Tổng (tấn)',num:true},{t:'Máy SX'}],[
        ['Giấy Medium','125gsm / 200','—','—','38','20.058','38','20.058',pill('info','PM5')],
        ['Giấy Medium','110gsm / 180','14','9.942','—','—','14','9.942',pill('info','PM5')],
