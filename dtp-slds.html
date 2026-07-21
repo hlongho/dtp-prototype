@@ -270,6 +270,9 @@ a:hover{text-decoration:underline}
 .pl-grid{display:grid;grid-template-columns:1fr 1fr;column-gap:44px}
 .pl-grid .slds-form-element:has(.wide2){grid-column:1 / -1}
 @media(max-width:760px){.pl-grid{grid-template-columns:1fr}}
+.po-merge-warn{margin-top:8px;padding:9px 11px;border:1px solid var(--err);background:rgba(234,88,88,.08);border-radius:6px;font-size:12px;color:var(--err)}
+.po-merge-prev{margin-top:6px;background:var(--card);border:1px solid var(--line);border-radius:5px;padding:2px 8px}
+.po-merge-prev .po-line{color:var(--ink)}
 .fee-inc{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:10px;font-size:12.5px}
 .fee-inc-t{font-weight:700;margin-bottom:4px;color:var(--ink)}
 .so-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:10px;align-items:start}
@@ -1533,6 +1536,13 @@ S.buylist = ()=> appnav('Mua hàng','Hàng cần mua',['Trang chủ','Phiếu y�
  </div>`;
 
 let PODRAFT = [];
+// PO đang mở/đã tạo trước đó theo NCC — để gợi ý gộp
+const EXISTING_POS={
+  'Cty Hóa chất Tân Tiến':{no:'PPO-0915', lines:[{product:'Keo dán công nghiệp',qty:3500,unit:'kg'},{product:'Hóa chất tẩy trắng',qty:200,unit:'kg'}]},
+  'Cty Cơ khí Tân Bình':{no:'PPO-0902', lines:[{product:'Dây đai PP',qty:500,unit:'cuộn'}]},
+};
+let MERGE_DECISION={}; // theo NCC: 'merge' | 'new' | undefined(mặc định tạo PO mới)
+function setMerge(s,mode){ if(mode) MERGE_DECISION[s]=mode; else delete MERGE_DECISION[s]; renderPOSummary(); }
 function buyRows(){
   return BUY.map((b,i)=>`<tr>
     <td><input type="checkbox" class="buy-row" data-i="${i}" onchange="updateBuyCount()"></td>
@@ -1576,6 +1586,7 @@ function openPOModal(){
   // mỗi sản phẩm = 1 nhóm, mặc định 1 dòng (split) = toàn bộ SL; có thể "Tách NCC"
   PODRAFT=sel.map(b=>{ const total=b.prBreak.reduce((a,x)=>a+x.qty,0);
     return {product:b.product, unit:b.unit, prBreak:b.prBreak, total, splits:[{supplier:'',qty:total,price:''}]}; });
+  MERGE_DECISION={};
   document.getElementById('pomback').classList.add('show');
   document.getElementById('pomodal').classList.add('show');
   renderPOStage();
@@ -1841,24 +1852,47 @@ function renderPOSummary(){
     });
   });
   const sups=Object.keys(groups);
+  const mergedSups=sups.filter(s=>EXISTING_POS[s]&&MERGE_DECISION[s]==='merge');
+  const newCount=sups.length-mergedSups.length;
   let html='';
-  if(!sups.length){
-    html='';
-  } else {
-    html=`<div class="po-sum-h">Sẽ tạo <b>${sups.length} PO</b> · ${assigned}/${totalSplits} dòng đã gán NCC${fullyAlloc?'':' · <span style="color:var(--err)">còn sản phẩm chưa phân bổ đủ SL</span>'}</div>`;
-    html+=sups.map((s,k)=>`<div class="po-card"><div class="po-card-h">PO ${k+1} — <b>${s}</b> <span>· ${groups[s].length} dòng</span></div>
-      ${groups[s].map(l=>`<div class="po-line"><span>${l.product} <span style="color:var(--ink-3)">(${l.cover.map(c=>c.pr+' '+fmtN(c.qty)).join(', ')||'—'})</span></span><span>${fmtN(l.qty)} ${l.unit}${l.price&&l.price!=='—'?` · ${l.price} ₫`:''}</span></div>`).join('')}</div>`).join('');
+  if(sups.length){
+    html=`<div class="po-sum-h">Sẽ tạo <b>${newCount} PO mới</b>${mergedSups.length?` · gộp ${mergedSups.length} NCC vào PO có sẵn`:''} · ${assigned}/${totalSplits} dòng đã gán NCC${fullyAlloc?'':' · <span style="color:var(--err)">còn sản phẩm chưa phân bổ đủ SL</span>'}</div>`;
+    let k=0;
+    html+=sups.map(s=>{
+      const ex=EXISTING_POS[s], dec=MERGE_DECISION[s];
+      const lineHtml=(l,extra)=>`<div class="po-line"><span>${l.product} <span style="color:var(--ink-3)">${extra||''}</span></span><span>${fmtN(l.qty)} ${l.unit||''}</span></div>`;
+      if(ex && dec==='merge'){
+        const merged=ex.lines.map(l=>({product:l.product,qty:l.qty,unit:l.unit,tag:'PO cũ'}));
+        groups[s].forEach(nl=>{ const m=merged.find(x=>x.product===nl.product); if(m){ m.qty=parseNum(m.qty)+nl.qty; m.tag='cộng gộp'; } else merged.push({product:nl.product,qty:nl.qty,unit:nl.unit,tag:'dòng mới'}); });
+        return `<div class="po-card"><div class="po-card-h">Gộp vào <b>${ex.no}</b> — <b>${s}</b> <span>· ${merged.length} dòng</span></div>
+          ${merged.map(l=>lineHtml(l,'· '+l.tag)).join('')}
+          <div class="po-line" style="color:var(--ok)">✓ Đã gộp vào ${ex.no} — <a style="cursor:pointer" onclick="setMerge('${s}','')">hoàn tác</a></div></div>`;
+      }
+      k++;
+      let card=`<div class="po-card"><div class="po-card-h">PO ${k} (mới) — <b>${s}</b> <span>· ${groups[s].length} dòng</span></div>
+        ${groups[s].map(l=>lineHtml(l,'('+(l.cover.map(c=>c.pr+' '+fmtN(c.qty)).join(', ')||'—')+')')+((l.price&&l.price!=='—')?'':'')).join('')}`;
+      if(ex && !dec){
+        card+=`<div class="po-merge-warn">⚠ NCC <b>${s}</b> đã có PO <b>${ex.no}</b> trước đó (${ex.lines.length} dòng). Gộp để cộng dồn SL các item trùng?
+          <div class="po-merge-prev">${ex.lines.map(l=>lineHtml(l,'· PO cũ')).join('')}</div>
+          <div style="margin-top:6px;display:flex;gap:8px"><button class="btn sm pri" onclick="setMerge('${s}','merge')">Gộp vào ${ex.no}</button><button class="btn sm" onclick="setMerge('${s}','new')">Không gộp (tạo PO mới)</button></div></div>`;
+      } else if(ex && dec==='new'){
+        card+=`<div class="po-line" style="color:var(--ink-3)">Tạo PO mới (không gộp) — <a style="cursor:pointer" onclick="setMerge('${s}','')">đổi lựa chọn</a></div>`;
+      }
+      return card+`</div>`;
+    }).join('');
   }
   const ready = sups.length>0 && assigned===totalSplits && fullyAlloc;
+  const btnLabel = mergedSups.length ? (newCount?`Tạo ${newCount} PO + gộp ${mergedSups.length}`:`Gộp ${mergedSups.length} PO`) : `Tạo ${newCount||''} PO`;
   document.getElementById('pm-foot').innerHTML = html +
     `<div class="pm-actions"><button class="btn" onclick="closePO()">Hủy</button>
-     <button class="btn pri" ${ready?'':'disabled'} onclick="confirmPO()">Tạo ${sups.length||''} PO</button></div>`;
+     <button class="btn pri" ${ready?'':'disabled'} onclick="confirmPO()">${btnLabel}</button></div>`;
 }
 function confirmPO(){
   const sups=[...new Set(PODRAFT.flatMap(g=>g.splits.filter(s=>s.supplier).map(s=>s.supplier)))];
-  const lines=PODRAFT.reduce((a,g)=>a+g.splits.filter(s=>s.supplier).length,0);
+  const merges=sups.filter(s=>EXISTING_POS[s]&&MERGE_DECISION[s]==='merge');
+  const newCount=sups.length-merges.length;
   closePO();
-  toast(`Đã tạo ${sups.length} PO cho ${lines} dòng hàng`);
+  toast(`Đã tạo ${newCount} PO mới`+(merges.length?` · gộp ${merges.length} NCC vào PO có sẵn (${merges.map(s=>EXISTING_POS[s].no).join(', ')})`:''));
 }
 
 /* ===== PR object: dòng sản phẩm + mass assign người mua ===== */
