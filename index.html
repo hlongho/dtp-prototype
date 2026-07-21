@@ -1389,6 +1389,7 @@ S.explan = ()=> appnav('Bán hàng xuất khẩu','Kế hoạch SX',TAB_EX,'Kế
        ['Ngày sản xuất dự kiến','22/07/2026'],
        ['Máy sản xuất (Máy xeo)','Máy xeo 2'],
        ['Khách hàng','Reliance Paper Ltd (Ấn Độ)','link','account'],
+       ['SO liên quan','SO-XK-0142','link','exso'],
        ['Loại giấy / Sản phẩm','Kraft Liner'],
        ['Định lượng','150 gsm'],
        ['Khổ giấy / Quy cách','1.600 mm (cuộn)'],
@@ -2277,6 +2278,8 @@ S.so = ()=> appnav('Bán hàng nội địa','SO',TAB_SALES,'SO')
        `<div class="tbl-wrap"><table class="tbl">
           <thead><tr><th>Số Case</th><th>Loại</th><th>Trạng thái</th><th>Ngày tạo</th></tr></thead>
           <tbody>${poCasesRows()}</tbody></table></div>`,{n:String(POCASES.length)})}
+     ${card('Kế hoạch sản xuất', tbl([{t:'Mã KHSX'},{t:'Sản phẩm'},{t:'Máy SX'},{t:'Ngày giao dự kiến'},{t:'Tiến độ %'}],[
+       ['<a data-go="explan">KHSX-0072</a>','Giấy Medium 125gsm',pill('info','PM4'),'29/07/2026',progCell(62)]]),{n:'1',r:'<button class="btn sm" onclick="go(\'explan\')">Mở kế hoạch SX</button>'})}
      </div>
      ${activity([['🔄','ERP Rosy đồng bộ SO','Tự động · Hôm nay'],['✅','P.Kế hoạch lên SO từ PO-2619','14/07/2026'],['📥','Kho xuất 74 tấn','Kho · Hôm nay']])}
    </div>
@@ -2349,7 +2352,12 @@ S.exso = ()=> appnav('Bán hàng xuất khẩu','SO',TAB_EX,'SO')
             <tr><td>Kraft Liner</td><td>Kraft</td><td>150 gsm</td><td>1.600 mm</td><td class="num">40 cuộn</td><td class="num">$495/tấn</td><td>${machineCell('PM5')}</td></tr>
             <tr><td>Testliner</td><td>Testliner</td><td>125 gsm</td><td>1.600 mm</td><td class="num">18 cuộn</td><td class="num">$470/tấn</td><td>${machineCell('PM4')}</td></tr>
             <tr><td>Medium</td><td>Medium</td><td>110 gsm</td><td>1.400 mm</td><td class="num">14 cuộn</td><td class="num">$455/tấn</td><td>${machineCell('PM5')}</td></tr>
-          </tbody></table></div>`)
+          </tbody></table></div>`),
+     plSection('Kế hoạch sản xuất (Production Plan)', null,
+       `<div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Mã KHSX</th><th>Sản phẩm</th><th>Máy SX</th><th>Ngày giao dự kiến</th><th>Tiến độ %</th></tr></thead>
+          <tbody><tr><td><a data-go="explan">KHSX-0074</a></td><td>Kraft Liner 150gsm</td><td>${pill('info','PM5')}</td><td>05/08/2026</td><td>${progCell(20)}</td></tr></tbody>
+       </table></div>`)
    ])}</div>
      ${activity([['📥','Đồng bộ SO từ Rosy','Tự động · Hôm nay'],['📞','Xác nhận lịch giao với KH','Lê Thị XK · Hôm nay'],['📋','Task: Chốt phân bổ máy xeo','Được giao P.Kế hoạch · Cần xử lý']])}
    </div>
