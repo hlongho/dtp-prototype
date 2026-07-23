@@ -2691,9 +2691,9 @@ S.exoppo = ()=> appnav('Bán hàng xuất khẩu','PO',TAB_EX,'PO')
        ['Overdue Debt Amount (Nợ quá hạn)','$0'],
        ['Debt Status (Trạng thái công nợ)',pill('ok','Trong hạn mức')],
        ['Ghi chú','Chốt cước tàu ONE trước khi ký SC; ưu tiên booking đầu tháng 8']]))}
-     ${card('SO (Sales Order)', tbl([{t:'Số SO'},{t:'Ngày tạo'},{t:'SL (MT)',num:true},{t:'Hạn giao'},{t:'Trạng thái'}],[
-       ['<a data-go="exso">SO-XK-0142</a>','15/07/2026','120','05/08/2026',pill('info','Đang xử lý')],
-       ['<a data-go="exso">SO-XK-0143</a>','16/07/2026','30','12/08/2026',pill('mut','Nháp')]]),{n:'2',r:'<button class="btn sm" onclick="go(\'exso\')">SO mới</button>'})}
+     ${card('Invoice', tbl([{t:'Số Invoice'},{t:'Ngày phát hành'},{t:'SO liên quan'},{t:'Trị giá',num:true},{t:'Trạng thái'}],[
+       ['<a data-go="excontract">INV-XK-0142</a>','28/07/2026','<a data-go="exso">SO-XK-0142</a>','$118.500',pill('ok','Đã phát hành')],
+       ['<a data-go="excontract">INV-XK-0143</a>','—','<a data-go="exso">SO-XK-0143</a>','$30.000',pill('mut','Nháp')]]),{n:'2',r:'<button class="btn sm" onclick="go(\'excontract\')">Tạo Invoice</button>'})}
      ${card('Sales Contract', tbl([{t:'Số Contract'},{t:'Mặt hàng'},{t:'Trị giá',num:true},{t:'Payment'},{t:'Trạng thái'}],[
        ['<a data-go="excontract">TI2619</a>','Kraft Liner','$148.500','L/C',pill('info','Đang thực hiện')]]),{n:'1',r:'<button class="btn sm" onclick="go(\'excontract\')">Contract mới</button>'})}
      ${card('Case',
