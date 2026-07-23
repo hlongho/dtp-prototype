@@ -1444,12 +1444,12 @@ function progCell(p){ return `<div style="display:flex;align-items:center;gap:6p
 function uploadExcelPlan(){ toast('Đã import kế hoạch sản xuất từ file Excel (demo) — cập nhật danh sách'); }
 S.explan_list = ()=> appnav('Bán hàng xuất khẩu','Kế hoạch SX',TAB_EX,'Kế hoạch SX')
  + `<div class="sf-body">${lv({crumb:'Kế hoạch sản xuất',ico:'🏭',color:'#1b96ff',object:'Kế hoạch sản xuất (Production Plan)',view:'Đang sản xuất',views:['Đang sản xuất','Kế hoạch tuần này','Theo máy xeo','Sắp đến hạn giao','Tất cả'],count:'12',newLabel:'Kế hoạch mới',head:[{label:'⤴ Upload Excel',fn:'uploadExcelPlan()'}],
-   cols:[{t:'Mã Đơn hàng'},{t:'Tên Sản phẩm'},{t:'Khách hàng'},{t:'Số lượng',num:true},{t:'Đường kính'},{t:'Số lớp'},{t:'Số mét tới (m)',num:true},{t:'Chống thấm'},{t:'Yêu cầu khác'},{t:'Máy Sản xuất'},{t:'Ngày giao dự kiến'},{t:'Tiến độ %'}],
+   cols:[{t:'Mã Đơn hàng'},{t:'Tên Sản phẩm'},{t:'Khách hàng'},{t:'Số lượng',num:true},{t:'Đường kính'},{t:'Số lớp'},{t:'Số mét tới (m)',num:true},{t:'Chống thấm'},{t:'Yêu cầu khác'},{t:'Máy Sản xuất'},{t:'Ngày giao dự kiến'},{t:'Lý do'},{t:'Tiến độ %'}],
    rows:[
-    {go:'explan',cells:['KHSX-0074','Kraft Liner 150gsm','Reliance Paper (Ấn Độ)','40 cuộn','Ø 120 cm','3 lớp','4.500','Cobb ≤ 30','Kèm COA từng lô',pill('info','PM5'),'05/08/2026',progCell(20)]},
-    {go:'explan',cells:['KHSX-0072','Giấy Medium 125gsm','Cty Hưng Thịnh Phát','120 tấn','Ø 110 cm','2 lớp','3.800','—','Giao đợt 1 trước 29/07',pill('info','PM4'),'29/07/2026',progCell(62)]},
-    {go:'explan',cells:['KHSX-0070','Testliner 125gsm','Cty CP Minh Khang','80 tấn','Ø 115 cm','3 lớp','4.100','Cobb ≤ 35','—',pill('info','PM6'),'26/07/2026',progCell(90)]},
-    {go:'explan',cells:['KHSX-0068','White Top (WTN) 140gsm','Macrolite (Philippines)','50 tấn','Ø 120 cm','3 lớp','4.200','Có','Màng co chống ẩm',pill('info','PM5'),'02/08/2026',progCell(10)]}]})}</div>`;
+    {go:'explan',cells:['KHSX-0074','Kraft Liner 150gsm','Reliance Paper (Ấn Độ)','40 cuộn','Ø 120 cm','3 lớp','4.500','Cobb ≤ 30','Kèm COA từng lô',pill('info','PM5'),'05/08/2026','Chờ xác nhận công suất Máy xeo 2',progCell(20)]},
+    {go:'explan',cells:['KHSX-0072','Giấy Medium 125gsm','Cty Hưng Thịnh Phát','120 tấn','Ø 110 cm','2 lớp','3.800','—','Giao đợt 1 trước 29/07',pill('info','PM4'),'29/07/2026','Chờ nguyên liệu OCC về',progCell(62)]},
+    {go:'explan',cells:['KHSX-0070','Testliner 125gsm','Cty CP Minh Khang','80 tấn','Ø 115 cm','3 lớp','4.100','Cobb ≤ 35','—',pill('info','PM6'),'26/07/2026','Đúng tiến độ',progCell(90)]},
+    {go:'explan',cells:['KHSX-0068','White Top (WTN) 140gsm','Macrolite (Philippines)','50 tấn','Ø 120 cm','3 lớp','4.200','Có','Màng co chống ẩm',pill('info','PM5'),'02/08/2026','Mới lên kế hoạch',progCell(10)]}]})}</div>`;
 S.explan = ()=> appnav('Bán hàng xuất khẩu','Kế hoạch SX',TAB_EX,'Kế hoạch SX')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="explan_list">Kế hoạch sản xuất</span> &rsaquo;',ico:'🏭',color:'#1b96ff',title:'KHSX-0074 · Kraft Liner → Reliance Paper (Ấn Độ)',sub:'Kế hoạch sản xuất đơn xuất khẩu',
@@ -2583,8 +2583,8 @@ S.so = ()=> appnav('Bán hàng nội địa','SO',TAB_SALES,'SO')
        `<div class="tbl-wrap"><table class="tbl">
           <thead><tr><th>Số Case</th><th>Loại</th><th>Trạng thái</th><th>Ngày tạo</th></tr></thead>
           <tbody>${poCasesRows()}</tbody></table></div>`,{n:String(POCASES.length)})}
-     ${card('Kế hoạch sản xuất', tbl([{t:'Mã KHSX'},{t:'Sản phẩm'},{t:'Máy SX'},{t:'Ngày giao dự kiến'},{t:'Tiến độ %'}],[
-       ['<a data-go="explan">KHSX-0072</a>','Giấy Medium 125gsm',pill('info','PM4'),'29/07/2026',progCell(62)]]),{n:'1',r:'<button class="btn sm" onclick="go(\'explan\')">Mở kế hoạch SX</button>'})}
+     ${card('Kế hoạch sản xuất', tbl([{t:'Mã KHSX'},{t:'Sản phẩm'},{t:'Máy SX'},{t:'Ngày giao dự kiến'},{t:'Lý do'},{t:'Tiến độ %'}],[
+       ['<a data-go="explan">KHSX-0072</a>','Giấy Medium 125gsm',pill('info','PM4'),'29/07/2026','Chờ nguyên liệu OCC về',progCell(62)]]),{n:'1',r:'<button class="btn sm" onclick="go(\'explan\')">Mở kế hoạch SX</button>'})}
      </div>
      ${activity([['🔄','ERP Rosy đồng bộ SO','Tự động · Hôm nay'],['✅','P.Kế hoạch lên SO từ PO-2619','14/07/2026'],['📥','Kho xuất 74 tấn','Kho · Hôm nay']])}
    </div>
@@ -2655,8 +2655,8 @@ S.exso = ()=> appnav('Bán hàng xuất khẩu','SO',TAB_EX,'SO')
             <tr><td>Testliner</td><td>Testliner</td><td>125 gsm</td><td>1.600 mm</td><td class="num">18 cuộn</td><td class="num">$470/tấn</td><td>${machineCell('PM4')}</td></tr>
             <tr><td>Medium</td><td>Medium</td><td>110 gsm</td><td>1.400 mm</td><td class="num">14 cuộn</td><td class="num">$455/tấn</td><td>${machineCell('PM5')}</td></tr>
           </tbody></table></div>`,{n:'3'})}
-     ${card('Kế hoạch sản xuất', tbl([{t:'Mã KHSX'},{t:'Sản phẩm'},{t:'Máy SX'},{t:'Ngày giao dự kiến'},{t:'Tiến độ %'}],[
-       ['<a data-go="explan">KHSX-0074</a>','Kraft Liner 150gsm',pill('info','PM5'),'05/08/2026',progCell(20)]]),{n:'1'})}
+     ${card('Kế hoạch sản xuất', tbl([{t:'Mã KHSX'},{t:'Sản phẩm'},{t:'Máy SX'},{t:'Ngày giao dự kiến'},{t:'Lý do'},{t:'Tiến độ %'}],[
+       ['<a data-go="explan">KHSX-0074</a>','Kraft Liner 150gsm',pill('info','PM5'),'05/08/2026','Chờ xác nhận công suất Máy xeo 2',progCell(20)]]),{n:'1'})}
      ${card('Shipment', tbl([{t:'Số lô / Booking'},{t:'Hãng tàu'},{t:'Invoice'},{t:'ETD'},{t:'ETA'},{t:'Trạng thái'},{t:'Ngày đóng hàng'},{t:'Số tàu'},{t:'Chuyến đi'},{t:'Cảng đi'},{t:'Cảng đến'}],[
        ['<a data-go="shipment_xk">SHP-XK-0067</a>','ONE','INV-XK-0142','28/07/2026','10/08/2026',pill('info','Đang trên biển'),'26/07/2026','ONE OLYMPUS','V.023W','Cát Lái','Nhava Sheva'],
        ['<a data-go="shipment_xk">SHP-XK-0069</a>','Maersk','INV-XK-0143','—','—',pill('mut','Chờ booking'),'—','—','—','Cát Lái','Nhava Sheva']]),{n:'2'})}
