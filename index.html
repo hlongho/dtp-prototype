@@ -1444,12 +1444,12 @@ function progCell(p){ return `<div style="display:flex;align-items:center;gap:6p
 function uploadExcelPlan(){ toast('Đã import kế hoạch sản xuất từ file Excel (demo) — cập nhật danh sách'); }
 S.explan_list = ()=> appnav('Bán hàng xuất khẩu','Kế hoạch SX',TAB_EX,'Kế hoạch SX')
  + `<div class="sf-body">${lv({crumb:'Kế hoạch sản xuất',ico:'🏭',color:'#1b96ff',object:'Kế hoạch sản xuất (Production Plan)',view:'Đang sản xuất',views:['Đang sản xuất','Kế hoạch tuần này','Theo máy xeo','Sắp đến hạn giao','Tất cả'],count:'12',newLabel:'Kế hoạch mới',head:[{label:'⤴ Upload Excel',fn:'uploadExcelPlan()'}],
-   cols:[{t:'Mã Đơn hàng'},{t:'Tên Sản phẩm'},{t:'Khách hàng'},{t:'Số lượng',num:true},{t:'Máy Sản xuất'},{t:'Ngày giao dự kiến'},{t:'Tiến độ %'}],
+   cols:[{t:'Mã Đơn hàng'},{t:'Tên Sản phẩm'},{t:'Khách hàng'},{t:'Số lượng',num:true},{t:'Đường kính'},{t:'Số lớp'},{t:'Số mét tới (m)',num:true},{t:'Chống thấm'},{t:'Yêu cầu khác'},{t:'Máy Sản xuất'},{t:'Ngày giao dự kiến'},{t:'Tiến độ %'}],
    rows:[
-    {go:'explan',cells:['KHSX-0074','Kraft Liner 150gsm','Reliance Paper (Ấn Độ)','40 cuộn',pill('info','PM5'),'05/08/2026',progCell(20)]},
-    {go:'explan',cells:['KHSX-0072','Giấy Medium 125gsm','Cty Hưng Thịnh Phát','120 tấn',pill('info','PM4'),'29/07/2026',progCell(62)]},
-    {go:'explan',cells:['KHSX-0070','Testliner 125gsm','Cty CP Minh Khang','80 tấn',pill('info','PM6'),'26/07/2026',progCell(90)]},
-    {go:'explan',cells:['KHSX-0068','White Top (WTN) 140gsm','Macrolite (Philippines)','50 tấn',pill('info','PM5'),'02/08/2026',progCell(10)]}]})}</div>`;
+    {go:'explan',cells:['KHSX-0074','Kraft Liner 150gsm','Reliance Paper (Ấn Độ)','40 cuộn','Ø 120 cm','3 lớp','4.500','Cobb ≤ 30','Kèm COA từng lô',pill('info','PM5'),'05/08/2026',progCell(20)]},
+    {go:'explan',cells:['KHSX-0072','Giấy Medium 125gsm','Cty Hưng Thịnh Phát','120 tấn','Ø 110 cm','2 lớp','3.800','—','Giao đợt 1 trước 29/07',pill('info','PM4'),'29/07/2026',progCell(62)]},
+    {go:'explan',cells:['KHSX-0070','Testliner 125gsm','Cty CP Minh Khang','80 tấn','Ø 115 cm','3 lớp','4.100','Cobb ≤ 35','—',pill('info','PM6'),'26/07/2026',progCell(90)]},
+    {go:'explan',cells:['KHSX-0068','White Top (WTN) 140gsm','Macrolite (Philippines)','50 tấn','Ø 120 cm','3 lớp','4.200','Có','Màng co chống ẩm',pill('info','PM5'),'02/08/2026',progCell(10)]}]})}</div>`;
 S.explan = ()=> appnav('Bán hàng xuất khẩu','Kế hoạch SX',TAB_EX,'Kế hoạch SX')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="explan_list">Kế hoạch sản xuất</span> &rsaquo;',ico:'🏭',color:'#1b96ff',title:'KHSX-0074 · Kraft Liner → Reliance Paper (Ấn Độ)',sub:'Kế hoạch sản xuất đơn xuất khẩu',
@@ -1465,11 +1465,16 @@ S.explan = ()=> appnav('Bán hàng xuất khẩu','Kế hoạch SX',TAB_EX,'Kế
        ['Loại giấy / Sản phẩm','Kraft Liner'],
        ['Định lượng','150 gsm'],
        ['Khổ giấy / Quy cách','1.600 mm (cuộn)'],
+       ['Đường kính (cuộn)','Ø 120 cm · Core 3"'],
+       ['Số lớp','3 lớp'],
+       ['Số mét tới (m)','4.500 m'],
+       ['Chống thấm','Có · Cobb ≤ 30 g/m²'],
        ['Số lượng','40 cuộn'],
        ['Trọng lượng dự kiến (kg)','66.000 kg'],
        ['Ngày nhận đơn hàng','12/07/2026'],
        ['Ngày giao hàng dự kiến','05/08/2026'],
-       ['Ghi chú / Yêu cầu kỹ thuật','Độ bục ≥ 4.2 kgf/cm² · đóng gói chống ẩm xuất khẩu']]))}
+       ['Ghi chú / Yêu cầu kỹ thuật','Độ bục ≥ 4.2 kgf/cm² · đóng gói chống ẩm xuất khẩu'],
+       ['Yêu cầu khác','Kèm COA từng lô · pallet gỗ hun trùng']]))}
      </div>
      ${activity([['🏭','Tạo kế hoạch sản xuất đơn XK','Kế hoạch · Hôm nay'],['📋','Task: Xác nhận công suất Máy xeo 2','Được giao P.SX · Cần xử lý']])}
    </div>
