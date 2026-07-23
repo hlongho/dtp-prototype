@@ -2652,9 +2652,9 @@ S.exso = ()=> appnav('Bán hàng xuất khẩu','SO',TAB_EX,'SO')
           </tbody></table></div>`,{n:'3'})}
      ${card('Kế hoạch sản xuất', tbl([{t:'Mã KHSX'},{t:'Sản phẩm'},{t:'Máy SX'},{t:'Ngày giao dự kiến'},{t:'Tiến độ %'}],[
        ['<a data-go="explan">KHSX-0074</a>','Kraft Liner 150gsm',pill('info','PM5'),'05/08/2026',progCell(20)]]),{n:'1'})}
-     ${card('Shipment', tbl([{t:'Số lô / Booking'},{t:'Hãng tàu'},{t:'Invoice'},{t:'ETD'},{t:'ETA'},{t:'Trạng thái'}],[
-       ['<a data-go="shipment_xk">SHP-XK-0067</a>','ONE','INV-XK-0142','28/07/2026','10/08/2026',pill('info','Đang trên biển')],
-       ['<a data-go="shipment_xk">SHP-XK-0069</a>','Maersk','INV-XK-0143','—','—',pill('mut','Chờ booking')]]),{n:'2'})}
+     ${card('Shipment', tbl([{t:'Số lô / Booking'},{t:'Hãng tàu'},{t:'Invoice'},{t:'ETD'},{t:'ETA'},{t:'Trạng thái'},{t:'Ngày đóng hàng'},{t:'Số tàu'},{t:'Chuyến đi'},{t:'Cảng đi'},{t:'Cảng đến'}],[
+       ['<a data-go="shipment_xk">SHP-XK-0067</a>','ONE','INV-XK-0142','28/07/2026','10/08/2026',pill('info','Đang trên biển'),'26/07/2026','ONE OLYMPUS','V.023W','Cát Lái','Nhava Sheva'],
+       ['<a data-go="shipment_xk">SHP-XK-0069</a>','Maersk','INV-XK-0143','—','—',pill('mut','Chờ booking'),'—','—','—','Cát Lái','Nhava Sheva']]),{n:'2'})}
      ${card('Phiếu xuất kho', tbl([{t:'Mã Phiếu xuất kho'},{t:'Ngày xuất kho'},{t:'Số Container'},{t:'Net Weight (kg)',num:true},{t:'Trạng thái'}],[
        ['<a data-go="issuenote">PXK-XK-0231</a>','26/07/2026 10:20','TCLU1234567','22.450',pill('info','Đã xuất kho')],
        ['<a data-go="issuenote">PXK-XK-0232</a>','26/07/2026 14:05','TCLU1234568','24.010',pill('info','Đã xuất kho')]]),{n:'2',r:'<button class="btn sm" onclick="go(\'issuenote\')">Mở phiếu</button>'})}
