@@ -275,6 +275,16 @@ a:hover{text-decoration:underline}
 .po-merge-prev .po-line{color:var(--ink)}
 .fee-inc{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:10px;font-size:12.5px}
 .fee-inc-t{font-weight:700;margin-bottom:4px;color:var(--ink)}
+.fr-filters{display:flex;gap:14px;flex-wrap:wrap;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-bottom:10px}
+.fr-f{display:flex;flex-direction:column;gap:3px}
+.fr-f label{font-size:11px;color:var(--txt-mut);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.fr-f select{padding:5px 8px;border:1px solid var(--line-2);border-radius:5px;background:var(--card);font-size:13px;min-width:200px}
+.fr-drill-grid{display:block}
+.fr-drill-grid>div{margin-bottom:10px}
+table.tbl.sm td,table.tbl.sm th{padding:5px 8px;font-size:12px}
+table.tbl.sm{width:100%}
+table.tbl.sm td:first-child{white-space:normal}
+table.tbl.sm td.num{white-space:nowrap;text-align:right}
 .so-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:10px;align-items:start}
 @media(max-width:1000px){.so-layout{grid-template-columns:1fr}}
 .cols-rec.wide{grid-template-columns:minmax(0,1fr) 340px}
@@ -607,6 +617,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     <div class="pm-head"><h3 id="slip-title">Chi tiết phiếu</h3><button title="Đóng" onclick="closeSlipModal()">✕</button></div>
     <div class="pm-body" id="slip-body"></div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeSlipModal()">Đóng</button><button class="btn pri">In phiếu</button></div></div>
+  </div>
+  <!-- Modal drill-down biến động cước Logistics -->
+  <div class="modal-back" id="frback" onclick="closeFrDrill()" style="z-index:135"></div>
+  <div class="po-modal" id="frmodal" style="z-index:140;width:min(900px,95vw)">
+    <div class="pm-head"><h3 id="fr-title">Chi tiết cước</h3><button title="Đóng" onclick="closeFrDrill()">✕</button></div>
+    <div class="pm-body" id="fr-body"></div>
+    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeFrDrill()">Đóng</button><button class="btn pri">Xuất Excel đối soát</button></div></div>
   </div>
   <!-- Modal chi tiết đợt đánh giá NCC -->
   <div class="modal-back" id="evalback" onclick="closeEvalModal()" style="z-index:135"></div>
@@ -1065,6 +1082,7 @@ const NAV = [
    ['shipment_xk','↳ Shipment (Bán hàng XK)','Logistics','record'],
    ['issuenote_list','Phiếu xuất kho','Logistics','list'],
    ['issuenote','↳ Chi tiết Phiếu xuất kho','','record'],
+   ['freight','Biến động cước Logistics','Logistics/BGĐ','list'],
    ['lc','↳ Theo dõi L/C & T/T','Kế toán','record']]},
  {g:'Mua hàng nội địa', items:[
    ['pr_list','Phiếu yêu cầu (PR)','Mua hàng','list'],
@@ -1363,7 +1381,7 @@ S.excase = ()=> appnav('Bán hàng nội địa','Case',['Trang chủ','Cơ hộ
    </div>
  </div>`;
 
-S.exquote = ()=> appnav('Bán hàng xuất khẩu','Báo giá XK',['Trang chủ','Báo giá XK','PO','Sales Contract','SO','Phiếu xuất kho','Kế hoạch SX','Chứng từ','Thanh toán'],'Báo giá XK')
+S.exquote = ()=> appnav('Bán hàng xuất khẩu','Báo giá XK',['Trang chủ','Báo giá XK','PO','Sales Contract','SO','Phiếu xuất kho','Kế hoạch SX','Chứng từ','Thanh toán','Cước Logistics'],'Báo giá XK')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="exquote_list">Báo giá xuất khẩu</span> &rsaquo;',ico:'🚢',color:'#1b96ff',title:'QXK-0182 · White Top (WTN) → Macrolite (Philippines)',sub:'USD/MT · POL Cát Lái → POD Cagayan De Oro',
      fields:[['Giá CFR','$680–690/MT'],['Trạng thái',pill('info','Nháp')],['Cảng đến (POD)','Cagayan De Oro'],['Hiệu lực','25/07/2026']],
@@ -1386,7 +1404,7 @@ S.exquote = ()=> appnav('Bán hàng xuất khẩu','Báo giá XK',['Trang chủ'
    </div>
  </div>`;
 
-S.excontract = ()=> appnav('Bán hàng xuất khẩu','Sales Contract',['Trang chủ','Báo giá XK','PO','Sales Contract','SO','Phiếu xuất kho','Kế hoạch SX','Chứng từ','Thanh toán'],'Sales Contract')
+S.excontract = ()=> appnav('Bán hàng xuất khẩu','Sales Contract',['Trang chủ','Báo giá XK','PO','Sales Contract','SO','Phiếu xuất kho','Kế hoạch SX','Chứng từ','Thanh toán','Cước Logistics'],'Sales Contract')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="excontract_list">Sales Contract (XK)</span> &rsaquo;',ico:'📑',color:'#1b96ff',title:'TI2619 · Kraft Liner → Ấn Độ',sub:'Từ PO khách · 3x40HC · $495/tấn CIF',
      fields:[['Trị giá','$148.500'],['Trạng thái',pill('info','Đang thực hiện')],['Payment','L/C at sight'],['Invoice','TI2619-01']],
@@ -1458,7 +1476,7 @@ S.explan = ()=> appnav('Bán hàng xuất khẩu','Kế hoạch SX',TAB_EX,'Kế
    </div>
  </div>`;
 
-S.lc = ()=> appnav('Bán hàng xuất khẩu','Thanh toán',['Trang chủ','Báo giá XK','PO','Sales Contract','SO','Phiếu xuất kho','Kế hoạch SX','Chứng từ','Thanh toán'],'Thanh toán')
+S.lc = ()=> appnav('Bán hàng xuất khẩu','Thanh toán',['Trang chủ','Báo giá XK','PO','Sales Contract','SO','Phiếu xuất kho','Kế hoạch SX','Chứng từ','Thanh toán','Cước Logistics'],'Thanh toán')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="excontract_list">Thanh toán · L/C</span> &rsaquo;',ico:'🏦',color:'#0b827c',title:'L/C TI2619 · ABC Papers',sub:'L/C at sight · Ngân hàng HDFC',
      fields:[['Trị giá','$148.500'],['LSD (giao trễ nhất)','25/07/2026'],['Expiry Date','10/08/2026'],['Trạng thái',pill('warn','Sắp đến LSD')]],
@@ -2180,6 +2198,158 @@ S.case = ()=> appnav('Chăm sóc KH','Case',['Trang chủ','Case','Khách hàng'
    </div>
  </div>`;
 
+/* ===== Biến động cước Logistics (Freight Variance) ===== */
+const FR_MONTHS=['T1','T2','T3','T4','T5','T6','T7'];
+const FR_LOCKED=6;          // T1..T6 đã khóa dữ liệu (sau ngày 10/07); T7 đang mở (tạm tính)
+const FR_FX=25000;          // tỷ giá quy đổi VND -> USD (demo)
+const FR_COLORS=['#1b96ff','#2e844a','#e5a000','#ba0517','#9050e9'];
+// ref = cước tham chiếu trên Sales Contract (USD/cont); m = cước thực tế TB theo tháng
+const FREIGHT_ROUTES=[
+  {pod:'Cát Lái → Cagayan De Oro (Philippines)', ref:640, carriers:[
+    {name:'Evergreen', m:[400,410,430,600,850,900,430]},
+    {name:'ONE',       m:[410,418,442,620,860,905,448]} ]},
+  {pod:'Cát Lái → Bangkok (Thái Lan)', ref:300, carriers:[
+    {name:'JAS',       m:[200,220,260,380,450,500,210]},
+    {name:'Maersk',    m:[210,212,255,400,480,490,230]} ]},
+  {pod:'Cát Lái → Nhava Sheva (Ấn Độ)', ref:600, carriers:[
+    {name:'Maersk',    m:[520,530,560,720,980,1020,560]},
+    {name:'Cosco',     m:[510,525,555,700,960,1000,545]} ]},
+];
+let FR_ROUTE=0;
+function frChartSVG(ri){
+  const r=FREIGHT_ROUTES[ri];
+  const W=680,H=240,pl=48,pb=28,pt=14,pr=14;
+  const all=r.carriers.flatMap(c=>c.m); const max=Math.max(...all), min=Math.min(...all);
+  const rng=(max-min)||1;
+  const X=i=> pl+(W-pl-pr)*(i/(FR_MONTHS.length-1));
+  const Y=v=> pt+(H-pt-pb)*(1-(v-min)/rng);
+  let grid='';
+  for(let g=0;g<=4;g++){ const val=min+rng*g/4, yy=Y(val);
+    grid+=`<line x1="${pl}" y1="${yy}" x2="${W-pr}" y2="${yy}" stroke="var(--line)" stroke-width="1"/>`
+        + `<text x="${pl-6}" y="${yy+3}" text-anchor="end" font-size="10" fill="var(--txt-mut)">$${Math.round(val)}</text>`; }
+  let xlab=''; FR_MONTHS.forEach((m,i)=> xlab+=`<text x="${X(i)}" y="${H-8}" text-anchor="middle" font-size="10" fill="var(--txt-mut)">${m}</text>`);
+  // vùng chưa khóa (T7)
+  const lockX=X(FR_LOCKED-1);
+  const shade=`<rect x="${lockX}" y="${pt}" width="${(W-pr)-lockX}" height="${H-pt-pb}" fill="var(--warn)" opacity="0.06"/>`;
+  let lines='';
+  r.carriers.forEach((c,ci)=>{
+    const col=FR_COLORS[ci%FR_COLORS.length];
+    const pts=c.m.map((v,i)=>`${X(i)},${Y(v)}`).join(' ');
+    lines+=`<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2.2"/>`;
+    c.m.forEach((v,i)=> lines+=`<circle cx="${X(i)}" cy="${Y(v)}" r="3.2" fill="${col}"/>`);
+  });
+  const legend=r.carriers.map((c,ci)=>`<span><i style="background:${FR_COLORS[ci%FR_COLORS.length]}"></i>${c.name}</span>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">${shade}${grid}${xlab}${lines}</svg>`
+       + `<div class="legend">${legend}<span style="color:var(--warn)"><i style="background:var(--warn);opacity:.4"></i>T7 · tạm tính (chưa khóa)</span></div>`;
+}
+function frSelectRoute(v){ FR_ROUTE=+v;
+  const c=document.getElementById('fr-chart'); if(c) c.innerHTML=frChartSVG(FR_ROUTE);
+  const t=document.getElementById('fr-chart-sub'); if(t) t.textContent=FREIGHT_ROUTES[FR_ROUTE].pod;
+}
+function frCell(ri,ci,mi,v){
+  const locked=mi<FR_LOCKED;
+  const ref=FREIGHT_ROUTES[ri].ref; const over=v>ref*1.05;
+  const cls=(over&&locked)?'style="color:var(--err);font-weight:700;cursor:pointer"':'style="cursor:pointer"';
+  return `<td class="num" ${cls} onclick="openFrDrill(${ri},${ci},${mi})">$${v}${(over&&locked)?' ⚠':''}${!locked?'<span class="wf-muted" style="font-size:10px"> (tạm)</span>':''}</td>`;
+}
+function frMatrixRows(){
+  let h='';
+  FREIGHT_ROUTES.forEach((r,ri)=>{
+    r.carriers.forEach((c,ci)=>{
+      h+='<tr>';
+      if(ci===0) h+=`<td rowspan="${r.carriers.length}"><b>${r.pod}</b><div class="wf-muted" style="font-size:11px">Ref SC: $${r.ref}/cont</div></td>`;
+      h+=`<td>${c.name}</td>`;
+      c.m.forEach((v,mi)=> h+=frCell(ri,ci,mi,v));
+      h+='</tr>';
+    });
+  });
+  return h;
+}
+function openFrDrill(ri,ci,mi){
+  const r=FREIGHT_ROUTES[ri], c=r.carriers[ci], v=c.m[mi], mon=FR_MONTHS[mi];
+  const ref=r.ref, pct=Math.round((v-ref)/ref*100), over=v>ref*1.05 && mi<FR_LOCKED;
+  // Local charges VND/cont (theo bảng quotation thực tế)
+  const trucking=4200000, hacont=900000, dvhq=1500000, co=800000;
+  const vndTotal=trucking+hacont+dvhq+co; const vndUsd=(vndTotal/FR_FX);
+  const outDoc=30, telex=35, seal=12; const usdLocal=outDoc+telex+seal;
+  const totalUsd=v+usdLocal+vndUsd;
+  const money=n=>n.toLocaleString('vi-VN')+' ₫';
+  document.getElementById('fr-title').innerHTML=`Đối soát cước · ${r.pod} · <b>${c.name}</b> · ${mon}/2026`;
+  document.getElementById('fr-body').innerHTML=`
+    ${over?`<div class="po-merge-warn"><b>⚠ Vượt cước tham chiếu SC ${pct}%</b> (thực tế $${v} vs SC $${ref}). Đã kích hoạt luồng trình duyệt ngoại lệ cho BGĐ (sếp Sơn) xem xét bù lỗ / đàm phán lại.</div>`:''}
+    <div class="fr-drill-grid">
+      <div>
+        <div class="fee-inc-t">① Chi phí nội địa đầu VN (VND/cont)</div>
+        <table class="tbl sm"><tbody>
+          <tr><td>TRUCKING (Bình Dương → HCM Port)</td><td class="num">${money(trucking)}</td></tr>
+          <tr><td>HẠ CONT</td><td class="num">${money(hacont)}</td></tr>
+          <tr><td>DVHQ (dịch vụ hải quan)</td><td class="num">${money(dvhq)}</td></tr>
+          <tr><td>Chi phí C/O (lô hàng)</td><td class="num">${money(co)}</td></tr>
+          <tr><td><b>TỔNG (1) — VND/cont</b></td><td class="num"><b>${money(vndTotal)}</b></td></tr>
+          <tr><td><b>TỔNG (1') — USD/cont</b></td><td class="num"><b>$${vndUsd.toFixed(0)}</b></td></tr>
+        </tbody></table>
+      </div>
+      <div>
+        <div class="fee-inc-t">② Ocean Freight + phụ phí (USD)</div>
+        <table class="tbl sm"><tbody>
+          <tr><td>Ocean Freight (FWD ${c.name})</td><td class="num">$${v}</td></tr>
+          <tr><td>Ocean Surcharges (Note 2)</td><td class="num">inc CIC, LSS</td></tr>
+          <tr><td class="wf-muted" style="font-size:11px;padding-top:2px">— TARIFF VIETNAM (USD) —</td><td class="num"></td></tr>
+          <tr><td>Outbound Documentation Fee (lô hàng)</td><td class="num">$${outDoc}</td></tr>
+          <tr><td>TELEX (lô hàng)</td><td class="num">$${telex}</td></tr>
+          <tr><td>High Security Seal Charge (cont)</td><td class="num">$${seal}</td></tr>
+          <tr><td><b>Tổng chi phí thực tế / cont</b></td><td class="num"><b>$${totalUsd.toFixed(0)}</b></td></tr>
+        </tbody></table>
+      </div>
+    </div>
+    <div class="fee-inc-t" style="margin-top:10px">③ Các chuyến (Shipment/Container) đã đi trong ${mon}/2026</div>
+    <table class="tbl sm"><thead><tr><th>Shipment</th><th>Số Container</th><th>Invoice</th><th>Ngày ETD</th><th class="num">Cước (USD)</th></tr></thead><tbody>
+      <tr><td>SHP-XK-0067</td><td>TCLU1234567</td><td>INV-XK-0142</td><td>0${mi+1}/${mon.replace('T','0')}...</td><td class="num">$${v}</td></tr>
+      <tr><td>SHP-XK-0067</td><td>TCLU1234568</td><td>INV-XK-0142</td><td>—</td><td class="num">$${v}</td></tr>
+      <tr><td>SHP-XK-0069</td><td>TGHU9988776</td><td>INV-XK-0143</td><td>—</td><td class="num">$${v+10}</td></tr>
+    </tbody></table>
+    <p class="po-hint" style="margin-top:8px">Giá trị ô = <b>cước thực tế trung bình</b> (Average Actual Ocean Freight) theo tổng số container đã xuất của hãng trong tháng. ${mi<FR_LOCKED?'Dữ liệu đã khóa (sau ngày 10 hàng tháng).':'Tháng hiện tại — dữ liệu tạm tính, chưa khóa.'}</p>`;
+  document.getElementById('frback').classList.add('show');
+  document.getElementById('frmodal').classList.add('show');
+}
+function closeFrDrill(){ document.getElementById('frback').classList.remove('show'); document.getElementById('frmodal').classList.remove('show'); }
+
+S.freight = ()=> appnav('Bán hàng xuất khẩu','Cước Logistics',TAB_EX,'Cước Logistics')
+ + `<div class="sf-body">
+   ${hl({crumb:'Biến động cước Logistics',ico:'📈',color:'#1b96ff',title:'Biến động cước phí Logistics theo tháng',sub:'Ma trận cước tàu biển + phụ phí · so sánh hãng tàu & tuyến · nguồn: chi phí thực tế các Shipment đã hoàn thành',
+     fields:[['Năm tài chính','2026'],['Kỳ dữ liệu','T1 → T7'],['Khóa dữ liệu','Sau ngày 10 hàng tháng'],['Cập nhật','Hôm nay']],actions:[{t:'Xuất báo cáo',pri:true},'Làm mới']})}
+   <div class="fr-filters">
+     <div class="fr-f"><label>Năm tài chính</label><select><option>2026</option><option>2025</option></select></div>
+     <div class="fr-f"><label>Tuyến (POL → POD)</label><select onchange="frSelectRoute(this.value)">${FREIGHT_ROUTES.map((r,i)=>`<option value="${i}">${r.pod}</option>`).join('')}</select></div>
+     <div class="fr-f"><label>Loại Container</label><select><option>40' HC</option><option>20' DC</option><option>40' DC</option></select></div>
+   </div>
+   ${banner('warn','Cơ chế đối soát: cước thực tế vượt <b>cước tham chiếu trên Sales Contract &gt; 5%</b> → cảnh báo đỏ trên bảng + tự động kích hoạt luồng trình duyệt ngoại lệ cho BGĐ. Bấm vào bất kỳ ô cước để <b>drill-down</b> chi tiết chi phí & danh sách container.')}
+   ${card('① Xu hướng cước theo tháng (Historical Freight Trend)', `<div class="wf-muted" style="font-size:12px;margin-bottom:6px">Tuyến: <b id="fr-chart-sub">${FREIGHT_ROUTES[0].pod}</b> · mỗi đường = 1 hãng tàu/Forwarder</div><div id="fr-chart">${frChartSVG(0)}</div>`)}
+   ${card('② Bảng ma trận biến động cước (Monthly Cost Matrix — USD/cont)',
+     `<div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Tuyến (POD)</th><th>Hãng tàu / Agent</th>${FR_MONTHS.map((m,i)=>`<th class="num">${m}${i>=FR_LOCKED?' 🔓':' 🔒'}</th>`).join('')}</tr></thead>
+        <tbody>${frMatrixRows()}</tbody></table></div>
+      <div class="po-hint">🔒 = tháng đã khóa dữ liệu · 🔓 T7 = tháng hiện tại (tạm tính) · <span style="color:var(--err)">số đỏ ⚠</span> = vượt Ref SC &gt;5%</div>`)}
+   <div class="cols">
+     ${card('③ Đối soát cước thực tế vs Sales Contract (tháng gần nhất đã khóa — T6)',
+       tbl([{t:'Tuyến'},{t:'Hãng'},{t:'Ref SC',num:true},{t:'Thực tế T6',num:true},{t:'Chênh lệch',num:true},{t:'Trạng thái'}],
+       FREIGHT_ROUTES.flatMap(r=>r.carriers.map(c=>{
+         const v=c.m[FR_LOCKED-1], pct=Math.round((v-r.ref)/r.ref*100), over=v>r.ref*1.05;
+         return [r.pod.replace('Cát Lái → ',''),c.name,'$'+r.ref,'$'+v,(pct>0?'+':'')+pct+'%', over?pill('err','Vượt >5% · trình BGĐ'):pill('ok','Trong ngưỡng')];
+       }))))}
+     ${card('④ Phụ phí nội địa (Local Charges — theo dõi bằng VND)', banner('info','Ngoài cước biển (Ocean Freight), hệ thống theo dõi cả phụ phí nội địa đầu VN: <b>Trucking, Hạ cont, DVHQ, C/O, THC, CIC, LSS, Outbound Doc, TELEX, Seal Charge…</b> XNK nhập thực tế bằng VND, hệ thống tự quy đổi và tính <b>tổng chi phí thực tế / container</b> theo tháng làm đầu vào cho Dashboard.')
+       + `<table class="tbl sm"><thead><tr><th>Khoản mục</th><th>Đơn vị</th><th>Tiền tệ</th></tr></thead><tbody>
+          <tr><td>TRUCKING (Bình Dương → HCM Port)</td><td>CONT</td><td>VND</td></tr>
+          <tr><td>HẠ CONT</td><td>CONT</td><td>VND</td></tr>
+          <tr><td>DVHQ (dịch vụ hải quan)</td><td>CONT</td><td>VND</td></tr>
+          <tr><td>Chi phí C/O</td><td>Lô hàng</td><td>VND</td></tr>
+          <tr><td>Ocean Freight + Surcharges (inc CIC, LSS)</td><td>CONT</td><td>USD</td></tr>
+          <tr><td>Outbound Documentation Fee / TELEX</td><td>Lô hàng</td><td>USD</td></tr>
+          <tr><td>High Security Seal Charge</td><td>CONT</td><td>USD</td></tr>
+        </tbody></table>`)}
+   </div>
+ </div>`;
+
 S.reports = ()=> appnav('Báo cáo & Dashboard','',['Trang chủ','Dashboard','Báo cáo','Cảnh báo'],'Dashboard')
  + `<div class="sf-body">
    ${hl({crumb:'Dashboard',ico:'📊',color:'#ba0517',title:'Dashboard Điều hành — Đồng Tiến',sub:'Cập nhật realtime từ CRM + ERP',
@@ -2260,7 +2430,7 @@ function lv({crumb,ico,color,object,view,count,cols,rows,newLabel,views,bulk,hea
   </div></article>`;
 }
 const TAB_SALES=['Trang chủ','Lead','Cơ hội','Báo giá','Sample Request','Opportunity PO','SO','Khách hàng','Case'];
-const TAB_EX=['Trang chủ','Báo giá XK','PO','Sales Contract','SO','Phiếu xuất kho','Kế hoạch SX','Chứng từ','Thanh toán'];
+const TAB_EX=['Trang chủ','Báo giá XK','PO','Sales Contract','SO','Phiếu xuất kho','Kế hoạch SX','Chứng từ','Thanh toán','Cước Logistics'];
 const TAB_PUR=['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'];
 const TAB_IM=['Trang chủ','Kế hoạch NVL','Sales Contract','Shipment'];
 const TAB_MD=['Bảng giá','Hợp đồng','Sản phẩm','Khách hàng','NCC'];
@@ -2758,7 +2928,7 @@ function setupSearch(){
 const TAB2ID={'Trang chủ':'home','Lead':'lead_list','Cơ hội':'opp_list','Báo giá':'quote_list','Sample Request':'sample_list','Opportunity PO':'oppo_list','Đơn hàng':'order_list','Khách hàng':'master',
  'NCC':'vendor_list','Case':'case_list','Báo cáo':'reports','Dashboard':'reports','Cảnh báo':'reports',
  'Bảng giá':'pricebook_list','Hợp đồng':'contract_list','Sản phẩm':'product_list','Báo giá XK':'exquote_list','SO':'exso_list','Phiếu xuất kho':'issuenote_list','Chứng từ':'excontract_list',
- 'Thanh toán':'lc','Phiếu yêu cầu':'pr_list','Đơn mua (PO)':'ppo_list','Kế hoạch NVL':'matinv',
+ 'Thanh toán':'lc','Cước Logistics':'freight','Phiếu yêu cầu':'pr_list','Đơn mua (PO)':'ppo_list','Kế hoạch NVL':'matinv',
  'Shipment':'shipment_list','Knowledge':'case_list','Kế hoạch SX':'explan_list'};
 function resolveTab(app,label){
   if(label==='Sales Contract') return app.includes('nhập khẩu')?'imcontract_list':'excontract_list';
