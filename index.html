@@ -1191,9 +1191,9 @@ S.account = ()=> appnav('Dữ liệu nền tảng','Khách hàng',['Bảng giá'
      <div>
      ${card('Thông tin khách hàng', fg([['Tên','Cty CP Minh Khang'],['Mã số thuế','0312765488'],['Loại','Khách hàng'],
        ['Nhà máy giao dịch','Long An'],['Điều khoản TT','Net 30'],['Người phụ trách','Trần Thị B'],['Điện thoại','028 xxx xxxx'],['Địa chỉ','KCN Long An']]))}
-     ${card('Cơ hội PO', tbl([{t:'Tên Opportunity'},{t:'Giai đoạn'},{t:'Giá trị',num:true},{t:'Đóng dự kiến'}],[
-       ['<a data-go="oppo">Hưng Thịnh — PO Medium Q3</a>',pill('info','Đã duyệt PO & Chờ xử lý'),'1.180.000.000 ₫','30/07/2026'],
-       ['<a data-go="oppo">Minh Khang — PO tháng 8</a>',pill('info','Báo giá'),'2.100.000.000 ₫','12/08/2026']]),{n:'2',r:'<button class="btn sm" onclick="go(\'oppo\')">Opportunity PO mới</button>'})}
+     ${card('Cơ hội PO', tbl([{t:'Tên Opportunity'},{t:'Giai đoạn'},{t:'Sản lượng',num:true},{t:'Giá trị',num:true},{t:'Đóng dự kiến'}],[
+       ['<a data-go="oppo">Hưng Thịnh — PO Medium Q3</a>',pill('info','Đã duyệt PO & Chờ xử lý'),'120 tấn','1.180.000.000 ₫','30/07/2026'],
+       ['<a data-go="oppo">Minh Khang — PO tháng 8</a>',pill('info','Báo giá'),'210 tấn','2.100.000.000 ₫','12/08/2026']]),{n:'2',r:'<button class="btn sm" onclick="go(\'oppo\')">Opportunity PO mới</button>'})}
      ${card('Case', tbl([{t:'Số Case'},{t:'Chủ đề'},{t:'Record Type'},{t:'Trạng thái'}],[
        ['<a data-go="case">CASE-0087</a>','Hàng giấy bị ướt khi giao','Bán hàng trong nước',pill('warn','Thương lượng')],
        ['<a data-go="case">CASE-0091</a>','Sai định lượng lô hàng','Bán hàng trong nước',pill('info','Thương lượng')]]),{n:'2',r:'<button class="btn sm" onclick="createCaseQuick()">Tạo Case</button>'})}
