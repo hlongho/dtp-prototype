@@ -1413,23 +1413,22 @@ S.excontract = ()=> appnav('Bán hàng xuất khẩu','Sales Contract',['Trang c
      <div>
      ${card('Thông tin Sales Contract', fg([
        ['Shipper','Dong Tien Paper JSC'],['Consignee','ABC Papers Pvt Ltd'],['Notify Party','Same as consignee'],
-       ['POL / POD','HCM / Nhava Sheva'],['Số Invoice','TI2619-01 (auto)'],['Incoterm','CIF'],
+       ['Cảng đi (POL)','HCM (Cát Lái)'],['Cảng đến (POD)','Nhava Sheva'],['Số Invoice','TI2619-01 (auto)'],['Incoterm','CIF'],
        ['Dung sai (Allowance / Tolerance)','<input class="mass-sel" style="width:70px" value="10"> % <span class="wf-muted" style="font-size:11px">(xuất dư/thiếu & tự đóng đơn)</span>'],
        ['Shipping Marks','<input class="mass-sel" style="width:100%" value="070622CB">'],
        ['Packing (quy cách đóng gói)','<textarea class="mass-sel" style="width:100%;min-height:56px">MAX PAYLOAD 25 MT/container · Loading standing · Edge Protection</textarea>'],
        ['Điều khoản Payment (T/T)','<textarea class="mass-sel" style="width:100%;min-height:48px">T/T: 30% Cash in advance, 70% within 10 days from B/L date</textarea>'],
        ['Tài khoản ngân hàng thụ hưởng','<select class="mass-sel"><option>VCB · Đồng Tiến Long An</option><option>MB Bank · Đồng Tiến Bình Dương</option><option>VCB · Mizu Paper</option></select>'],
-       ['Account No','0111000123456'],['SWIFT','BFTVVNVX'],['Beneficiary','DONG TIEN - LONG AN PAPER JSC'],
-       ['Insurance','<input class="mass-sel" style="width:100%" value="Covering clause A for 110% invoice value">']]))}
+       ['Account No','0111000123456'],['SWIFT','BFTVVNVX'],['Beneficiary','DONG TIEN - LONG AN PAPER JSC']]))}
      ${card('PO xuất khẩu', tbl([{t:'Tên PO'},{t:'Khách hàng'},{t:'Mã PO khách'},{t:'Cảng đến (POD)'},{t:'Giá trị',num:true},{t:'Giai đoạn'}],[
        ['<a data-go="exoppo">Macrolite — PO White Top Q3</a>','Macrolite (Philippines)','MCL-PO-2026-0442','Cagayan De Oro','$148.500',pill('info','Đã duyệt PO & Chờ xử lý')]]),{n:'1',r:'<button class="btn sm" onclick="go(\'exoppo\')">Mở PO</button>'})}
      ${card('Chi tiết sản phẩm (Grade / PO / Weight)',
        `<div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Grade / Type</th><th>Reel diameter & Core</th><th>RW (khổ)</th><th>PO No</th><th class="num">Weight (MT)</th><th class="num">Unit Price</th></tr></thead>
+          <thead><tr><th>Grade / Type</th><th>Reel diameter & Core</th><th>RW (khổ)</th><th>PO No</th><th class="num">Weight (MT)</th><th class="num">Unit Price</th><th>Điều khoản giao hàng</th><th>Remark</th><th>Yêu cầu khác</th></tr></thead>
           <tbody>
-            <tr><td>WHITE TOP TEST LINER 135 gsm</td><td>Reel Ø 115 cm · Core 3"</td><td>180 cm</td><td>PO 01</td><td class="num">50</td><td class="num">$685/MT</td></tr>
-            <tr><td>WHITE TOP TEST LINER 140 gsm</td><td>Reel Ø 115 cm · Core 3"</td><td>175 cm</td><td>PO 01</td><td class="num">30</td><td class="num">$685/MT</td></tr>
-            <tr><td>TEST LINER (KA) 150 gsm</td><td>Reel Ø 110 cm · Core 3"</td><td>180 cm</td><td>PO 02</td><td class="num">40</td><td class="num">$620/MT</td></tr>
+            <tr><td>WHITE TOP TEST LINER 135 gsm</td><td>Reel Ø 115 cm · Core 3"</td><td>180 cm</td><td>PO 01</td><td class="num">50</td><td class="num">$685/MT</td><td>CIF Nhava Sheva · include</td><td>Ưu tiên giao đợt 1</td><td>Kèm COA từng lô</td></tr>
+            <tr><td>WHITE TOP TEST LINER 140 gsm</td><td>Reel Ø 115 cm · Core 3"</td><td>175 cm</td><td>PO 01</td><td class="num">30</td><td class="num">$685/MT</td><td>CIF Nhava Sheva · include</td><td>—</td><td>Đóng pallet gỗ</td></tr>
+            <tr><td>TEST LINER (KA) 150 gsm</td><td>Reel Ø 110 cm · Core 3"</td><td>180 cm</td><td>PO 02</td><td class="num">40</td><td class="num">$620/MT</td><td>CIF Nhava Sheva · include</td><td>Giao sau</td><td>Màng co chống ẩm</td></tr>
           </tbody></table></div>`,{n:'3'})}
      ${card('Luồng sinh chứng từ', tbl([{t:'#'},{t:'Chứng từ'},{t:'Nguồn dữ liệu'},{t:'Trạng thái'}],[
        ['1','Shipping Instruction (SI)','Contract + PL',pill('ok','Đã tạo')],
@@ -2319,9 +2318,9 @@ S.freight = ()=> appnav('Bán hàng xuất khẩu','Cước Logistics',TAB_EX,'C
    ${hl({crumb:'Biến động cước Logistics',ico:'📈',color:'#1b96ff',title:'Biến động cước phí Logistics theo tháng',sub:'Ma trận cước tàu biển + phụ phí · so sánh hãng tàu & tuyến · nguồn: chi phí thực tế các Shipment đã hoàn thành',
      fields:[['Năm tài chính','2026'],['Kỳ dữ liệu','T1 → T7'],['Khóa dữ liệu','Sau ngày 10 hàng tháng'],['Cập nhật','Hôm nay']],actions:[{t:'Xuất báo cáo',pri:true},'Làm mới']})}
    <div class="fr-filters">
-     <div class="fr-f"><label>Năm tài chính</label><select><option>2026</option><option>2025</option></select></div>
+     <div class="fr-f"><label>Từ năm</label><select><option>2024</option><option>2025</option><option selected>2026</option></select></div>
+     <div class="fr-f"><label>Đến năm</label><select><option>2025</option><option selected>2026</option><option>2027</option></select></div>
      <div class="fr-f"><label>Tuyến (POL → POD)</label><select onchange="frSelectRoute(this.value)">${FREIGHT_ROUTES.map((r,i)=>`<option value="${i}">${r.pod}</option>`).join('')}</select></div>
-     <div class="fr-f"><label>Loại Container</label><select><option>40' HC</option><option>20' DC</option><option>40' DC</option></select></div>
    </div>
    ${banner('warn','Cơ chế đối soát: cước thực tế vượt <b>cước tham chiếu trên Sales Contract &gt; 5%</b> → cảnh báo đỏ trên bảng + tự động kích hoạt luồng trình duyệt ngoại lệ cho BGĐ. Bấm vào bất kỳ ô cước để <b>drill-down</b> chi tiết chi phí & danh sách container.')}
    ${card('① Xu hướng cước theo tháng (Historical Freight Trend)', `<div class="wf-muted" style="font-size:12px;margin-bottom:6px">Tuyến: <b id="fr-chart-sub">${FREIGHT_ROUTES[0].pod}</b> · mỗi đường = 1 hãng tàu/Forwarder</div><div id="fr-chart">${frChartSVG(0)}</div>`)}
@@ -2759,12 +2758,13 @@ S.issuenote = ()=> appnav('Bán hàng xuất khẩu','Phiếu xuất kho',TAB_EX
      ])}
      ${card('Chi tiết Sản phẩm & Đo lường (Line Items)',
        `<div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Mã số cuộn (Reel No)</th><th>Sản phẩm</th><th class="num">GSM</th><th>Khổ (mm)</th><th class="num">Net Weight (kg)</th><th class="num">Gross Weight (kg)</th><th>SO liên quan</th></tr></thead>
+          <thead><tr><th>Mã số cuộn (Reel No)</th><th>Sản phẩm</th><th class="num">GSM</th><th>Khổ (mm)</th><th class="num">Net Weight (kg)</th><th class="num">Gross Weight (kg)</th><th>SO liên quan</th><th>Ngày đóng hàng</th><th>Số tàu</th><th>Chuyến đi</th><th>Cảng đi</th><th>Cảng đến</th></tr></thead>
           <tbody>
-            <tr><td>R-24072601</td><td>Kraft Liner</td><td class="num">150</td><td>1.600</td><td class="num">1.245</td><td class="num">1.262</td><td><a data-go="exso">SO-XK-0142</a></td></tr>
-            <tr><td>R-24072602</td><td>Kraft Liner</td><td class="num">150</td><td>1.600</td><td class="num">1.238</td><td class="num">1.255</td><td><a data-go="exso">SO-XK-0142</a></td></tr>
-            <tr><td>R-24072603</td><td>Testliner</td><td class="num">125</td><td>1.600</td><td class="num">1.102</td><td class="num">1.118</td><td><a data-go="exso">SO-XK-0142</a></td></tr>
-            <tr><td>R-24072604</td><td>Medium</td><td class="num">110</td><td>1.400</td><td class="num">986</td><td class="num">1.001</td><td><a data-go="exso">SO-XK-0142</a></td></tr>
+            <tr><td>R-24072601</td><td>Kraft Liner</td><td class="num">150</td><td>1.600</td><td class="num">1.245</td><td class="num">1.262</td><td><a data-go="exso">SO-XK-0142</a></td><td>26/07/2026</td><td>ONE OLYMPUS</td><td>V.023W</td><td>Cát Lái</td><td>Nhava Sheva</td></tr>
+            <tr><td>R-24072602</td><td>Kraft Liner</td><td class="num">150</td><td>1.600</td><td class="num">1.238</td><td class="num">1.255</td><td><a data-go="exso">SO-XK-0142</a></td><td>26/07/2026</td><td>ONE OLYMPUS</td><td>V.023W</td><td>Cát Lái</td><td>Nhava Sheva</td></tr>
+            <tr><td>R-24072603</td><td>Testliner</td><td class="num">125</td><td>1.600</td><td class="num">1.102</td><td class="num">1.118</td><td><a data-go="exso">SO-XK-0142</a></td><td>26/07/2026</td><td>ONE OLYMPUS</td><td>V.023W</td><td>Cát Lái</td><td>Nhava Sheva</td></tr>
+            <tr><td>R-24072604</td><td>Medium</td><td class="num">110</td><td>1.400</td><td class="num">986</td><td class="num">1.001</td><td><a data-go="exso">SO-XK-0142</a></td><td>26/07/2026</td><td>ONE OLYMPUS</td><td>V.023W</td><td>Cát Lái</td><td>Nhava Sheva</td></tr>
+            <tr><td colspan="4"><b>Tổng (cộng số lượng) · 4 cuộn</b></td><td class="num"><b>4.571</b></td><td class="num"><b>4.636</b></td><td colspan="6"></td></tr>
           </tbody></table></div>`,{n:'4'})}
      </div>
      ${activity([['📥','Đồng bộ phiếu xuất từ Rosy','Tự động · Hôm nay'],['⚓','Đẩy Số xe / Số Cont / Seal sang Shipment SHP-XK-0067','Tự động · Hôm nay'],['📋','Task: Đối chiếu cân thực tế với PO khách','Được giao P.XNK · Cần xử lý']])}
