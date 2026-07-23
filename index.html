@@ -2250,35 +2250,34 @@ function frSelectRoute(v){ FR_ROUTE=+v;
   const c=document.getElementById('fr-chart'); if(c) c.innerHTML=frChartSVG(FR_ROUTE);
   const t=document.getElementById('fr-chart-sub'); if(t) t.textContent=FREIGHT_ROUTES[FR_ROUTE].pod;
 }
-function frCell(ri,ci,mi,v){
+function frAvg(ri,mi){ const cs=FREIGHT_ROUTES[ri].carriers; return Math.round(cs.reduce((s,c)=>s+c.m[mi],0)/cs.length); }
+function frCell(ri,mi,v){
   const locked=mi<FR_LOCKED;
   const ref=FREIGHT_ROUTES[ri].ref; const over=v>ref*1.05;
   const cls=(over&&locked)?'style="color:var(--err);font-weight:700;cursor:pointer"':'style="cursor:pointer"';
-  return `<td class="num" ${cls} onclick="openFrDrill(${ri},${ci},${mi})">$${v}${(over&&locked)?' ⚠':''}${!locked?'<span class="wf-muted" style="font-size:10px"> (tạm)</span>':''}</td>`;
+  return `<td class="num" ${cls} onclick="openFrDrill(${ri},${mi})">$${v}${(over&&locked)?' ⚠':''}${!locked?'<span class="wf-muted" style="font-size:10px"> (tạm)</span>':''}</td>`;
 }
 function frMatrixRows(){
   let h='';
   FREIGHT_ROUTES.forEach((r,ri)=>{
-    r.carriers.forEach((c,ci)=>{
-      h+='<tr>';
-      if(ci===0) h+=`<td rowspan="${r.carriers.length}"><b>${r.pod}</b><div class="wf-muted" style="font-size:11px">Ref SC: $${r.ref}/cont</div></td>`;
-      h+=`<td>${c.name}</td>`;
-      c.m.forEach((v,mi)=> h+=frCell(ri,ci,mi,v));
-      h+='</tr>';
-    });
+    h+='<tr>';
+    h+=`<td><b>${r.pod}</b><div class="wf-muted" style="font-size:11px">Ref SC: $${r.ref}/cont</div></td>`;
+    FR_MONTHS.forEach((m,mi)=> h+=frCell(ri,mi,frAvg(ri,mi)));
+    h+='</tr>';
   });
   return h;
 }
-function openFrDrill(ri,ci,mi){
-  const r=FREIGHT_ROUTES[ri], c=r.carriers[ci], v=c.m[mi], mon=FR_MONTHS[mi];
+function openFrDrill(ri,mi){
+  const r=FREIGHT_ROUTES[ri], v=frAvg(ri,mi), mon=FR_MONTHS[mi];
   const ref=r.ref, pct=Math.round((v-ref)/ref*100), over=v>ref*1.05 && mi<FR_LOCKED;
+  const byCarrier=r.carriers.map(c=>`${c.name}: $${c.m[mi]}`).join(' · ');
   // Local charges VND/cont (theo bảng quotation thực tế)
   const trucking=4200000, hacont=900000, dvhq=1500000, co=800000;
   const vndTotal=trucking+hacont+dvhq+co; const vndUsd=(vndTotal/FR_FX);
   const outDoc=30, telex=35, seal=12; const usdLocal=outDoc+telex+seal;
   const totalUsd=v+usdLocal+vndUsd;
   const money=n=>n.toLocaleString('vi-VN')+' ₫';
-  document.getElementById('fr-title').innerHTML=`Đối soát cước · ${r.pod} · <b>${c.name}</b> · ${mon}/2026`;
+  document.getElementById('fr-title').innerHTML=`Đối soát cước · <b>${r.pod}</b> · ${mon}/2026 (TB toàn tuyến)`;
   document.getElementById('fr-body').innerHTML=`
     ${over?`<div class="po-merge-warn"><b>⚠ Vượt cước tham chiếu SC ${pct}%</b> (thực tế $${v} vs SC $${ref}). Đã kích hoạt luồng trình duyệt ngoại lệ cho BGĐ (sếp Sơn) xem xét bù lỗ / đàm phán lại.</div>`:''}
     <div class="fr-drill-grid">
@@ -2296,7 +2295,8 @@ function openFrDrill(ri,ci,mi){
       <div>
         <div class="fee-inc-t">② Ocean Freight + phụ phí (USD)</div>
         <table class="tbl sm"><tbody>
-          <tr><td>Ocean Freight (FWD ${c.name})</td><td class="num">$${v}</td></tr>
+          <tr><td>Ocean Freight (TB toàn tuyến)</td><td class="num">$${v}</td></tr>
+          <tr><td class="wf-muted" style="font-size:11px">Theo hãng: ${byCarrier}</td><td class="num"></td></tr>
           <tr><td>Ocean Surcharges (Note 2)</td><td class="num">inc CIC, LSS</td></tr>
           <tr><td class="wf-muted" style="font-size:11px;padding-top:2px">— TARIFF VIETNAM (USD) —</td><td class="num"></td></tr>
           <tr><td>Outbound Documentation Fee (lô hàng)</td><td class="num">$${outDoc}</td></tr>
@@ -2312,7 +2312,7 @@ function openFrDrill(ri,ci,mi){
       <tr><td>SHP-XK-0067</td><td>TCLU1234568</td><td>INV-XK-0142</td><td>—</td><td class="num">$${v}</td></tr>
       <tr><td>SHP-XK-0069</td><td>TGHU9988776</td><td>INV-XK-0143</td><td>—</td><td class="num">$${v+10}</td></tr>
     </tbody></table>
-    <p class="po-hint" style="margin-top:8px">Giá trị ô = <b>cước thực tế trung bình</b> (Average Actual Ocean Freight) theo tổng số container đã xuất của hãng trong tháng. ${mi<FR_LOCKED?'Dữ liệu đã khóa (sau ngày 10 hàng tháng).':'Tháng hiện tại — dữ liệu tạm tính, chưa khóa.'}</p>`;
+    <p class="po-hint" style="margin-top:8px">Giá trị ô = <b>cước thực tế trung bình toàn tuyến</b> (Average Actual Ocean Freight) theo tổng số container đã xuất trong tháng. ${mi<FR_LOCKED?'Dữ liệu đã khóa (sau ngày 10 hàng tháng).':'Tháng hiện tại — dữ liệu tạm tính, chưa khóa.'}</p>`;
   document.getElementById('frback').classList.add('show');
   document.getElementById('frmodal').classList.add('show');
 }
@@ -2331,15 +2331,15 @@ S.freight = ()=> appnav('Bán hàng xuất khẩu','Cước Logistics',TAB_EX,'C
    ${card('① Xu hướng cước theo tháng (Historical Freight Trend)', `<div class="wf-muted" style="font-size:12px;margin-bottom:6px">Tuyến: <b id="fr-chart-sub">${FREIGHT_ROUTES[0].pod}</b> · mỗi đường = 1 hãng tàu/Forwarder</div><div id="fr-chart">${frChartSVG(0)}</div>`)}
    ${card('② Bảng ma trận biến động cước (Monthly Cost Matrix — USD/cont)',
      `<div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Tuyến (POD)</th><th>Hãng tàu / Agent</th>${FR_MONTHS.map((m,i)=>`<th class="num">${m}${i>=FR_LOCKED?' 🔓':' 🔒'}</th>`).join('')}</tr></thead>
+        <thead><tr><th>Tuyến (POD)</th>${FR_MONTHS.map((m,i)=>`<th class="num">${m}${i>=FR_LOCKED?' 🔓':' 🔒'}</th>`).join('')}</tr></thead>
         <tbody>${frMatrixRows()}</tbody></table></div>
       <div class="po-hint">🔒 = tháng đã khóa dữ liệu · 🔓 T7 = tháng hiện tại (tạm tính) · <span style="color:var(--err)">số đỏ ⚠</span> = vượt Ref SC &gt;5%</div>`)}
    <div class="cols">
      ${card('③ Đối soát cước thực tế vs Sales Contract (tháng gần nhất đã khóa — T6)',
-       tbl([{t:'Tuyến'},{t:'Hãng'},{t:'Ref SC',num:true},{t:'Thực tế T6',num:true},{t:'Chênh lệch',num:true},{t:'Trạng thái'}],
+       tbl([{t:'Tuyến'},{t:'Hãng'},{t:'Ref SC',num:true},{t:'Thực tế T6',num:true},{t:'Chênh lệch',num:true}],
        FREIGHT_ROUTES.flatMap(r=>r.carriers.map(c=>{
-         const v=c.m[FR_LOCKED-1], pct=Math.round((v-r.ref)/r.ref*100), over=v>r.ref*1.05;
-         return [r.pod.replace('Cát Lái → ',''),c.name,'$'+r.ref,'$'+v,(pct>0?'+':'')+pct+'%', over?pill('err','Vượt >5% · trình BGĐ'):pill('ok','Trong ngưỡng')];
+         const v=c.m[FR_LOCKED-1], pct=Math.round((v-r.ref)/r.ref*100);
+         return [r.pod.replace('Cát Lái → ',''),c.name,'$'+r.ref,'$'+v,(pct>0?'+':'')+pct+'%'];
        }))))}
      ${card('④ Phụ phí nội địa (Local Charges — theo dõi bằng VND)', banner('info','Ngoài cước biển (Ocean Freight), hệ thống theo dõi cả phụ phí nội địa đầu VN: <b>Trucking, Hạ cont, DVHQ, C/O, THC, CIC, LSS, Outbound Doc, TELEX, Seal Charge…</b> XNK nhập thực tế bằng VND, hệ thống tự quy đổi và tính <b>tổng chi phí thực tế / container</b> theo tháng làm đầu vào cho Dashboard.')
        + `<table class="tbl sm"><thead><tr><th>Khoản mục</th><th>Đơn vị</th><th>Tiền tệ</th></tr></thead><tbody>
