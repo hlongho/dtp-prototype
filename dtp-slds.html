@@ -1424,11 +1424,11 @@ S.excontract = ()=> appnav('Bán hàng xuất khẩu','Sales Contract',['Trang c
        ['<a data-go="exoppo">Macrolite — PO White Top Q3</a>','Macrolite (Philippines)','MCL-PO-2026-0442','Cagayan De Oro','$148.500',pill('info','Đã duyệt PO & Chờ xử lý')]]),{n:'1',r:'<button class="btn sm" onclick="go(\'exoppo\')">Mở PO</button>'})}
      ${card('Chi tiết sản phẩm (Grade / PO / Weight)',
        `<div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Grade / Type</th><th>Reel diameter & Core</th><th>RW (khổ)</th><th>PO No</th><th class="num">Weight (MT)</th><th class="num">Unit Price</th><th>Điều khoản giao hàng</th><th>Remark</th><th>Yêu cầu khác</th></tr></thead>
+          <thead><tr><th>Grade / Type</th><th>Reel diameter & Core</th><th>RW (khổ)</th><th>PO No</th><th class="num">Weight (MT)</th><th class="num">Unit Price</th><th>Điều khoản giao hàng</th><th>Include</th><th>Remark</th><th>Yêu cầu khác</th></tr></thead>
           <tbody>
-            <tr><td>WHITE TOP TEST LINER 135 gsm</td><td>Reel Ø 115 cm · Core 3"</td><td>180 cm</td><td>PO 01</td><td class="num">50</td><td class="num">$685/MT</td><td>CIF Nhava Sheva · include</td><td>Ưu tiên giao đợt 1</td><td>Kèm COA từng lô</td></tr>
-            <tr><td>WHITE TOP TEST LINER 140 gsm</td><td>Reel Ø 115 cm · Core 3"</td><td>175 cm</td><td>PO 01</td><td class="num">30</td><td class="num">$685/MT</td><td>CIF Nhava Sheva · include</td><td>—</td><td>Đóng pallet gỗ</td></tr>
-            <tr><td>TEST LINER (KA) 150 gsm</td><td>Reel Ø 110 cm · Core 3"</td><td>180 cm</td><td>PO 02</td><td class="num">40</td><td class="num">$620/MT</td><td>CIF Nhava Sheva · include</td><td>Giao sau</td><td>Màng co chống ẩm</td></tr>
+            <tr><td>WHITE TOP TEST LINER 135 gsm</td><td>Reel Ø 115 cm · Core 3"</td><td>180 cm</td><td>PO 01</td><td class="num">50</td><td class="num">$685/MT</td><td>CIF Nhava Sheva</td><td>Freight · Insurance · CIC · LSS</td><td>Ưu tiên giao đợt 1</td><td>Kèm COA từng lô</td></tr>
+            <tr><td>WHITE TOP TEST LINER 140 gsm</td><td>Reel Ø 115 cm · Core 3"</td><td>175 cm</td><td>PO 01</td><td class="num">30</td><td class="num">$685/MT</td><td>CIF Nhava Sheva</td><td>Freight · Insurance · CIC · LSS</td><td>—</td><td>Đóng pallet gỗ</td></tr>
+            <tr><td>TEST LINER (KA) 150 gsm</td><td>Reel Ø 110 cm · Core 3"</td><td>180 cm</td><td>PO 02</td><td class="num">40</td><td class="num">$620/MT</td><td>CIF Nhava Sheva</td><td>Freight · CIC · LSS</td><td>Giao sau</td><td>Màng co chống ẩm</td></tr>
           </tbody></table></div>`,{n:'3'})}
      ${card('Luồng sinh chứng từ', tbl([{t:'#'},{t:'Chứng từ'},{t:'Nguồn dữ liệu'},{t:'Trạng thái'}],[
        ['1','Shipping Instruction (SI)','Contract + PL',pill('ok','Đã tạo')],
