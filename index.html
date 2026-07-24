@@ -2886,6 +2886,26 @@ function nccTopRows(){
     return `<tr><td><b>${d.n}</b></td><td>${d.item}</td><td class="num"><b>${d.y26.toLocaleString('vi-VN')}</b></td><td class="num">${d.y25.toLocaleString('vi-VN')}</td><td class="num">${bd}</td></tr>`;
   }).join('');
 }
+/* --- Đánh giá NCC trong tháng (chấm điểm 5 tiêu chí có trọng số) --- */
+// [tên, mặt hàng, tổng cộng (đồng), Chất lượng(x3), Giá&PTTT(x2), Giao hàng(x1), Ổn định(x1), Hỗ trợ(x1), ghi chú]
+const NCC_EVAL=[
+  ['Neo Nam Việt','Tinh bột mì',3051918000,9,6,3,3,3,''],
+  ['Bình Phước','Tinh bột mì',2995272000,9,6,3,3,3,'Giao trễ 1 lô (2 ngày) · đã bổ sung C/O'],
+  ['Andritz','Máy ép bùn trục vít, phụ tùng bơm',1910822565,9,6,3,3,3,''],
+  ['Gia Định','Tinh bột Cation, APS, phèn lỏng; bột mì',1209686400,9,6,3,3,3,''],
+  ['A-CET','Bột màu (vàng cam, đỏ)',1024623136,9,6,3,3,3,''],
+  ['Tân Đại Phú Sỹ','Máy nén khí',850963320,9,6,3,3,3,''],
+  ['Hiệp Phát','Gia công VTCK các loại',818862750,9,6,3,3,3,'Hồ sơ nghiệm thu chậm 3 ngày'],
+  ['Nguyễn Đức Thịnh','Hệ điều khiển cấp DC và hãm cho máy cắt cuộn',601225432,9,6,3,3,3,''],
+  ['Quang Minh Kiều','Mền bạt lưới, hộp giảm tốc',547361064,9,6,3,3,3,''],
+  ['KTC Vina','Bạc đạn: FAG',444611160,9,6,3,3,3,'Giao sai ngày hẹn 1 lần'],
+  ['Đại Đồng Tiến Phát','Máy ép bùn, dao cạo, băng tải',437400000,9,6,3,3,3,''],
+];
+function nccEvalRows(){
+  return NCC_EVAL.map(d=>{ const tot=d[3]+d[4]+d[5]+d[6]+d[7];
+    return `<tr><td><b>${d[0]}</b></td><td>${d[1]}</td><td class="num">${d[2].toLocaleString('vi-VN')}</td><td class="num">${d[3]}</td><td class="num">${d[4]}</td><td class="num">${d[5]}</td><td class="num">${d[6]}</td><td class="num">${d[7]}</td><td class="num"><b>${tot}</b></td><td>${d[8]?'<span style="color:var(--warn)">⚠ '+d[8]+'</span>':'—'}</td></tr>`;
+  }).join('');
+}
 S.purreport = ()=> appnav('Mua hàng','Báo cáo',TAB_PUR,'Báo cáo')
  + `<div class="sf-body">
    ${hl({crumb:'Báo cáo mua hàng',ico:'📊',color:'#2e844a',title:'Phân tích hoạt động mua hàng — Tỉ trọng ĐNMH & SL mã vật tư',sub:'Thống kê chi tiết phiếu Đề nghị mua hàng (ĐNMH) & mã vật tư phát sinh theo bộ phận / nhà máy',
@@ -2922,6 +2942,11 @@ S.purreport = ()=> appnav('Mua hàng','Báo cáo',TAB_PUR,'Báo cáo')
         <thead><tr><th>Tên NCC</th><th>Mặt hàng cung cấp chủ lực</th><th class="num">T6/2026</th><th class="num">T6/2025</th><th class="num">Biến động</th></tr></thead>
         <tbody>${nccTopRows()}</tbody></table></div>
       <div class="po-hint">Xếp hạng NCC chiếm tỷ trọng chi phí mua hàng lớn nhất trong kỳ · ĐVT: triệu đồng · cột Biến động so với cùng kỳ năm trước (NCC mới = chưa phát sinh T6/2025).</div>`)}
+   ${card('Đánh giá NCC T6/2026 — chấm điểm 5 tiêu chí có trọng số',
+     `<div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Tên NCC</th><th>Mặt hàng cung cấp</th><th class="num">Tổng cộng (đồng)</th><th class="num">Chất lượng SP<br><span class="wf-muted" style="font-weight:400;font-size:10px">hệ số x3</span></th><th class="num">Giá bán & PTTT<br><span class="wf-muted" style="font-weight:400;font-size:10px">hệ số x2</span></th><th class="num">Giao hàng<br><span class="wf-muted" style="font-weight:400;font-size:10px">x1</span></th><th class="num">Ổn định<br><span class="wf-muted" style="font-weight:400;font-size:10px">x1</span></th><th class="num">Hỗ trợ<br><span class="wf-muted" style="font-weight:400;font-size:10px">x1</span></th><th class="num">Tổng điểm</th><th>Ghi chú (sự vụ trong kỳ)</th></tr></thead>
+        <tbody>${nccEvalRows()}</tbody></table></div>
+      <div class="po-hint">Điểm tính theo 5 tiêu chí có trọng số: Chất lượng SP (x3) · Giá bán & PTTT (x2) · Giao hàng (x1) · Sự ổn định (x1) · Hỗ trợ (x1). Cột Ghi chú nêu sự vụ phát sinh của NCC trong kỳ (giao trễ, hồ sơ chậm, giao sai ngày…).</div>`)}
  </div>`;
 S.ppo_list = ()=> appnav('Mua hàng','Đơn mua (PO)',TAB_PUR,'Đơn mua (PO)')
  + `<div class="sf-body">${lv({crumb:'<span data-go="ppo_list">Đơn mua hàng</span> &rsaquo;',ico:'🛒',color:'#2e844a',object:'Purchase Order',view:'Đơn mua đang xử lý',views:['Đơn mua đang xử lý','Chờ duyệt','Của tôi','Tất cả đơn mua'],count:'37',newLabel:'PO mới',
