@@ -1137,7 +1137,8 @@ const NAV = [
    ['imcontract_list','Sales Contract NK','Mua hàng','list'],
    ['imcontract','↳ Chi tiết Contract (đa tiền tệ)','','record'],
    ['shipment_list','Shipment','Logistics','list'],
-   ['shipment','↳ Theo dõi shipment (Free time/Dem-Det)','','record']]},
+   ['shipment','↳ Theo dõi shipment (Free time/Dem-Det)','','record'],
+   ['claimrpt','Theo dõi Claim / Khiếu nại','XNK / Kế toán','list']]},
  {g:'Khiếu nại', items:[
    ['case_list','Case khiếu nại','CSKH','list'],
    ['case','↳ Chi tiết Case — Bán hàng trong nước','','record'],
@@ -2451,7 +2452,7 @@ function lv({crumb,ico,color,object,view,count,cols,rows,newLabel,views,bulk,hea
 const TAB_SALES=['Trang chủ','Lead','Cơ hội','Báo giá','Sample Request','Opportunity PO','SO','Khách hàng','Case'];
 const TAB_EX=['Trang chủ','Báo giá XK','PO','Sales Contract','SO','Phiếu xuất kho','Kế hoạch SX','Chứng từ','Thanh toán','Cước Logistics'];
 const TAB_PUR=['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'];
-const TAB_IM=['Trang chủ','Kế hoạch NVL','Sales Contract','Shipment'];
+const TAB_IM=['Trang chủ','Kế hoạch NVL','Sales Contract','Shipment','Claim / Khiếu nại'];
 const TAB_MD=['Bảng giá','Hợp đồng','Sản phẩm','Khách hàng','NCC'];
 S.product_list = ()=> appnav('Dữ liệu nền tảng','Sản phẩm',TAB_MD,'Sản phẩm')
  + `<div class="sf-body">${lv({crumb:'Sản phẩm',ico:'📦',color:'#5867e8',object:'Sản phẩm (Product)',view:'Tất cả sản phẩm',count:'8',newLabel:'Sản phẩm mới',
@@ -2968,6 +2969,59 @@ S.rpt_ncceval = ()=> appnav('Báo cáo mua hàng','Đánh giá NCC',TAB_RPT,'Đ�
         <tbody>${nccEvalRows()}</tbody></table></div>
       <div class="po-hint">Điểm tính theo 5 tiêu chí có trọng số: Chất lượng SP (x3) · Giá bán & PTTT (x2) · Giao hàng (x1) · Sự ổn định (x1) · Hỗ trợ (x1). Cột Ghi chú nêu sự vụ phát sinh của NCC trong kỳ (giao trễ, hồ sơ chậm, giao sai ngày…).</div>`)}
  </div>`;
+/* ===== Theo dõi Claim / Khiếu nại (BP XNK) ===== */
+// [năm, số Invoice, số B/L, tổng phát sinh VND, đơn vị bị claim, claim USD, claim VND, tình trạng, lý do, đối tượng chịu TN]
+const CLAIMS=[
+  [2025,'2093/0625(A)','257573674',2361815,'Forestry',90.36,2361815,'Cấn trừ','DEM','NCC'],
+  [2025,'2093/0625(B)','257573713',3652178,'Forestry',139.73,3652178,'Cấn trừ','DEM','NCC'],
+  [2025,'2093/0625(C)','258138483',7314212,'Forestry',279.83,7314212,'Cấn trừ','DEM','NCC'],
+  [2025,'2093/0625(C)','258138483',1805556,'Forestry',69.08,1805556,'Cấn trừ','Level 2 & 3 LOLO CHARGE','NCC'],
+  [2025,'2162/0725(A)','257921789',1573246,'Forestry',60.19,1573246,'Cấn trừ','DEM','NCC'],
+  [2025,'2162/0725(A)','257921789',1203704,'Forestry',46.05,1203704,'Cấn trừ','Level 2 LOLO CHARGE','NCC'],
+  [2025,'2162/0725(B)','257921834',3150736,'Forestry',120.54,3150736,'Cấn trừ','DEM','NCC'],
+  [2025,'2162/0725(B)','257921834',1203704,'Forestry',46.05,1203704,'Cấn trừ','Level 2 LOLO CHARGE','NCC'],
+  [2025,'V2512993','HLCUBSC2510AWMM1',20961111,'Genesis',801.94,20961111,'Đang claim','Phụ phí chuyển cảng VT → HCM','NCC'],
+  [2025,'V2513039','HLCUBSC2510BQRX3',9511111,'Genesis',368.79,9511111,'Đang claim','Phụ phí chuyển cảng VT → HCM','NCC'],
+  [2025,'V2513021','HLCUBSC2510BQWU2',1585185,'Genesis',61.47,1585185,'Đang claim','Phụ phí chuyển cảng VT → HCM','NCC'],
+  [2025,'12053','ZIMUTRT935216',396296,'Beaver',15.37,396296,'Đang claim','Phụ phí chuyển cảng VT → HCM','NCC'],
+  [2025,'12052','ZIMUTRT935372',3962963,'Beaver',153.66,3962963,'Đang claim','Phụ phí chuyển cảng VT → HCM','NCC'],
+  [2025,'11962','ZIMUTRT934481',3962963,'Beaver',153.66,3962963,'Đang claim','Phụ phí chuyển cảng VT → HCM','NCC'],
+  [2025,'306048','257917846',null,'Ricova',2622.00,null,'Đang claim','DEM','NCC'],
+  [2026,'8111','261465229',17260320,'RagnSells',670.04,17260320,'Đang claim','DEM','NCC / Hãng tàu'],
+  [2026,'8151','262025819',46960127,'—',null,46960127,'Đang claim','DEM','Hãng tàu'],
+  [2026,'8146','LYK0181653',147007697,'CMA-CGM',2598.36,67557322,'Đang claim','DEM','Hãng tàu'],
+  [2026,'8013','LYK0181538',5326282,'—',null,null,'Đang claim','DEM','Hãng tàu'],
+  [2026,'8150','261580731',11378693,'—',437.64,11378693,'Đang claim','DEM','Hãng tàu'],
+  [2026,'8114','261412499',68291941,'RagnSells',2279.07,59255917,'Đang claim','DEM','Hãng tàu'],
+  [2026,'8116','261589036',18849246,'RagnSells',724.59,18839344,'Đang claim','DEM','Hãng tàu'],
+  [2026,'306509','163FA12093',47368422,'Ricova',1822.00,null,'Đang claim','DEM','NCC'],
+];
+function claimNum(v){ return v==null?'—':v.toLocaleString('vi-VN'); }
+function claimRows(){
+  return CLAIMS.map(r=>{
+    const st=r[7]==='Cấn trừ'?pill('ok','Cấn trừ'):pill('warn','Đang claim');
+    const resp=/Hãng tàu/.test(r[9])?`<span style="color:var(--sf-blue,#1b96ff)">${r[9]}</span>`:`<span>${r[9]}</span>`;
+    return `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class="num">${claimNum(r[3])}</td><td>${r[4]}</td><td class="num">${r[5]==null?'—':'$'+r[5].toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td><td class="num">${claimNum(r[6])}</td><td>${st}</td><td>${r[8]}</td><td>${resp}</td></tr>`;
+  }).join('');
+}
+S.claimrpt = ()=> appnav('Mua hàng nhập khẩu','Theo dõi Claim / Khiếu nại',TAB_IM,'Claim / Khiếu nại')
+ + (()=>{ const cnt=CLAIMS.length, done=CLAIMS.filter(r=>r[7]==='Cấn trừ').length, open2=cnt-done;
+     const usd=CLAIMS.reduce((s,r)=>s+(r[5]||0),0), vnd=CLAIMS.reduce((s,r)=>s+(r[6]||0),0);
+   return `<div class="sf-body">
+   ${hl({crumb:'Báo cáo XNK',ico:'⚖️',color:'#0b827c',title:'Theo dõi tình hình Sự vụ / Khiếu nại (Claim) — BP XNK',sub:'Tình trạng giải quyết chi phí bồi thường/khiếu nại với NCC & hãng tàu qua các năm (2025–2026)',
+     fields:[['Kỳ','2025 – 2026'],['Tổng sự vụ',String(cnt)],['Đã cấn trừ',String(done)],['Đang claim',String(open2)]],actions:[{t:'Xuất báo cáo',pri:true},'Lọc theo năm']})}
+   <div class="kpis">
+     <div class="kpi"><div class="lab">Tổng sự vụ claim</div><div class="big">${cnt}</div><div class="d">2025 – 2026</div></div>
+     <div class="kpi"><div class="lab">Đã cấn trừ (thu hồi xong)</div><div class="big" style="color:var(--ok,#2e844a)">${done}</div><div class="d">đã thương lượng & thu hồi</div></div>
+     <div class="kpi"><div class="lab">Đang claim (tồn đọng)</div><div class="big" style="color:var(--warn)">${open2}</div><div class="d">cần tiếp tục đốc thúc</div></div>
+     <div class="kpi"><div class="lab">Tổng tiền claim</div><div class="big">$${Math.round(usd).toLocaleString('en-US')}</div><div class="d">≈ ${vnd.toLocaleString('vi-VN')} ₫ (đã ghi nhận VND)</div></div>
+   </div>
+   ${card('Bảng theo dõi chi tiết sự vụ / khiếu nại',
+     `<div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Năm</th><th>Số Invoice (lô hàng)</th><th>Số B/L (vận đơn)</th><th class="num">Tổng phát sinh (VND)</th><th>Đơn vị bị claim</th><th class="num">Claim (USD)</th><th class="num">Claim (VND)</th><th>Tình trạng</th><th>Lý do phát sinh</th><th>Đối tượng chịu TN</th></tr></thead>
+        <tbody>${claimRows()}</tbody></table></div>
+      <div class="po-hint">Bám sát theo từng lô hàng (Invoice & B/L) · đơn vị bị claim (Forestry, Genesis, Beaver, CMA-CGM, Ricova, RagnSells…) · đối tượng chịu TN: <b>NCC</b> hoặc <b>Hãng tàu</b>. Tình trạng: <b>Cấn trừ</b> (đã thu hồi xong) / <b>Đang claim</b> (còn tồn đọng). Lý do: DEM (lưu bãi/lưu cont), Level 2 & 3 LOLO CHARGE (nâng hạ), Phụ phí chuyển cảng VT → HCM…</div>`)}
+ </div>`; })();
 S.ppo_list = ()=> appnav('Mua hàng','Đơn mua (PO)',TAB_PUR,'Đơn mua (PO)')
  + `<div class="sf-body">${lv({crumb:'<span data-go="ppo_list">Đơn mua hàng</span> &rsaquo;',ico:'🛒',color:'#2e844a',object:'Purchase Order',view:'Đơn mua đang xử lý',views:['Đơn mua đang xử lý','Chờ duyệt','Của tôi','Tất cả đơn mua'],count:'37',newLabel:'PO mới',
    cols:[{t:'Số PO'},{t:'Vật tư chính'},{t:'NCC'},{t:'Giá trị',num:true},{t:'Trạng thái'}],
@@ -3127,7 +3181,7 @@ const TAB2ID={'Trang chủ':'home','Lead':'lead_list','Cơ hội':'opp_list','B�
  'NCC':'vendor_list','Case':'case_list','Báo cáo':'reports','Dashboard':'reports','Cảnh báo':'reports',
  'Bảng giá':'pricebook_list','Hợp đồng':'contract_list','Sản phẩm':'product_list','Báo giá XK':'exquote_list','SO':'exso_list','Phiếu xuất kho':'issuenote_list','Chứng từ':'excontract_list',
  'Thanh toán':'lc','Cước Logistics':'freight','Thống kê ĐNMH':'rpt_dnmh','Doanh số 3 tháng':'rpt_sales3','Top 10 NCC':'rpt_ncctop','Đánh giá NCC':'rpt_ncceval','Phiếu yêu cầu':'pr_list','Đơn mua (PO)':'ppo_list','Kế hoạch NVL':'matinv',
- 'Shipment':'shipment_list','Knowledge':'case_list','Kế hoạch SX':'explan_list'};
+ 'Shipment':'shipment_list','Knowledge':'case_list','Kế hoạch SX':'explan_list','Claim / Khiếu nại':'claimrpt'};
 function resolveTab(app,label){
   if(label==='Sales Contract') return app.includes('nhập khẩu')?'imcontract_list':'excontract_list';
   if(label==='SO') return app.includes('nội địa')?'so_list':'exso_list';
