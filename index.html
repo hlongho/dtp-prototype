@@ -1126,7 +1126,8 @@ const NAV = [
    ['ppo_list','Đơn mua (Purchase Order)','Mua hàng','list'],
    ['ppo','↳ Chi tiết PO (chọn NCC, lịch sử giá)','','record'],
    ['vendor_list','Nhà cung cấp','QA / Kho / KT','list'],
-   ['vendor','↳ Đánh giá NCC','','record']]},
+   ['vendor','↳ Đánh giá NCC','','record'],
+   ['purreport','Báo cáo thống kê ĐNMH','BGĐ / Mua hàng','list']]},
  {g:'Mua hàng nhập khẩu', items:[
    ['matinv','Cảnh báo tồn NVL + hàng đi đường','BGĐ','custom'],
    ['imcontract_list','Sales Contract NK','Mua hàng','list'],
@@ -2445,7 +2446,7 @@ function lv({crumb,ico,color,object,view,count,cols,rows,newLabel,views,bulk,hea
 }
 const TAB_SALES=['Trang chủ','Lead','Cơ hội','Báo giá','Sample Request','Opportunity PO','SO','Khách hàng','Case'];
 const TAB_EX=['Trang chủ','Báo giá XK','PO','Sales Contract','SO','Phiếu xuất kho','Kế hoạch SX','Chứng từ','Thanh toán','Cước Logistics'];
-const TAB_PUR=['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'];
+const TAB_PUR=['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC','Báo cáo'];
 const TAB_IM=['Trang chủ','Kế hoạch NVL','Sales Contract','Shipment'];
 const TAB_MD=['Bảng giá','Hợp đồng','Sản phẩm','Khách hàng','NCC'];
 S.product_list = ()=> appnav('Dữ liệu nền tảng','Sản phẩm',TAB_MD,'Sản phẩm')
@@ -2792,6 +2793,63 @@ S.issuenote = ()=> appnav('Bán hàng xuất khẩu','Phiếu xuất kho',TAB_EX
      ${activity([['📥','Đồng bộ phiếu xuất từ Rosy','Tự động · Hôm nay'],['⚓','Đẩy Số xe / Số Cont / Seal sang Shipment SHP-XK-0067','Tự động · Hôm nay'],['📋','Task: Đối chiếu cân thực tế với PO khách','Được giao P.XNK · Cần xử lý']])}
    </div>
  </div>`;
+/* ===== Báo cáo thống kê ĐNMH & Mã vật tư theo bộ phận / nhà máy ===== */
+const PUR_PLANTS=[{k:'ĐTBD',c:'#1b96ff'},{k:'ĐTLA',c:'#e5701a'},{k:'MIZU',c:'#8a8a8a'}];
+// [bộ phận, ĐNMH tổng, ĐTBD, ĐTLA, MIZU, MãVT tổng, ĐTBD, ĐTLA, MIZU]
+const PUR_DEPTS=[
+  ['Kỹ thuật',34,6,28,0,185,13,172,0],
+  ['Điện',28,10,17,1,189,118,68,3],
+  ['Nhân sự',16,7,5,4,27,9,12,6],
+  ['BP khác (IT)',2,0,0,2,2,0,0,2],
+  ['Sản xuất - Kế hoạch',15,10,0,5,26,15,0,11],
+  ['Kho',26,10,12,4,157,98,21,38],
+  ['Cơ khí',12,0,0,12,45,0,0,45],
+  ['Công nghệ',9,6,3,0,21,13,8,0],
+  ['Môi trường',9,2,7,0,60,16,44,0],
+  ['Xe nâng',4,4,0,0,5,5,0,0],
+];
+function pieSVG(segs){
+  const total=segs.reduce((s,x)=>s+x.val,0)||1; let a0=-Math.PI/2; const cx=50,cy=50,r=46; let paths='';
+  segs.forEach(s=>{ const frac=s.val/total; const a1=a0+frac*2*Math.PI;
+    const x0=(cx+r*Math.cos(a0)).toFixed(2), y0=(cy+r*Math.sin(a0)).toFixed(2);
+    const x1=(cx+r*Math.cos(a1)).toFixed(2), y1=(cy+r*Math.sin(a1)).toFixed(2);
+    if(frac>=0.999) paths+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${s.color}"/>`;
+    else if(frac>0) paths+=`<path d="M${cx},${cy} L${x0},${y0} A${r},${r} 0 ${frac>0.5?1:0} 1 ${x1},${y1} Z" fill="${s.color}"/>`;
+    a0=a1; });
+  const legend=segs.map(s=>`<span><i style="background:${s.color}"></i>${s.label} · ${s.val} (${Math.round(s.val/total*100)}%)</span>`).join('');
+  return `<svg viewBox="0 0 100 100" style="width:190px;height:190px;display:block;margin:4px auto 0">${paths}</svg><div class="legend" style="justify-content:center;flex-wrap:wrap">${legend}</div>`;
+}
+function purReportRows(){
+  const sum=[0,0,0,0,0,0,0,0];
+  const body=PUR_DEPTS.map(d=>{ for(let i=1;i<=8;i++) sum[i-1]+=d[i];
+    return `<tr><td>${d[0]}</td><td class="num" style="background:var(--bg)"><b>${d[1]}</b></td><td class="num">${d[2]}</td><td class="num">${d[3]}</td><td class="num">${d[4]}</td><td class="num" style="background:var(--bg)"><b>${d[5]}</b></td><td class="num">${d[6]}</td><td class="num">${d[7]}</td><td class="num">${d[8]}</td></tr>`;
+  }).join('');
+  const tot=`<tr style="font-weight:700;background:#eef4fb"><td>TỔNG CỘNG</td><td class="num">${sum[0]}</td><td class="num">${sum[1]}</td><td class="num">${sum[2]}</td><td class="num">${sum[3]}</td><td class="num">${sum[4]}</td><td class="num">${sum[5]}</td><td class="num">${sum[6]}</td><td class="num">${sum[7]}</td></tr>`;
+  return body+tot;
+}
+S.purreport = ()=> appnav('Mua hàng','Báo cáo',TAB_PUR,'Báo cáo')
+ + `<div class="sf-body">
+   ${hl({crumb:'Báo cáo mua hàng',ico:'📊',color:'#2e844a',title:'Phân tích hoạt động mua hàng — Tỉ trọng ĐNMH & SL mã vật tư',sub:'Thống kê chi tiết phiếu Đề nghị mua hàng (ĐNMH) & mã vật tư phát sinh theo bộ phận / nhà máy',
+     fields:[['Kỳ','Tháng 6/2026'],['SL ĐNMH tổng nhận','155'],['SL mã vật tư tổng nhận','717'],['Cập nhật','Hôm nay']],actions:[{t:'Xuất báo cáo',pri:true},'Đổi kỳ']})}
+   <div class="kpis">
+     <div class="kpi"><div class="lab">SL phiếu ĐNMH tổng nhận</div><div class="big">155</div><div class="d">ĐTBD 55 · ĐTLA 72 · MIZU 28</div></div>
+     <div class="kpi"><div class="lab">SL mã vật tư tổng nhận</div><div class="big">717</div><div class="d">ĐTBD 287 · ĐTLA 325 · MIZU 105</div></div>
+     <div class="kpi"><div class="lab">Số bộ phận yêu cầu</div><div class="big">10</div><div class="d">Kỹ thuật, Điện, Kho, Cơ khí…</div></div>
+     <div class="kpi"><div class="lab">Số nhà máy</div><div class="big">3</div><div class="d">ĐTBD · ĐTLA · MIZU</div></div>
+   </div>
+   <div class="cols">
+     ${card('Tỉ trọng ĐNMH từng nhà máy (T6/2026)', pieSVG(PUR_PLANTS.map((p,i)=>({label:p.k,val:[55,72,28][i],color:p.c}))))}
+     ${card('Tỉ trọng SL mã vật tư từng nhà máy (T6/2026)', pieSVG(PUR_PLANTS.map((p,i)=>({label:p.k,val:[287,325,105][i],color:p.c}))))}
+   </div>
+   ${card('Bảng thống kê chi tiết theo bộ phận & nhà máy',
+     `<div class="tbl-wrap"><table class="tbl">
+        <thead>
+          <tr><th rowspan="2">Bộ phận / Phòng ban yêu cầu</th><th colspan="4" class="num" style="text-align:center;border-left:1px solid var(--line)">SL phiếu ĐNMH</th><th colspan="4" class="num" style="text-align:center;border-left:1px solid var(--line)">SL mã vật tư</th></tr>
+          <tr><th class="num" style="border-left:1px solid var(--line)">Tổng</th><th class="num">ĐTBD</th><th class="num">ĐTLA</th><th class="num">MIZU</th><th class="num" style="border-left:1px solid var(--line)">Tổng</th><th class="num">ĐTBD</th><th class="num">ĐTLA</th><th class="num">MIZU</th></tr>
+        </thead>
+        <tbody>${purReportRows()}</tbody></table></div>
+      <div class="po-hint">Nguồn: phiếu Đề nghị mua hàng (ĐNMH) đồng bộ từ Rosy trong kỳ · phân bổ theo bộ phận yêu cầu và nhà máy phát sinh (ĐTBD · ĐTLA · MIZU).</div>`)}
+ </div>`;
 S.ppo_list = ()=> appnav('Mua hàng','Đơn mua (PO)',TAB_PUR,'Đơn mua (PO)')
  + `<div class="sf-body">${lv({crumb:'<span data-go="ppo_list">Đơn mua hàng</span> &rsaquo;',ico:'🛒',color:'#2e844a',object:'Purchase Order',view:'Đơn mua đang xử lý',views:['Đơn mua đang xử lý','Chờ duyệt','Của tôi','Tất cả đơn mua'],count:'37',newLabel:'PO mới',
    cols:[{t:'Số PO'},{t:'Vật tư chính'},{t:'NCC'},{t:'Giá trị',num:true},{t:'Trạng thái'}],
@@ -2956,6 +3014,7 @@ function resolveTab(app,label){
   if(label==='Sales Contract') return app.includes('nhập khẩu')?'imcontract_list':'excontract_list';
   if(label==='SO') return app.includes('nội địa')?'so_list':'exso_list';
   if(label==='PO') return 'exoppo_list';
+  if(label==='Báo cáo') return app.includes('Mua hàng')?'purreport':'reports';
   return TAB2ID[label];
 }
 function toast(msg){
