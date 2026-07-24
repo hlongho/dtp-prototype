@@ -2827,6 +2827,37 @@ function purReportRows(){
   const tot=`<tr style="font-weight:700;background:#eef4fb"><td>TỔNG CỘNG</td><td class="num">${sum[0]}</td><td class="num">${sum[1]}</td><td class="num">${sum[2]}</td><td class="num">${sum[3]}</td><td class="num">${sum[4]}</td><td class="num">${sum[5]}</td><td class="num">${sum[6]}</td><td class="num">${sum[7]}</td></tr>`;
   return body+tot;
 }
+/* --- Doanh số mua hàng 3 tháng (cột chồng theo nhóm × tháng × nhà máy) --- */
+const PUR_MONTHS3=['T4','T5','T6'];
+const PUR_PLANT_COLORS=['#1b96ff','#e5a000','#16b8a6']; // ĐTBD, ĐTLA, MIZU
+// mỗi nhóm: m = [ [ĐTBD,ĐTLA,MIZU] theo T4, T5, T6 ] · ĐVT: triệu đồng
+const PUR_SALES3=[
+  {g:'I. Hóa chất', m:[[300,80,20],[270,100,20],[320,110,20]]},
+  {g:'II. Phụ tùng cơ khí', m:[[220,760,20],[180,100,20],[600,1900,80]]},
+  {g:'III. Bao bì / Phụ liệu', m:[[700,1150,80],[760,1190,60],[650,2600,150]]},
+  {g:'IV. Vật tư điện', m:[[350,650,20],[110,110,20],[500,1000,50]]},
+  {g:'V. VPP / IT', m:[[320,400,30],[420,530,60],[300,280,20]]},
+  {g:'VI. Nguyên liệu chính (OCC)', m:[[5800,6200,300],[4000,1900,200],[5200,5000,300]]},
+];
+function purMonthTotals(){ const t=[0,0,0]; PUR_SALES3.forEach(grp=>grp.m.forEach((seg,mi)=> t[mi]+=seg[0]+seg[1]+seg[2])); return t; }
+function stackBarSVG(){
+  const W=1040,H=380,padL=54,padB=54,padT=12,padR=12; const plotW=W-padL-padR, plotH=H-padT-padB, maxY=20000;
+  const Y=v=>padT+plotH*(1-v/maxY);
+  let grid='';
+  for(let g=0;g<=5;g++){ const val=maxY*g/5, yy=Y(val);
+    grid+=`<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${W-padR}" y2="${yy.toFixed(1)}" stroke="var(--line)"/><text x="${padL-6}" y="${(yy+3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--txt-mut)">${val.toLocaleString('vi-VN')}</text>`; }
+  const gW=plotW/PUR_SALES3.length, barW=gW*0.2, innerGap=gW*0.045, groupInner=3*barW+2*innerGap, y0=Y(0);
+  let bars='',xlabs='';
+  PUR_SALES3.forEach((grp,gi)=>{
+    const gx=padL+gi*gW+(gW-groupInner)/2;
+    grp.m.forEach((seg,mi)=>{ const bx=gx+mi*(barW+innerGap); let yTop=y0;
+      seg.forEach((v,si)=>{ const h=plotH*v/maxY, y=yTop-h; bars+=`<rect x="${bx.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" fill="${PUR_PLANT_COLORS[si]}"/>`; yTop=y; });
+      xlabs+=`<text x="${(bx+barW/2).toFixed(1)}" y="${(y0+12).toFixed(1)}" text-anchor="middle" font-size="9" fill="var(--txt-mut)">${PUR_MONTHS3[mi]}</text>`; });
+    xlabs+=`<text x="${(padL+gi*gW+gW/2).toFixed(1)}" y="${(y0+30).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="600" fill="var(--ink)">${grp.g}</text>`;
+  });
+  const legend=['ĐTBD','ĐTLA','MIZU'].map((p,i)=>`<span><i style="background:${PUR_PLANT_COLORS[i]}"></i>${p}</span>`).join('');
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:840px;height:auto">${grid}${bars}${xlabs}</svg></div><div class="legend">${legend}<span class="wf-muted">ĐVT: triệu đồng · cột chồng theo nhà máy</span></div>`;
+}
 S.purreport = ()=> appnav('Mua hàng','Báo cáo',TAB_PUR,'Báo cáo')
  + `<div class="sf-body">
    ${hl({crumb:'Báo cáo mua hàng',ico:'📊',color:'#2e844a',title:'Phân tích hoạt động mua hàng — Tỉ trọng ĐNMH & SL mã vật tư',sub:'Thống kê chi tiết phiếu Đề nghị mua hàng (ĐNMH) & mã vật tư phát sinh theo bộ phận / nhà máy',
@@ -2849,6 +2880,14 @@ S.purreport = ()=> appnav('Mua hàng','Báo cáo',TAB_PUR,'Báo cáo')
         </thead>
         <tbody>${purReportRows()}</tbody></table></div>
       <div class="po-hint">Nguồn: phiếu Đề nghị mua hàng (ĐNMH) đồng bộ từ Rosy trong kỳ · phân bổ theo bộ phận yêu cầu và nhà máy phát sinh (ĐTBD · ĐTLA · MIZU).</div>`)}
+   ${(()=>{ const t=purMonthTotals(); const d=v=>((v>0?'▲ +':'▼ ')+v+'%'); const c56=Math.round((t[2]-t[1])/t[1]*100);
+     return `<div class="kpis">
+       <div class="kpi"><div class="lab">Tổng chi phí mua hàng · T4/2026</div><div class="big">${t[0].toLocaleString('vi-VN')}</div><div class="d">triệu đồng</div></div>
+       <div class="kpi"><div class="lab">Tổng chi phí mua hàng · T5/2026</div><div class="big">${t[1].toLocaleString('vi-VN')}</div><div class="d">triệu đồng</div></div>
+       <div class="kpi"><div class="lab">Tổng chi phí mua hàng · T6/2026 (kỳ hiện tại)</div><div class="big">${t[2].toLocaleString('vi-VN')}</div><div class="d ${c56>=0?'up':'dn'}">${d(c56)} so với T5</div></div>
+     </div>`; })()}
+   ${card('Doanh số mua hàng 3 tháng (T4-5-6/2026) — Chi phí mua hàng giữa các nhóm', stackBarSVG()
+     + `<div class="po-hint">Theo dõi & so sánh tổng doanh số mua hàng kỳ hiện tại (T6) với các tháng liền kề trước (T4, T5) theo từng nhóm vật tư và nhà máy — giúp BGĐ nhìn xu hướng tăng/giảm chi phí mua sắm qua các tháng.</div>`)}
  </div>`;
 S.ppo_list = ()=> appnav('Mua hàng','Đơn mua (PO)',TAB_PUR,'Đơn mua (PO)')
  + `<div class="sf-body">${lv({crumb:'<span data-go="ppo_list">Đơn mua hàng</span> &rsaquo;',ico:'🛒',color:'#2e844a',object:'Purchase Order',view:'Đơn mua đang xử lý',views:['Đơn mua đang xử lý','Chờ duyệt','Của tôi','Tất cả đơn mua'],count:'37',newLabel:'PO mới',
