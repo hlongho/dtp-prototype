@@ -2858,6 +2858,34 @@ function stackBarSVG(){
   const legend=['ĐTBD','ĐTLA','MIZU'].map((p,i)=>`<span><i style="background:${PUR_PLANT_COLORS[i]}"></i>${p}</span>`).join('');
   return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:840px;height:auto">${grid}${bars}${xlabs}</svg></div><div class="legend">${legend}<span class="wf-muted">ĐVT: triệu đồng · cột chồng theo nhà máy</span></div>`;
 }
+/* --- Top 10 NCC doanh số cao trong tháng (T6/2026 vs cùng kỳ T6/2025) --- */
+const NCC_TOP=[
+  {n:'Neo Nam Việt', item:'Tinh bột mì', y26:3052, y25:0},
+  {n:'Bình Phước', item:'Tinh bột mì', y26:2995, y25:564},
+  {n:'Andritz', item:'Máy ép bùn trục vít, phụ tùng bơm', y26:1911, y25:0},
+  {n:'Gia Định', item:'Tinh bột Cation; APS, phèn lỏng; bột mì', y26:1210, y25:517},
+  {n:'A-CET', item:'Màu vàng, đỏ', y26:1025, y25:0},
+  {n:'Tân Đại Phú Sỹ', item:'Máy nén khí', y26:851, y25:0},
+  {n:'Hiệp Phát', item:'Gia công VTCK: suốt dẫn, dao, khớp nối, bánh nhông xích', y26:819, y25:226},
+  {n:'Nguyễn Đức Thịnh', item:'Hệ điều khiển cấp DC & hãm cho máy cắt cuộn', y26:601, y25:0},
+  {n:'Quang Minh Kiều', item:'Mền bạt lưới, hộp giảm tốc', y26:547, y25:243},
+  {n:'KTC Vina', item:'Bạc đạn: FAG', y26:445, y25:133},
+];
+function nccBarSVG(){
+  const W=760,padL=152,padR=66,padT=8,padB=8,rowH=42,bh=15; const H=padT+padB+NCC_TOP.length*rowH, plotW=W-padL-padR, maxX=3200, X=v=>plotW*v/maxX;
+  let rows='';
+  NCC_TOP.forEach((d,i)=>{ const yc=padT+i*rowH; const w26=X(d.y26), w25=X(d.y25);
+    rows+=`<text x="${padL-8}" y="${(yc+rowH/2+3).toFixed(1)}" text-anchor="end" font-size="11" fill="var(--ink)">${d.n}</text>`
+      +`<rect x="${padL}" y="${(yc+4).toFixed(1)}" width="${Math.max(w26,0.4).toFixed(1)}" height="${bh}" fill="#16b8a6"/><text x="${(padL+w26+4).toFixed(1)}" y="${(yc+4+bh-3).toFixed(1)}" font-size="10" fill="var(--txt-mut)">${d.y26.toLocaleString('vi-VN')}</text>`
+      +`<rect x="${padL}" y="${(yc+4+bh+2).toFixed(1)}" width="${Math.max(w25,0.4).toFixed(1)}" height="${bh}" fill="#ba0517"/><text x="${(padL+w25+4).toFixed(1)}" y="${(yc+4+bh+2+bh-3).toFixed(1)}" font-size="10" fill="var(--txt-mut)">${d.y25.toLocaleString('vi-VN')}</text>`;
+  });
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:640px;height:auto">${rows}</svg></div><div class="legend"><span><i style="background:#16b8a6"></i>T6/2026</span><span><i style="background:#ba0517"></i>T6/2025</span><span class="wf-muted">ĐVT: triệu đồng</span></div>`;
+}
+function nccTopRows(){
+  return NCC_TOP.map(d=>{ let bd; if(d.y25===0) bd=pill('info','NCC mới'); else { const p=Math.round((d.y26-d.y25)/d.y25*100); bd=`<span style="color:${p>=0?'var(--ok,#2e844a)':'var(--err)'};font-weight:600">${p>=0?'▲ +':'▼ '}${p}%</span>`; }
+    return `<tr><td><b>${d.n}</b></td><td>${d.item}</td><td class="num"><b>${d.y26.toLocaleString('vi-VN')}</b></td><td class="num">${d.y25.toLocaleString('vi-VN')}</td><td class="num">${bd}</td></tr>`;
+  }).join('');
+}
 S.purreport = ()=> appnav('Mua hàng','Báo cáo',TAB_PUR,'Báo cáo')
  + `<div class="sf-body">
    ${hl({crumb:'Báo cáo mua hàng',ico:'📊',color:'#2e844a',title:'Phân tích hoạt động mua hàng — Tỉ trọng ĐNMH & SL mã vật tư',sub:'Thống kê chi tiết phiếu Đề nghị mua hàng (ĐNMH) & mã vật tư phát sinh theo bộ phận / nhà máy',
@@ -2888,6 +2916,12 @@ S.purreport = ()=> appnav('Mua hàng','Báo cáo',TAB_PUR,'Báo cáo')
      </div>`; })()}
    ${card('Doanh số mua hàng 3 tháng (T4-5-6/2026) — Chi phí mua hàng giữa các nhóm', stackBarSVG()
      + `<div class="po-hint">Theo dõi & so sánh tổng doanh số mua hàng kỳ hiện tại (T6) với các tháng liền kề trước (T4, T5) theo từng nhóm vật tư và nhà máy — giúp BGĐ nhìn xu hướng tăng/giảm chi phí mua sắm qua các tháng.</div>`)}
+   ${card('Top 10 NCC doanh số cao trong T6/2026 (so cùng kỳ T6/2025)', nccBarSVG())}
+   ${card('Bảng xếp hạng NCC — mặt hàng cung cấp & đối chiếu cùng kỳ',
+     `<div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Tên NCC</th><th>Mặt hàng cung cấp chủ lực</th><th class="num">T6/2026</th><th class="num">T6/2025</th><th class="num">Biến động</th></tr></thead>
+        <tbody>${nccTopRows()}</tbody></table></div>
+      <div class="po-hint">Xếp hạng NCC chiếm tỷ trọng chi phí mua hàng lớn nhất trong kỳ · ĐVT: triệu đồng · cột Biến động so với cùng kỳ năm trước (NCC mới = chưa phát sinh T6/2025).</div>`)}
  </div>`;
 S.ppo_list = ()=> appnav('Mua hàng','Đơn mua (PO)',TAB_PUR,'Đơn mua (PO)')
  + `<div class="sf-body">${lv({crumb:'<span data-go="ppo_list">Đơn mua hàng</span> &rsaquo;',ico:'🛒',color:'#2e844a',object:'Purchase Order',view:'Đơn mua đang xử lý',views:['Đơn mua đang xử lý','Chờ duyệt','Của tôi','Tất cả đơn mua'],count:'37',newLabel:'PO mới',
