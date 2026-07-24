@@ -275,6 +275,8 @@ a:hover{text-decoration:underline}
 .po-merge-prev .po-line{color:var(--ink)}
 .fee-inc{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:10px;font-size:12.5px}
 .fee-inc-t{font-weight:700;margin-bottom:4px;color:var(--ink)}
+.oppo-status-strip{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:8px;font-size:13px}
+.oppo-status-strip>span{display:inline-flex;align-items:center;gap:6px}
 .fr-filters{display:flex;gap:14px;flex-wrap:wrap;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-bottom:10px}
 .fr-f{display:flex;flex-direction:column;gap:3px}
 .fr-f label{font-size:11px;color:var(--txt-mut);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
@@ -657,6 +659,12 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     </div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="confirmApprove(false)">Từ chối</button><button class="btn pri" onclick="confirmApprove(true)">Phê duyệt</button></div></div>
   </div>
+  <!-- Modal trình duyệt (Opportunity PO: chọn cấp trình duyệt) -->
+  <div class="modal-back" id="submitback" onclick="closeSubmitModal()" style="z-index:135"></div>
+  <div class="po-modal" id="submitmodal" style="z-index:140;width:min(600px,94vw)">
+    <div class="pm-head"><h3 id="submit-title">Trình duyệt</h3><button title="Đóng" onclick="closeSubmitModal()">✕</button></div>
+    <div class="pm-body" id="submit-body"></div>
+  </div>
   <!-- Modal tạo Sample Request -->
   <div class="modal-back" id="srback" onclick="closeSampleModal()" style="z-index:135"></div>
   <div class="po-modal" id="srmodal" style="z-index:140;width:min(640px,94vw)">
@@ -991,6 +999,46 @@ function exportContractPDF(){
 function openApproveModal(){ const r=document.getElementById('appr-reason'); if(r) r.value=''; document.getElementById('apprback').classList.add('show'); document.getElementById('apprmodal').classList.add('show'); if(r) setTimeout(()=>r.focus(),50); }
 function closeApproveModal(){ const b=document.getElementById('apprback'),m=document.getElementById('apprmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
 function confirmApprove(ok){ const reason=(document.getElementById('appr-reason').value||'').trim(); if(!reason){ toast('Nhập lý do trước khi '+(ok?'phê duyệt':'từ chối')); document.getElementById('appr-reason').focus(); return; } closeApproveModal(); toast((ok?'✓ Đã phê duyệt':'✗ Đã từ chối')+' · Lý do: '+reason); }
+/* --- Trình duyệt Opportunity PO (chọn cấp) --- */
+const OPPO_QUOTES=[
+  {no:'QUO-0451', date:'12/07/2026', val:'1.470.000.000 ₫', st:'Đã gửi'},
+  {no:'QUO-0448', date:'05/07/2026', val:'1.420.000.000 ₫', st:'Hết hiệu lực'},
+];
+function closeSubmitModal(){ const b=document.getElementById('submitback'),m=document.getElementById('submitmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
+function openSubmitModal(){
+  document.getElementById('submit-title').textContent='Trình duyệt';
+  document.getElementById('submit-body').innerHTML=`
+    <p class="po-hint">Chọn cấp trình duyệt cho Opportunity PO.</p>
+    <div style="display:grid;gap:10px">
+      <button class="btn" style="text-align:left;padding:12px;height:auto" onclick="submitPick('kh')"><b>📋 Trình duyệt Bộ phận Kế hoạch - Kho vận</b><div class="wf-muted" style="font-size:12px;margin-top:2px;font-weight:400">Kiểm tra điều kiện sản xuất (ghép khổ, máy xeo) & tồn kho</div></button>
+      <button class="btn" style="text-align:left;padding:12px;height:auto" onclick="submitPick('tgd')"><b>👔 Trình duyệt Tổng Giám Đốc</b><div class="wf-muted" style="font-size:12px;margin-top:2px;font-weight:400">Duyệt cuối · chọn Báo giá đính kèm khi trình</div></button>
+    </div>`;
+  document.getElementById('submitback').classList.add('show'); document.getElementById('submitmodal').classList.add('show');
+}
+function submitPick(kind){
+  const body=document.getElementById('submit-body');
+  if(kind==='kh'){
+    document.getElementById('submit-title').textContent='Trình duyệt · Kế hoạch - Kho vận';
+    body.innerHTML=`
+      <p class="po-hint">Trình Bộ phận Kế hoạch - Kho vận kiểm tra điều kiện sản xuất & tồn kho.</p>
+      <label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Ghi chú</label>
+      <textarea id="submit-note" class="mass-sel" style="width:100%;min-height:80px;resize:vertical" placeholder="VD: Đề nghị kiểm tra ghép khổ máy xeo 2 & xác nhận tồn kho giao 70%…"></textarea>
+      <div class="pm-actions" style="margin-top:14px"><button class="btn" onclick="openSubmitModal()">← Quay lại</button><button class="btn pri" onclick="confirmSubmit('kh')">Trình duyệt</button></div>`;
+  } else {
+    document.getElementById('submit-title').textContent='Trình duyệt · Tổng Giám Đốc';
+    body.innerHTML=`
+      <p class="po-hint">Chọn Báo giá đính kèm để trình Tổng Giám Đốc duyệt.</p>
+      <div class="tbl-wrap"><table class="tbl sm"><thead><tr><th></th><th>Số báo giá</th><th>Ngày tạo</th><th class="num">Giá trị</th><th>Trạng thái</th></tr></thead><tbody>
+        ${OPPO_QUOTES.map((q,i)=>`<tr><td><input type="radio" name="submit-quote" value="${i}" ${i===0?'checked':''}></td><td>${q.no}</td><td>${q.date}</td><td class="num">${q.val}</td><td>${q.st}</td></tr>`).join('')}
+      </tbody></table></div>
+      <div class="pm-actions" style="margin-top:14px"><button class="btn" onclick="openSubmitModal()">← Quay lại</button><button class="btn pri" onclick="confirmSubmit('tgd')">Trình duyệt</button></div>`;
+  }
+}
+function confirmSubmit(kind){
+  closeSubmitModal();
+  if(kind==='kh'){ toast('✓ Đã trình Bộ phận Kế hoạch - Kho vận duyệt điều kiện SX & tồn kho'); }
+  else { const r=document.querySelector('input[name=submit-quote]:checked'); const q=OPPO_QUOTES[r?+r.value:0]; toast('✓ Đã trình Tổng Giám Đốc duyệt · kèm Báo giá '+q.no); }
+}
 
 /* ===== Sales Contract (NK): tạo PO từ hợp đồng + related list PO ===== */
 let IMPOS=[{no:'PO-NK-0088', ncc:'Recycling Corp USA', item:'Giấy OCC', qty:'800 tấn', val:'$168.000', status:'Đã duyệt'}];
@@ -2462,10 +2510,17 @@ S.oppo = ()=> appnav('Bán hàng nội địa','Opportunity PO',TAB_SALES,'Oppor
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="oppo_list">Opportunity PO</span> &rsaquo;',ico:'📄',color:'#0176d3',title:'Cty Hưng Thịnh — PO Medium Q3',sub:'Opportunity PO · 1.180.000.000 ₫ · Đóng dự kiến 30/07/2026',
      fields:[['Giá trị','1.180.000.000 ₫'],['Giai đoạn',pill('info','Đã duyệt PO & Chờ xử lý')],['Xác suất','70%'],['Phụ trách','Trần Thị B']],
-     actions:[{t:'Tạo báo giá',pri:true,fn:'openQuoteModal()'},{t:'Tạo đơn hàng (PO)',fn:"go('oppo')"},{t:'Tạo Case',fn:'createCaseQuick()'},{t:'Phê duyệt',fn:'openApproveModal()'},'Sửa']})}
+     actions:[{t:'Tạo báo giá',pri:true,fn:'openQuoteModal()'},{t:'Tạo đơn hàng (PO)',fn:"go('oppo')"},{t:'Tạo Case',fn:'createCaseQuick()'},{t:'Trình duyệt',fn:'openSubmitModal()'},'Sửa']})}
+   <div class="oppo-status-strip">
+     <span><b>Trạng thái công nợ:</b> ${pill('warn','Nợ 15–30 ngày · quá hạn 420.000.000 ₫ · chỉ giao 70% hàng')}</span>
+     <span><b>Tồn kho:</b> ${pill('ok','Đủ tồn giao 70% · thiếu 30% đưa vào KHSX')}</span>
+   </div>
    ${path(['Tiếp nhận PO','Kiểm tra PO','Đã duyệt PO & Chờ xử lý','Closed Won PO'],2)}
    <div class="cols-side act-tab">
      <div>
+     ${card('Báo giá', tbl([{t:'Số báo giá'},{t:'Ngày tạo'},{t:'Giá trị',num:true},{t:'Trạng thái'}],[
+       ['<a data-go="quote">QUO-0451</a>','12/07/2026','1.470.000.000 ₫',pill('ok','Đã gửi')],
+       ['<a data-go="quote">QUO-0448</a>','05/07/2026','1.420.000.000 ₫',pill('mut','Hết hiệu lực')]]),{n:'2',r:'<button class="btn sm" onclick="openQuoteModal()">＋ Tạo báo giá</button>'})}
      ${card('Chi tiết Opportunity PO', fg([['Tên Opportunity','Cty Hưng Thịnh — PO Medium Q3'],
        ['Khách hàng','Cty Hưng Thịnh Phát','link','account'],['Mã PO khách','PO-KH-8842'],
        ['Số lượng dự kiến','120 tấn'],
