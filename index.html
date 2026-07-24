@@ -910,29 +910,17 @@ function openSampleModal(){
     `<p class="po-hint">Tạo Sample Request trực tiếp từ Cơ hội của khách hàng.</p>
      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
        <div>${lab('Sản phẩm quan tâm *')}<input id="sr-prod" class="mass-sel" value="Giấy Medium 125gsm"></div>
-       <div>${lab('Loại mẫu *')}<select id="sr-type" class="mass-sel" onchange="toggleSampleType()"><option>Mẫu có sẵn</option><option>Mẫu tuỳ chỉnh</option></select></div>
+       <div>${lab('Loại mẫu *')}<select id="sr-type" class="mass-sel"><option>Mẫu có sẵn</option></select></div>
        <div>${lab('Người nhận *')}<input id="sr-recv" class="mass-sel" value="Ông Trần Q"></div>
        <div>${lab('Số lượng yêu cầu *')}<input id="sr-qty" class="mass-sel" value="5 cuộn mẫu"></div>
      </div>
-     <div style="margin-top:10px">${lab('Địa chỉ nhận hàng *')}<input id="sr-addr" class="mass-sel" style="width:100%" value="KCN Bình Dương"></div>
-     <div id="sr-custom" style="display:none;margin-top:12px;border-top:1px solid var(--line);padding-top:10px">
-       <div class="wf-muted" style="font-size:12px;font-weight:700;margin-bottom:6px">Thông số mẫu tuỳ chỉnh (bắt buộc)</div>
-       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-         <div>${lab('Grammage (Định lượng yêu cầu) *')}<input id="sr-gram" class="mass-sel" placeholder="VD: 130 gsm"></div>
-         <div>${lab('Width (Khổ giấy yêu cầu) *')}<input id="sr-width" class="mass-sel" placeholder="VD: 1.600 mm"></div>
-       </div>
-       <div style="margin-top:10px">${lab('Customer Requirement (Mô tả kỹ thuật) *')}<textarea id="sr-req" class="mass-sel" style="width:100%;min-height:64px" placeholder="Độ bục, bề mặt in, độ ẩm…"></textarea></div>
-     </div>`;
-  document.getElementById('srback').classList.add('show'); document.getElementById('srmodal').classList.add('show'); toggleSampleType();
+     <div style="margin-top:10px">${lab('Địa chỉ nhận hàng *')}<input id="sr-addr" class="mass-sel" style="width:100%" value="KCN Bình Dương"></div>`;
+  document.getElementById('srback').classList.add('show'); document.getElementById('srmodal').classList.add('show');
 }
-function toggleSampleType(){ const c=document.getElementById('sr-custom'),t=document.getElementById('sr-type'); if(c&&t) c.style.display=/tuỳ chỉnh/.test(t.value)?'':'none'; }
 function closeSampleModal(){ const b=document.getElementById('srback'),m=document.getElementById('srmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
 function confirmSample(){
-  const custom=/tuỳ chỉnh/.test(document.getElementById('sr-type').value);
-  if(custom){ if(!(document.getElementById('sr-gram').value||'').trim()||!(document.getElementById('sr-width').value||'').trim()||!(document.getElementById('sr-req').value||'').trim()){ toast('Mẫu tuỳ chỉnh: nhập đủ Grammage, Width, Customer Requirement'); return; } }
   closeSampleModal();
-  if(custom){ toast('Đã tạo Sample Request (Mẫu tuỳ chỉnh) — gửi P.CN & QA đánh giá khả thi'); setTimeout(function(){ if(S.sample_c) go('sample_c'); },700); }
-  else { toast('Đã tạo Sample Request (Mẫu có sẵn) — Mới gửi · đã tạo Task cho Kho chuẩn bị mẫu'); setTimeout(function(){ if(S.sample) go('sample'); },700); }
+  toast('Đã tạo Sample Request (Mẫu có sẵn) — Mới gửi · đã tạo Task cho Kho chuẩn bị mẫu'); setTimeout(function(){ if(S.sample) go('sample'); },700);
 }
 function approveFeasible(){ toast('P.CN & QA: Đã bấm "Duyệt khả thi" — mẫu tuỳ chỉnh khả thi chạy máy xeo'); }
 let CONTRACT_FILES=[
