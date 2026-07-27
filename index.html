@@ -1308,14 +1308,14 @@ S.sample_list = ()=> appnav('Bán hàng nội địa','Sample Request',TAB_SALES
 S.sample = ()=> appnav('Bán hàng nội địa','Cơ hội',TAB_SALES,'Cơ hội')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="opp">Cơ hội</span> &rsaquo; Sample Request',ico:'🧪',color:'#0176d3',title:'SR-0207 · Giấy Medium 125gsm',sub:'Sample Request · Mẫu có sẵn · Cty Hưng Thịnh',
-     fields:[['Loại mẫu','Mẫu có sẵn'],['Trạng thái',pill('info','Chờ phản hồi')],['Số lượng','5 cuộn mẫu'],['Người nhận','Ông Trần Q']],
-     actions:[{t:'Cập nhật: Đạt',pri:true},'Không đạt','Sửa']})}
-   ${path(['Mới gửi','Chờ phản hồi','Đánh giá mẫu thử','Đạt'],1)}
+     fields:[['Loại mẫu','Mẫu có sẵn'],['Trạng thái',pill('info','Chờ P.CN & QA duyệt')],['Số lượng','5 cuộn mẫu'],['Người nhận','Ông Trần Q']],
+     actions:[{t:'Gửi P.CN & QA duyệt',pri:true},'Duyệt khả thi','Tạo báo giá','Sửa']})}
+   ${path(['Mới','Chờ P.CN & QA duyệt','Duyệt khả thi','Báo giá mẫu thử','Tiếp nhận PO mẫu thử','SO mẫu thử','Đạt','Không đạt'],1)}
    <div class="cols-side act-tab">
      <div>
      ${card('Chi tiết Sample Request', fg([['Sản phẩm quan tâm','Giấy Medium 125gsm','link','product'],['Loại mẫu','Mẫu có sẵn'],
        ['Người nhận','Ông Trần Q (Cty Hưng Thịnh)'],['Địa chỉ nhận hàng','KCN Bình Dương'],['Số lượng yêu cầu','5 cuộn mẫu'],
-       ['Cơ hội','Cty Hưng Thịnh — Medium Q3','link','opp'],['Trạng thái','Chờ phản hồi']]))}
+       ['Cơ hội','Cty Hưng Thịnh — Medium Q3','link','opp'],['Trạng thái','Chờ P.CN & QA duyệt']]))}
      </div>
      ${activity([['📋','Task: Kho chuẩn bị & gửi mẫu chuẩn','Được giao Kho · Cần xử lý'],['📤','Đã gửi mẫu cho khách hàng','Sales · Hôm nay']])}
    </div>
