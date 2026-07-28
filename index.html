@@ -2808,7 +2808,7 @@ const PB_DELTAS={
   'M1S-125':[100,200,-50,-150,-250,120],
 };
 const pbFmt=n=> (typeof n==='number'? n.toLocaleString('vi-VN')+' ₫':'—');
-function pbDelta(d){ return `<span style="color:${d>0?'var(--err)':(d<0?'var(--ok,#2e844a)':'inherit')};font-weight:600">${d>0?'▲ +':(d<0?'▼ ':'')}${d.toLocaleString('vi-VN')}</span>`; }
+function pbDelta(d){ return (d>0?'+':'')+d.toLocaleString('vi-VN'); }
 function pbCustoms(code){ const out=[]; PB_PRODUCTS.forEach(p=>{ if(code&&p.code!==code) return; PB_MONTHS.forEach((m,i)=>{ const d=PB_DELTAS[p.code][i]; out.push({id:'PBEC-'+p.code+'-T'+(i+1), code:p.code, name:p.name, base:p.base, m:m, mi:i, delta:d, custom:p.base+d, date:'01/'+(i+1<10?'0':'')+(i+1)+'/2026'}); }); }); return out; }
 
 S.pbe_list = ()=> appnav('Dữ liệu nền tảng','Price Book Entry',TAB_MD,'Price Book Entry')
