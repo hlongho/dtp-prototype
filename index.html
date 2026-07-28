@@ -2830,8 +2830,8 @@ S.pbe = ()=> appnav('Dữ liệu nền tảng','Price Book Entry',TAB_MD,'Price 
  </div>`; })();
 S.pbec_list = ()=> appnav('Dữ liệu nền tảng','Bảng giá custom',TAB_MD,'Bảng giá custom')
  + `<div class="sf-body">${lv({crumb:'Bảng giá custom (Price Book Entry Custom)',ico:'📈',color:'#5867e8',object:'Price Book Entry Custom',view:'Theo tháng',views:['Theo tháng','Tháng hiện tại','Tất cả'],count:String(pbCustoms().length),newLabel:'Giá custom mới',
-   cols:[{t:'Mã'},{t:'Price Book Entry (SP)'},{t:'Tháng áp dụng'},{t:'Ngày áp dụng'},{t:'Giá chuẩn',num:true},{t:'Giá lệch',num:true},{t:'Giá custom',num:true},{t:'Active'}],
-   rows:pbCustoms().map(c=>({go:'pbec',cells:[c.id,c.name,c.m+'/2026',c.date,pbFmt(c.base),pbDelta(c.delta),pbFmt(c.custom),'✓']}))})}</div>`;
+   cols:[{t:'Mã'},{t:'Sản phẩm (Product2)'},{t:'Bảng giá (Pricebook2)'},{t:'Tháng áp dụng'},{t:'Ngày áp dụng'},{t:'Giá chuẩn',num:true},{t:'Giá lệch',num:true},{t:'Giá custom',num:true},{t:'Active'}],
+   rows:pbCustoms().map(c=>({go:'pbec',cells:[c.id,c.name,'Bảng giá chuẩn DTP 2026',c.m+'/2026',c.date,pbFmt(c.base),pbDelta(c.delta),pbFmt(c.custom),'✓']}))})}</div>`;
 S.pbec = ()=> appnav('Dữ liệu nền tảng','Bảng giá custom',TAB_MD,'Bảng giá custom')
  + (()=>{ const c=pbCustoms('M1S-125')[0];
    return `<div class="sf-body narrow">
@@ -2841,9 +2841,11 @@ S.pbec = ()=> appnav('Dữ liệu nền tảng','Bảng giá custom',TAB_MD,'B�
    <div class="cols-side act-tab">
      <div>
      ${card('Chi tiết Price Book Entry Custom', fg([['Mã',c.id],
-       ['Price Book Entry (lookup)',c.name+' · giá chuẩn '+pbFmt(c.base),'link','pbe'],
-       ['Sản phẩm',c.name],['Tháng áp dụng',c.m+'/2026'],['Ngày áp dụng giá custom',c.date],
-       ['Giá chuẩn (từ Price Book Entry)',pbFmt(c.base)],
+       ['Sản phẩm (Product2 · lookup)',c.name,'link','product'],
+       ['Bảng giá (Pricebook2 · lookup)','Bảng giá chuẩn DTP 2026','link','pricebook'],
+       ['Price Book Entry tương ứng (suy ra từ Product2 + Pricebook2)',c.name+' · '+pbFmt(c.base),'link','pbe'],
+       ['Tháng áp dụng',c.m+'/2026'],['Ngày áp dụng giá custom',c.date],
+       ['Giá chuẩn (list price từ Product2 + Pricebook2)',pbFmt(c.base)],
        ['Giá lệch so với giá chuẩn',(c.delta>0?'+':'')+c.delta.toLocaleString('vi-VN')+' ₫/kg'],
        ['Giá custom (= chuẩn + lệch)',pbFmt(c.custom)],
        ['% thay đổi',(c.delta>0?'+':'')+(c.delta/c.base*100).toFixed(2)+'%'],
