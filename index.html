@@ -2873,14 +2873,23 @@ function priceChartSVG(){
 function priceReportRows(){
   return PB_PRODUCTS.map(p=>`<tr><td>${p.name}</td><td class="num">${p.base.toLocaleString('vi-VN')}</td>${PB_MONTHS.map((m,i)=>{const d=PB_DELTAS[p.code][i];return `<td class="num">${(p.base+d).toLocaleString('vi-VN')}<div style="font-size:10px">${pbDelta(d)}</div></td>`;}).join('')}</tr>`).join('');
 }
+function priceMatrix(){
+  const chip=(l,v)=>`<span style="display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line-2);border-radius:14px;padding:3px 10px;font-size:12px"><b class="wf-muted" style="font-weight:600">${l}</b> ${v}</span>`;
+  const cfg=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${chip('🔎 Filters','Năm = 2026 · Active = ✓')}${chip('⤵ Group Rows','Sản phẩm (Product Name)')}${chip('⤵ Group Columns','Ngày áp dụng — theo Tháng')}${chip('∑ Summarize','Giá custom (Sum)')}${chip('📈 Chart','Line')}</div>`;
+  const colAvg=PB_MONTHS.map((m,i)=>Math.round(PB_PRODUCTS.reduce((s,p)=>s+p.base+PB_DELTAS[p.code][i],0)/PB_PRODUCTS.length));
+  const body=PB_PRODUCTS.map(p=>{ const vals=PB_MONTHS.map((m,i)=>p.base+PB_DELTAS[p.code][i]); const tb=Math.round(vals.reduce((a,b)=>a+b,0)/vals.length);
+    return `<tr><td style="font-weight:600">${p.name}</td>${vals.map((v,i)=>`<td class="num">${v.toLocaleString('vi-VN')}<div style="font-size:10px">${pbDelta(PB_DELTAS[p.code][i])}</div></td>`).join('')}<td class="num" style="background:var(--bg)"><b>${tb.toLocaleString('vi-VN')}</b></td></tr>`; }).join('');
+  const tot=`<tr style="font-weight:700;background:#eef4fb"><td>Trung bình cột (Grand Total)</td>${colAvg.map(v=>`<td class="num">${v.toLocaleString('vi-VN')}</td>`).join('')}<td class="num">—</td></tr>`;
+  return cfg+`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Sản phẩm ＼ Tháng</th>${PB_MONTHS.map(m=>`<th class="num">${m}/2026</th>`).join('')}<th class="num">TB (₫/kg)</th></tr></thead><tbody>${body}${tot}</tbody></table></div>`;
+}
 S.pricerpt = ()=> appnav('Dữ liệu nền tảng','Biến động giá',TAB_MD,'Biến động giá')
  + `<div class="sf-body">
-   ${hl({crumb:'Báo cáo biến động giá',ico:'📈',color:'#5867e8',title:'Biến động giá bán theo tháng — các loại giấy',sub:'Độ tăng/giảm giá custom so với giá chuẩn (list price) qua các tháng',
-     fields:[['Kỳ','T1 → T6/2026'],['Số sản phẩm',String(PB_PRODUCTS.length)],['ĐVT','₫/kg'],['Nguồn','Price Book Entry Custom']],actions:[{t:'Xuất báo cáo',pri:true},'Đổi kỳ']})}
-   ${card('Xu hướng giá bán theo tháng (Line chart)', priceChartSVG())}
-   ${card('Bảng giá custom theo tháng (₫/kg · kèm chênh lệch so giá chuẩn)',
-     `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Sản phẩm</th><th class="num">Giá chuẩn</th>${PB_MONTHS.map(m=>`<th class="num">${m}/2026</th>`).join('')}</tr></thead><tbody>${priceReportRows()}</tbody></table></div>
-      <div class="po-hint">Mỗi ô = giá custom (= giá chuẩn + chênh lệch của tháng). <span style="color:var(--err)">▲ đỏ</span> = tăng so giá chuẩn, <span style="color:var(--ok,#2e844a)">▼ xanh</span> = giảm. Nguồn: object Price Book Entry Custom.</div>`)}
+   ${hl({crumb:'Reports &rsaquo; Giá',ico:'📊',color:'#5867e8',title:'Biến động giá bán theo tháng — các loại giấy',sub:'Standard Report · Matrix · Report Type: Price Book Entry Custom',
+     fields:[['Report Type','Price Book Entry Custom'],['Format','Matrix'],['Folder','Giá & Bảng giá'],['Loại','Standard Report']],actions:[{t:'Edit (Report Builder)',pri:true},'Save As','Export','Subscribe']})}
+   ${banner('info','Đây là <b>Standard Report</b> của Salesforce — dựng bằng Report Builder, <b>không customize/code</b>. Cấu hình: Report Type = <b>Price Book Entry Custom</b> · Group Rows = <b>Sản phẩm</b> · Group Columns = <b>Ngày áp dụng (theo Tháng)</b> · Summarize = <b>Giá custom (Sum)</b> · Chart = <b>Line</b>. Có thể kéo Report Chart này lên Dashboard hoặc record page (App Builder) mà không cần code.')}
+   ${card('Report Chart · Line (giá custom ₫/kg theo tháng)', priceChartSVG())}
+   ${card('Matrix Report — Giá custom theo Sản phẩm × Tháng', priceMatrix()
+     + `<div class="po-hint">Mỗi ô = <b>Sum(Giá custom)</b> theo Sản phẩm × Tháng (mỗi tháng 1 bản ghi Price Book Entry Custom). <span style="color:var(--err)">▲ đỏ</span> = tăng, <span style="color:var(--ok,#2e844a)">▼ xanh</span> = giảm so với giá chuẩn. Toàn bộ do Report Builder tổng hợp — không có code tùy chỉnh.</div>`)}
  </div>`;
 S.pricebook_list = ()=> appnav('Dữ liệu nền tảng','Bảng giá',TAB_MD,'Bảng giá')
  + `<div class="sf-body">${lv({crumb:'Price Book',ico:'₫',color:'#5867e8',object:'Price Book',view:'Tất cả bảng giá',views:['Tất cả bảng giá','Đang kích hoạt'],count:'2',newLabel:'Price Book mới',
