@@ -1138,7 +1138,13 @@ const NAV = [
    ['imcontract','↳ Chi tiết Contract (đa tiền tệ)','','record'],
    ['shipment_list','Shipment','Logistics','list'],
    ['shipment','↳ Theo dõi shipment (Free time/Dem-Det)','','record'],
-   ['claimrpt','Theo dõi Claim / Khiếu nại','XNK / Kế toán','list']]},
+   ['claimrpt','Theo dõi Claim / Khiếu nại','XNK / Kế toán','list'],
+   ['payment_list','Payment (Kế hoạch TT)','Kế toán / XNK','list'],
+   ['payment','↳ Chi tiết Payment','','record'],
+   ['pterm_list','Payment Term (Phương thức TT)','Kế toán / XNK','list'],
+   ['pterm','↳ Chi tiết Payment Term','','record'],
+   ['pitem_list','Payment Term Item','Kế toán / XNK','list'],
+   ['pitem','↳ Chi tiết Payment Term Item','','record']]},
  {g:'Khiếu nại', items:[
    ['case_list','Case khiếu nại','CSKH','list'],
    ['case','↳ Chi tiết Case — Bán hàng trong nước','','record'],
@@ -2127,6 +2133,101 @@ S.matinv = ()=> appnav('Mua nhập khẩu','Cảnh báo tồn kho',TAB_IM,'Kế 
    </div>
  </div>`;
 
+/* ===== Payment / Payment Term / Payment Term Item (Mua hàng nhập khẩu) ===== */
+const PAY_TERMS=[
+  {id:'PT-01',ten:'Trước khi giao hàng 100%',th:'Hàng có sẵn',hd:'Báo giá / Hợp đồng',dot:1,mota:'TT 100% trước khi giao hàng — theo ngày ký duyệt báo giá/HĐ'},
+  {id:'PT-02',ten:'Thanh toán 7–15 ngày sau giao hàng',th:'Hàng có sẵn',hd:'HĐ nguyên tắc',dot:1,mota:'TT 100% trong 7–15 ngày sau giao hàng (theo ngày hóa đơn)'},
+  {id:'PT-03',ten:'Net theo ngày hóa đơn 30/45/60/90 ngày',th:'Hàng có sẵn',hd:'HĐ nguyên tắc',dot:1,mota:'TT 100% theo ngày hóa đơn: 30 / 45 / 60 / 90 ngày'},
+  {id:'PT-04',ten:'Thanh toán ngay khi có hóa đơn',th:'Hàng có sẵn',hd:'Báo giá / Hợp đồng',dot:1,mota:'TT 100% ngay khi có hóa đơn'},
+  {id:'PT-05',ten:'Cọc 30% ký HĐ + 70% trước giao hàng',th:'Hàng sản xuất',hd:'HĐ mua bán',dot:2,mota:'2 đợt: cọc 30% sau khi ký HĐ, 70% còn lại trước giao hàng'},
+  {id:'PT-06',ten:'30% ký HĐ + 40% SX xong + 30% nghiệm thu',th:'Hàng sản xuất',hd:'HĐ mua bán',dot:3,mota:'3 đợt theo tiến độ sản xuất & nghiệm thu'},
+];
+// [mã đợt, payment term, đợt số, tỷ lệ %, mốc thời gian, điều chỉnh, diễn giải]
+const PAY_ITEMS=[
+  ['PTI-01-1','PT-01',1,100,'Ngày cần hàng (ký duyệt BG/HĐ)','-10 ngày','TT 100% trước giao hàng'],
+  ['PTI-02-1','PT-02',1,100,'Ngày hóa đơn','+7…15 ngày','TT 100% sau giao hàng 7–15 ngày'],
+  ['PTI-03-1','PT-03',1,100,'Ngày hóa đơn','+30/45/60/90 ngày','TT 100% net theo ngày hóa đơn'],
+  ['PTI-04-1','PT-04',1,100,'Ngày hóa đơn','+0 ngày','TT 100% ngay khi có hóa đơn'],
+  ['PTI-05-1','PT-05',1,30,'Ngày ký hợp đồng','+0 ngày','Cọc 30% giá trị HĐ (gồm VAT) sau khi ký'],
+  ['PTI-05-2','PT-05',2,70,'Ngày giao hàng','-7 ngày','TT 70% còn lại — trước giao hàng 7 ngày'],
+  ['PTI-06-1','PT-06',1,30,'Ngày ký hợp đồng','+10 ngày','Đợt 1: 30% trong 10 ngày từ ngày ký HĐ'],
+  ['PTI-06-2','PT-06',2,40,'Ngày hàng SX xong','+0 ngày','Đợt 2: 40% khi thông báo hàng SX xong'],
+  ['PTI-06-3','PT-06',3,30,'Ngày nghiệm thu (hóa đơn)','+10 ngày','Đợt 3: 30% còn lại theo ngày nghiệm thu/hóa đơn'],
+];
+// [mã payment, số PO, NCC, mặt hàng, payment term, đợt, số tiền, số hóa đơn, ngày TT, trạng thái]
+const PAYMENTS=[
+  ['PAY-0771-1','46222','Quang Minh Kiều','Mền bạt lưới, hộp giảm tốc','PT-05','Đợt 1 · 30%',164208319,'D1-0106HĐTBDQMK','22/07/2026','Hoàn thành'],
+  ['PAY-0771-2','46222','Quang Minh Kiều','Mền bạt lưới, hộp giảm tốc','PT-05','Đợt 2 · 70%',383152745,'—','05/08/2026','Chờ thanh toán'],
+  ['PAY-0802-1','46310','Recycling Corp USA','Giấy OCC (US)','PT-01','Đợt 1 · 100%',4280000000,'INV-2026-041','08/08/2026','Chờ thanh toán'],
+  ['PAY-0655-1','46180','Andritz','Máy ép bùn trục vít','PT-06','Đợt 1 · 30%',573246769,'D1-0110HĐTBDAND','15/07/2026','Hoàn thành'],
+  ['PAY-0655-2','46180','Andritz','Máy ép bùn trục vít','PT-06','Đợt 2 · 40%',764329025,'—','—','Delay'],
+  ['PAY-0620-1','46150','Bình Phước','Tinh bột mì','PT-03','Đợt 1 · 100%',2995272000,'INV-0620','20/08/2026','Chờ thanh toán'],
+];
+const payMoney=n=> (typeof n==='number'? n.toLocaleString('vi-VN')+' ₫' : n);
+function payPill(s){ return s==='Hoàn thành'?pill('ok','Hoàn thành'):(s==='Delay'?pill('err','Delay'):pill('info','Chờ thanh toán')); }
+function ptNameOf(id){ const t=PAY_TERMS.find(x=>x.id===id); return t?t.ten:id; }
+
+S.payment_list = ()=> appnav('Mua hàng nhập khẩu','Payment',TAB_IM,'Payment')
+ + `<div class="sf-body">${lv({crumb:'Payment (Kế hoạch thanh toán)',ico:'💰',color:'#0b827c',object:'Payment (Kế hoạch thanh toán)',view:'Sắp đến hạn',views:['Sắp đến hạn','Chưa hoàn thành','Đã hoàn thành','Delay','Tất cả'],count:'6',newLabel:'Payment mới',
+   cols:[{t:'Mã Payment'},{t:'Số PO'},{t:'Nhà cung cấp'},{t:'Mặt hàng'},{t:'Phương thức TT'},{t:'Đợt'},{t:'Số tiền',num:true},{t:'Ngày TT'},{t:'Trạng thái'}],
+   rows:PAYMENTS.map(p=>({go:'payment',cells:[p[0],p[1],p[2],p[3],p[4],p[5],payMoney(p[6]),p[8],payPill(p[9])]}))})}</div>`;
+S.payment = ()=> appnav('Mua hàng nhập khẩu','Payment',TAB_IM,'Payment')
+ + (()=>{ const p=PAYMENTS[0], t=PAY_TERMS.find(x=>x.id===p[4]);
+   return `<div class="sf-body narrow">
+   ${hl({crumb:'<span data-go="payment_list">Payment</span> &rsaquo;',ico:'💰',color:'#0b827c',title:p[0]+' · '+p[2],sub:'Kế hoạch thanh toán · PO '+p[1]+' · '+p[5],
+     fields:[['Số tiền',payMoney(p[6])],['Phương thức TT',p[4]],['Ngày thanh toán',p[8]],['Trạng thái',payPill(p[9])]],
+     actions:[{t:'Đánh dấu đã thanh toán',pri:true},{t:'Dời lịch (delay)'},'Sửa']})}
+   ${path(['Lập kế hoạch','Chờ thanh toán','Hoàn thành'],1)}
+   <div class="cols-side act-tab">
+     <div>
+     ${card('Chi tiết Payment', fg([['Mã Payment',p[0]],['Số PO',p[1]],['Nhà cung cấp',p[2],'link','vendor'],['Mặt hàng',p[3]],
+       ['Phương thức thanh toán ('+p[4]+')',t?t.ten:p[4],'link','pterm'],['Đợt thanh toán',p[5]],
+       ['Số tiền',payMoney(p[6])],['Số hóa đơn',p[7]],['Ngày thanh toán',p[8]],['Trạng thái',p[9]],['Lịch delay tiếp theo','—']]))}
+     ${card('Các đợt của phương thức '+p[4]+' (Payment Term Item)', tbl([{t:'Mã đợt'},{t:'Đợt'},{t:'Tỷ lệ %',num:true},{t:'Mốc thời gian'},{t:'Điều chỉnh'}],
+       PAY_ITEMS.filter(x=>x[1]===p[4]).map(x=>['<a data-go="pitem">'+x[0]+'</a>','Đợt '+x[2],x[3]+'%',x[4],x[5]])),{n:String(PAY_ITEMS.filter(x=>x[1]===p[4]).length)})}
+     </div>
+     ${activity([['💰','Lập kế hoạch thanh toán từ Payment Term '+p[4],'Kế toán · Hôm nay'],['✅','Đợt 1 đã thanh toán','22/07/2026']])}
+   </div>
+ </div>`; })();
+S.pterm_list = ()=> appnav('Mua hàng nhập khẩu','Payment Term',TAB_IM,'Payment Term')
+ + `<div class="sf-body">${lv({crumb:'Payment Term (Phương thức thanh toán)',ico:'📋',color:'#0b827c',object:'Payment Term (Phương thức thanh toán)',view:'Tất cả phương thức',views:['Tất cả phương thức','Hàng có sẵn','Hàng sản xuất'],count:String(PAY_TERMS.length),newLabel:'Payment Term mới',
+   cols:[{t:'Mã'},{t:'Tên phương thức thanh toán'},{t:'Trường hợp'},{t:'Loại hợp đồng'},{t:'Số đợt',num:true}],
+   rows:PAY_TERMS.map(t=>({go:'pterm',cells:[t.id,t.ten,t.th,t.hd,String(t.dot)]}))})}</div>`;
+S.pterm = ()=> appnav('Mua hàng nhập khẩu','Payment Term',TAB_IM,'Payment Term')
+ + (()=>{ const t=PAY_TERMS.find(x=>x.id==='PT-05');
+   return `<div class="sf-body narrow">
+   ${hl({crumb:'<span data-go="pterm_list">Payment Term</span> &rsaquo;',ico:'📋',color:'#0b827c',title:t.id+' · '+t.ten,sub:'Phương thức thanh toán · '+t.th+' · '+t.hd,
+     fields:[['Trường hợp',t.th],['Loại hợp đồng',t.hd],['Số đợt',String(t.dot)],['Trạng thái',pill('ok','Đang áp dụng')]],
+     actions:[{t:'Thêm đợt (Payment Term Item)',pri:true,fn:"go('pitem')"},'Sửa']})}
+   <div class="cols-side act-tab">
+     <div>
+     ${card('Chi tiết Payment Term', fg([['Mã',t.id],['Tên phương thức thanh toán',t.ten],['Trường hợp',t.th],['Loại hợp đồng',t.hd],['Số đợt',String(t.dot)],['Mô tả',t.mota],['Trạng thái','Đang áp dụng']]))}
+     ${card('Payment Term Item (các đợt thanh toán)', tbl([{t:'Mã đợt'},{t:'Đợt'},{t:'Tỷ lệ %',num:true},{t:'Mốc thời gian'},{t:'Điều chỉnh'},{t:'Diễn giải'}],
+       PAY_ITEMS.filter(x=>x[1]===t.id).map(x=>['<a data-go="pitem">'+x[0]+'</a>','Đợt '+x[2],x[3]+'%',x[4],x[5],x[6]])),{n:String(PAY_ITEMS.filter(x=>x[1]===t.id).length),r:'<button class="btn sm" onclick="go(\'pitem\')">＋ Thêm đợt</button>'})}
+     ${card('Payment (kế hoạch TT dùng phương thức này)', tbl([{t:'Mã Payment'},{t:'Số PO'},{t:'Đợt'},{t:'Số tiền',num:true},{t:'Ngày TT'},{t:'Trạng thái'}],
+       PAYMENTS.filter(p=>p[4]===t.id).map(p=>['<a data-go="payment">'+p[0]+'</a>',p[1],p[5],payMoney(p[6]),p[8],payPill(p[9])])),{n:String(PAYMENTS.filter(p=>p[4]===t.id).length)})}
+     </div>
+     ${activity([['📋','Khai báo phương thức thanh toán','Kế toán'],['🔗','Áp dụng cho PO 46222','Hôm nay']])}
+   </div>
+ </div>`; })();
+S.pitem_list = ()=> appnav('Mua hàng nhập khẩu','Payment Term Item',TAB_IM,'Payment Term Item')
+ + `<div class="sf-body">${lv({crumb:'Payment Term Item (Đợt thanh toán)',ico:'🧾',color:'#0b827c',object:'Payment Term Item',view:'Tất cả',views:['Tất cả','Theo phương thức'],count:String(PAY_ITEMS.length),newLabel:'Item mới',
+   cols:[{t:'Mã đợt'},{t:'Payment Term'},{t:'Đợt',num:true},{t:'Tỷ lệ %',num:true},{t:'Mốc thời gian'},{t:'Điều chỉnh'},{t:'Diễn giải'}],
+   rows:PAY_ITEMS.map(x=>({go:'pitem',cells:[x[0],x[1]+' · '+ptNameOf(x[1]),String(x[2]),x[3]+'%',x[4],x[5],x[6]]}))})}</div>`;
+S.pitem = ()=> appnav('Mua hàng nhập khẩu','Payment Term Item',TAB_IM,'Payment Term Item')
+ + (()=>{ const x=PAY_ITEMS.find(i=>i[0]==='PTI-05-1');
+   return `<div class="sf-body narrow">
+   ${hl({crumb:'<span data-go="pitem_list">Payment Term Item</span> &rsaquo;',ico:'🧾',color:'#0b827c',title:x[0]+' · Đợt '+x[2]+' — '+x[3]+'%',sub:'Đợt thanh toán thuộc Payment Term '+x[1],
+     fields:[['Payment Term',x[1]],['Đợt',String(x[2])],['Tỷ lệ %',x[3]+'%'],['Mốc thời gian',x[4]]],
+     actions:[{t:'Sửa',pri:true}]})}
+   <div class="cols-side act-tab">
+     <div>
+     ${card('Chi tiết Payment Term Item', fg([['Mã đợt',x[0]],['Payment Term ('+x[1]+')',ptNameOf(x[1]),'link','pterm'],['Đợt số',String(x[2])],
+       ['Tỷ lệ % giá trị',x[3]+'%'],['Mốc thời gian',x[4]],['Điều chỉnh (số ngày)',x[5]],['Diễn giải',x[6]]]))}
+     </div>
+     ${activity([['🧾','Khai báo đợt thanh toán','Kế toán']])}
+   </div>
+ </div>`; })();
 S.imcontract = ()=> appnav('Mua nhập khẩu','Sales Contract',TAB_IM,'Sales Contract')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="imcontract_list">Sales Contract (NK)</span> &rsaquo;',ico:'💱',color:'#0b827c',title:'IC-2026-041 · OCC từ Mỹ',sub:'Đa tiền tệ · 800 tấn · Recycling Corp USA',
@@ -2487,7 +2588,7 @@ function lv({crumb,ico,color,object,view,count,cols,rows,newLabel,views,bulk,hea
 const TAB_SALES=['Trang chủ','Lead','Cơ hội','Báo giá','Sample Request','Opportunity PO','SO','Khách hàng','Case'];
 const TAB_EX=['Trang chủ','Báo giá XK','PO','Sales Contract','SO','Phiếu xuất kho','Kế hoạch SX','Chứng từ','Thanh toán','Cước Logistics'];
 const TAB_PUR=['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'];
-const TAB_IM=['Trang chủ','Kế hoạch NVL','Sales Contract','Shipment','Claim / Khiếu nại'];
+const TAB_IM=['Trang chủ','Kế hoạch NVL','Sales Contract','Shipment','Claim / Khiếu nại','Payment','Payment Term','Payment Term Item'];
 const TAB_MD=['Bảng giá','Hợp đồng','Sản phẩm','Khách hàng','NCC'];
 S.product_list = ()=> appnav('Dữ liệu nền tảng','Sản phẩm',TAB_MD,'Sản phẩm')
  + `<div class="sf-body">${lv({crumb:'Sản phẩm',ico:'📦',color:'#5867e8',object:'Sản phẩm (Product)',view:'Tất cả sản phẩm',count:'8',newLabel:'Sản phẩm mới',
@@ -3216,7 +3317,7 @@ const TAB2ID={'Trang chủ':'home','Lead':'lead_list','Cơ hội':'opp_list','B�
  'NCC':'vendor_list','Case':'case_list','Báo cáo':'reports','Dashboard':'reports','Cảnh báo':'reports',
  'Bảng giá':'pricebook_list','Hợp đồng':'contract_list','Sản phẩm':'product_list','Báo giá XK':'exquote_list','SO':'exso_list','Phiếu xuất kho':'issuenote_list','Chứng từ':'excontract_list',
  'Thanh toán':'lc','Cước Logistics':'freight','Thống kê ĐNMH':'rpt_dnmh','Doanh số 3 tháng':'rpt_sales3','Top 10 NCC':'rpt_ncctop','Đánh giá NCC':'rpt_ncceval','Phiếu yêu cầu':'pr_list','Đơn mua (PO)':'ppo_list','Kế hoạch NVL':'matinv',
- 'Shipment':'shipment_list','Knowledge':'case_list','Kế hoạch SX':'explan_list','Claim / Khiếu nại':'claimrpt'};
+ 'Shipment':'shipment_list','Knowledge':'case_list','Kế hoạch SX':'explan_list','Claim / Khiếu nại':'claimrpt','Payment':'payment_list','Payment Term':'pterm_list','Payment Term Item':'pitem_list'};
 function resolveTab(app,label){
   if(label==='Sales Contract') return app.includes('nhập khẩu')?'imcontract_list':'excontract_list';
   if(label==='SO') return app.includes('nội địa')?'so_list':'exso_list';
