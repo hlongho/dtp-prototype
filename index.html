@@ -2076,23 +2076,50 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
    </div>
  </div>`;
 
-S.matinv = ()=> appnav('Mua nhập khẩu','Kế hoạch NVL',['Trang chủ','Kế hoạch NVL','Sales Contract','Shipment'],'Kế hoạch NVL')
- + `<div class="sf-body narrow">
-   ${hl({crumb:'Kế hoạch mua NVL chính',ico:'🌐',color:'#0b827c',title:'NVL Giấy OCC — Cảnh báo tồn kho',sub:'Ra quyết định chốt lô nhập mới (BGĐ)',
-     fields:[['Tồn hiện tại','1.240 tấn'],['Đang về','800 tấn'],['Tổng khả dụng','2.040 tấn']],
-     actions:[]})}
-   <div class="cols-side act-tab">
-     <div>
-     ${card('Tồn kho NVL chính', tbl([{t:'NVL'},{t:'Tồn hiện tại',num:true},{t:'Đang về',num:true},{t:'Khả dụng',num:true},{t:'An toàn',num:true},{t:'Trạng thái'}],[
-       ['Giấy OCC (US)','1.240','800','2.040','2.500',pill('warn','Dưới mức')],
+/* ===== Cảnh báo tồn kho + hàng đi đường (báo cáo theo tháng) ===== */
+const INV_MONTHS=['T1','T2','T3','T4','T5','T6','T7'];
+// [tồn cuối kỳ (tấn), hàng đang đi trên biển (tấn)] — Giấy OCC
+const INV_OCC=[[3200,400],[3000,600],[2600,800],[2200,500],[1800,400],[1400,800],[1240,800]];
+const INV_SAFE=2500;
+function invMonthRows(){
+  return INV_MONTHS.map((m,i)=>{ const ton=INV_OCC[i][0], onsea=INV_OCC[i][1], av=ton+onsea, diff=av-INV_SAFE;
+    const st=diff>=0?pill('ok','Đủ'):(av>=INV_SAFE*0.85?pill('warn','Dưới mức'):pill('err','Cảnh báo'));
+    return `<tr${i===INV_MONTHS.length-1?' style="background:#fff7f5"':''}><td>${m}/2026${i===INV_MONTHS.length-1?' <span class="wf-muted" style="font-size:10px">(hiện tại)</span>':''}</td><td class="num">${ton.toLocaleString('vi-VN')}</td><td class="num">${onsea.toLocaleString('vi-VN')}</td><td class="num"><b>${av.toLocaleString('vi-VN')}</b></td><td class="num">${INV_SAFE.toLocaleString('vi-VN')}</td><td class="num" style="color:${diff<0?'var(--err)':'inherit'}">${diff>=0?'+':''}${diff.toLocaleString('vi-VN')}</td><td>${st}</td></tr>`;
+  }).join('');
+}
+function invChartSVG(){
+  const W=900,H=320,padL=58,padB=38,padT=16,padR=14, plotW=W-padL-padR, plotH=H-padT-padB, maxY=4000, Y=v=>padT+plotH*(1-v/maxY);
+  let grid=''; for(let g=0;g<=4;g++){ const val=maxY*g/4, yy=Y(val); grid+=`<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${W-padR}" y2="${yy.toFixed(1)}" stroke="var(--line)"/><text x="${padL-6}" y="${(yy+3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--txt-mut)">${val.toLocaleString('vi-VN')}</text>`; }
+  const n=INV_MONTHS.length, bw=plotW/n*0.5; let bars='',xl='';
+  INV_MONTHS.forEach((m,i)=>{ const av=INV_OCC[i][0]+INV_OCC[i][1], cx=padL+plotW*(i+0.5)/n, y=Y(av), below=av<INV_SAFE;
+    bars+=`<rect x="${(cx-bw/2).toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${(plotH*av/maxY).toFixed(1)}" fill="${below?'#ba0517':'#0b827c'}"/><text x="${cx.toFixed(1)}" y="${(y-4).toFixed(1)}" text-anchor="middle" font-size="9" fill="var(--txt-mut)">${av.toLocaleString('vi-VN')}</text>`;
+    xl+=`<text x="${cx.toFixed(1)}" y="${(padT+plotH+14).toFixed(1)}" text-anchor="middle" font-size="10" fill="var(--txt-mut)">${m}</text>`; });
+  const ys=Y(INV_SAFE); const safe=`<line x1="${padL}" y1="${ys.toFixed(1)}" x2="${W-padR}" y2="${ys.toFixed(1)}" stroke="#e5701a" stroke-width="1.5" stroke-dasharray="5 4"/><text x="${(W-padR).toFixed(1)}" y="${(ys-4).toFixed(1)}" text-anchor="end" font-size="10" fill="#e5701a">Mức an toàn ${INV_SAFE.toLocaleString('vi-VN')} tấn</text>`;
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:720px;height:auto">${grid}${bars}${safe}${xl}</svg></div><div class="legend"><span><i style="background:#0b827c"></i>Khả dụng ≥ an toàn</span><span><i style="background:#ba0517"></i>Dưới mức an toàn</span><span style="color:#e5701a">╌ Mức an toàn</span><span class="wf-muted">ĐVT: tấn</span></div>`;
+}
+S.matinv = ()=> appnav('Mua nhập khẩu','Cảnh báo tồn kho',TAB_IM,'Kế hoạch NVL')
+ + `<div class="sf-body">
+   ${hl({crumb:'Cảnh báo tồn kho + hàng đi đường',ico:'🌐',color:'#0b827c',title:'Tồn kho khả dụng NVL chính (Giấy OCC) — báo cáo theo tháng',sub:'Tồn kho + hàng đang đi trên biển (Rosy) → Tồn khả dụng · cảnh báo khi dưới mức an toàn để BGĐ chốt lô nhập',
+     fields:[['Kỳ hiện tại','T7/2026'],['Tồn hiện tại','1.240 tấn'],['Đang đi biển','800 tấn'],['Tồn khả dụng','2.040 tấn'],['Mức an toàn','2.500 tấn']],
+     actions:[{t:'Ký hợp đồng nhập khẩu',pri:true,fn:"go('imcontract_list')"},'Xuất báo cáo']})}
+   ${banner('err','<b>⛔ Tồn khả dụng Giấy OCC 2.040 tấn &lt; mức an toàn 2.500 tấn</b> (thiếu <b>460 tấn</b>) — đã liên tục dưới mức từ T5. Đề nghị BGĐ chốt lô nhập khẩu mới để đảm bảo nguyên liệu chạy máy xeo.')}
+   ${card('Tồn kho khả dụng theo tháng — Giấy OCC (2026)', invChartSVG()
+     + `<div class="tbl-wrap" style="margin-top:8px"><table class="tbl">
+          <thead><tr><th>Tháng</th><th class="num">Tồn cuối kỳ (tấn)</th><th class="num">Hàng đang đi biển (tấn)</th><th class="num">Tồn khả dụng (tấn)</th><th class="num">Mức an toàn</th><th class="num">Chênh lệch</th><th>Trạng thái</th></tr></thead>
+          <tbody>${invMonthRows()}</tbody></table></div>
+        <div class="po-hint">Tồn khả dụng = Tồn kho cuối kỳ + Hàng đang đi trên biển (đồng bộ từ Rosy). Trạng thái: Đủ / Dưới mức / Cảnh báo (so mức an toàn) — cơ sở để BGĐ quyết định thời điểm ký hợp đồng nhập khẩu.</div>`)}
+   <div class="cols">
+     ${card('Tồn kho NVL chính — hiện tại (snapshot T7)', tbl([{t:'NVL'},{t:'Tồn hiện tại',num:true},{t:'Đang đi biển',num:true},{t:'Khả dụng',num:true},{t:'An toàn',num:true},{t:'Trạng thái'}],[
+       ['Giấy OCC (US)','1.240','800','2.040','2.500',pill('err','Cảnh báo')],
        ['Giấy DLK (JP)','680','0','680','600',pill('ok','Đủ')],
        ['Bột giấy','95','120','215','150',pill('ok','Đủ')]]),{n:'3'})}
-     </div>
-     ${activity([['📋','Task: Chốt lô nhập mới — Giấy OCC','Được giao BGĐ · Cần xử lý'],['🔄','Cập nhật tồn NVL + hàng đi đường','Tự động'],['📊','BGĐ xem báo cáo tồn','Hôm nay']])}
+     ${card('Hàng đang đi trên biển (từ Rosy)', tbl([{t:'Shipment'},{t:'Hàng'},{t:'SL (tấn)',num:true},{t:'Hãng tàu'},{t:'ETA'},{t:'Trạng thái'}],[
+       ['<a data-go="shipment">SHP-041</a>','Giấy OCC (US)','800','ONE','12/08/2026',pill('info','Trên biển')],
+       ['<a data-go="shipment">SHP-042</a>','Bột giấy','120','ONE','28/07/2026',pill('mut','Chờ booking')]]),{n:'2'})}
    </div>
  </div>`;
 
-S.imcontract = ()=> appnav('Mua nhập khẩu','Sales Contract',['Trang chủ','Kế hoạch NVL','Sales Contract','Shipment'],'Sales Contract')
+S.imcontract = ()=> appnav('Mua nhập khẩu','Sales Contract',TAB_IM,'Sales Contract')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="imcontract_list">Sales Contract (NK)</span> &rsaquo;',ico:'💱',color:'#0b827c',title:'IC-2026-041 · OCC từ Mỹ',sub:'Đa tiền tệ · 800 tấn · Recycling Corp USA',
      fields:[['Trị giá','$168.000'],['Quy đổi','4.280.000.000 ₫'],['Tỷ giá','1 USD = 25.480'],['Trạng thái',pill('info','Đang thực hiện')]],
@@ -2144,7 +2171,7 @@ S.shipment_xk = ()=> appnav('Bán hàng xuất khẩu','Shipment XK',TAB_EX,'SO'
      ${activity([['📦','Đóng hàng tại kho Long An','Logistics · Hôm nay'],['📋','Task: Hạ bãi & làm hải quan','Logistics · Cần xử lý'],['🚢','Dự kiến lên tàu 28/07','—']])}
    </div>
  </div>`;
-S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',['Trang chủ','Kế hoạch NVL','Sales Contract','Shipment'],'Shipment')
+S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',TAB_IM,'Shipment')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="shipment_list">Theo dõi Shipment</span> &rsaquo;',ico:'⚓',color:'#0b827c',title:'SHP-041 · OCC 800 tấn (32x40HC)',sub:'Record Type: Mua hàng nhập khẩu · HĐ IC-2026-041 · Hãng ONE',
      fields:[['Trạng thái',pill('info','Đang trên biển')],['ETA','19/07/2026'],['Free time','7 ngày'],['Tổng phí Local Charge','<span id="ship-fee-total">12.900.000 ₫</span>']],
