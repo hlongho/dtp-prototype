@@ -1084,6 +1084,11 @@ const NAV = [
  {g:'Dữ liệu nền tảng', items:[
    ['pricebook_list','Bảng giá (Price Book)','Kế toán / Admin','list'],
    ['pricebook','↳ Chi tiết bảng giá','','record'],
+   ['pbe_list','Price Book Entry','Kế toán / Admin','list'],
+   ['pbe','↳ Chi tiết Price Book Entry','','record'],
+   ['pbec_list','Bảng giá custom (điều chỉnh theo tháng)','Kế toán / Admin','list'],
+   ['pbec','↳ Chi tiết Bảng giá custom','','record'],
+   ['pricerpt','Báo cáo biến động giá','BGĐ / KD','list'],
    ['contract_list','Hợp đồng khung (Contract)','Sales / Admin','list'],
    ['contract','↳ Chi tiết hợp đồng','','record'],
    ['product_list','Sản phẩm','Admin','list'],
@@ -1175,23 +1180,17 @@ S.home = ()=> appnav('CRM Đồng Tiến','Trang chủ',['Trang chủ','Cơ hộ
    </div>
  </div>`;
 
-S.pricebook = ()=> appnav('Dữ liệu nền tảng','Price Book',['Bảng giá','Hợp đồng','Sản phẩm','Khách hàng','NCC'],'Bảng giá')
+S.pricebook = ()=> appnav('Dữ liệu nền tảng','Bảng giá',TAB_MD,'Bảng giá')
  + `<div class="sf-body narrow">
-   ${hl({crumb:'<span data-go="pricebook_list">Price Book</span> &rsaquo;',ico:'₫',title:'Bảng giá chuẩn — Giấy Medium 07/2026',sub:'Hiệu lực · Công bố 01/07/2026',
-     fields:[['Loại giá','Giá công bố'],['Hiệu lực từ','01/07/2026'],['Trạng thái',pill('ok','Đang áp dụng')],['Người duyệt','TGĐ']],
-     actions:[{t:'Nhân bản kỳ mới',pri:true},'Sửa']})}
+   ${hl({crumb:'<span data-go="pricebook_list">Price Book</span> &rsaquo;',ico:'₫',color:'#5867e8',title:'Bảng giá chuẩn DTP 2026',sub:'Standard Price Book · đang kích hoạt',
+     fields:[['Active',pill('ok','✓ Active')],['Is Standard Price Book','✓'],['Số Price Book Entry','4'],['Tiền tệ','VND']],
+     actions:[{t:'Thêm Price Book Entry',pri:true,fn:"go('pbe')"},'Sửa']})}
    <div class="cols-side act-tab">
      <div>
-     ${card('Khung giá theo định lượng & khổ', tbl([{t:'Định lượng (gsm)'},{t:'Khổ (cm)'},{t:'Giá chuẩn (₫/kg)',num:true},{t:'Điều chỉnh',num:true}],[
-       ['110','≤ 200','12.400','—'],['110','> 200','12.400','+150'],
-       ['125','≤ 200','12.250','−100'],['150','≤ 200','12.050','−250'],
-       ['170','bất kỳ','11.900','−400']]),{n:'5'})}
-     ${card('Quy tắc phê duyệt giá', tbl([{t:'Điều kiện'},{t:'Hành động'}],[
-       ['Sai lệch ≤ 2% khung chuẩn','Tự động duyệt'],
-       ['Sai lệch 2–5%','Trưởng phòng KD duyệt'],
-       ['Sai lệch > 5% hoặc dưới giá sàn','Trình TGĐ duyệt']]))}
+     ${card('Thông tin Price Book', fg([['Price Book Name','Bảng giá chuẩn DTP 2026'],['Active','✓ (đang kích hoạt)'],['Is Standard Price Book','✓ Có'],['Tiền tệ','VND'],['Mô tả','Bảng giá chuẩn (list price ₫/kg) cho các loại giấy — dùng làm giá gốc, điều chỉnh theo tháng qua Bảng giá custom.']]))}
+     ${card('Price Book Entry', `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Sản phẩm</th><th>Product Code</th><th class="num">List Price (₫/kg)</th><th>Active</th></tr></thead><tbody>${PB_PRODUCTS.map(p=>`<tr><td><a data-go="pbe">${p.name}</a></td><td>${p.code}</td><td class="num">${p.base.toLocaleString('vi-VN')}</td><td>✓</td></tr>`).join('')}</tbody></table></div>`,{n:String(PB_PRODUCTS.length),r:'<button class="btn sm" onclick="go(\'pbe\')">＋ Thêm entry</button>'})}
      </div>
-     ${activity([['₫','Cập nhật khung giá Medium','P.Kế toán · 01/07/2026'],['✔','TGĐ duyệt bảng giá Q3','30/06/2026']])}
+     ${activity([['₫','Kích hoạt bảng giá chuẩn 2026','P.Kế toán'],['✔','TGĐ duyệt list price','01/01/2026']])}
    </div>
  </div>`;
 
@@ -2607,7 +2606,7 @@ const TAB_SALES=['Trang chủ','Lead','Cơ hội','Báo giá','Sample Request','
 const TAB_EX=['Trang chủ','Báo giá XK','PO','Sales Contract','SO','Phiếu xuất kho','Kế hoạch SX','Chứng từ','Thanh toán','Cước Logistics'];
 const TAB_PUR=['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'];
 const TAB_IM=['Trang chủ','Kế hoạch NVL','Sales Contract','Shipment','Claim / Khiếu nại','Payment','Payment Term','Payment Term Item'];
-const TAB_MD=['Bảng giá','Hợp đồng','Sản phẩm','Khách hàng','NCC'];
+const TAB_MD=['Bảng giá','Price Book Entry','Bảng giá custom','Biến động giá','Hợp đồng','Sản phẩm','Khách hàng','NCC'];
 S.product_list = ()=> appnav('Dữ liệu nền tảng','Sản phẩm',TAB_MD,'Sản phẩm')
  + `<div class="sf-body">${lv({crumb:'Sản phẩm',ico:'📦',color:'#5867e8',object:'Sản phẩm (Product)',view:'Tất cả sản phẩm',count:'8',newLabel:'Sản phẩm mới',
    cols:[{t:'Mã SP'},{t:'Tên sản phẩm'},{t:'Loại giấy'},{t:'Định lượng'},{t:'Khổ'},{t:'ĐVT'},{t:'Trạng thái'}],
@@ -2792,13 +2791,101 @@ S.contract_list = ()=> appnav('Dữ liệu nền tảng','Hợp đồng',TAB_MD,
     {go:'contract',cells:['HĐ-0388','Hưng Thịnh Phát','30/11/2026','3.000.000.000 ₫',pill('ok','Hiệu lực')]},
     {go:'contract',cells:['HĐ-0402','Đại Lộc','15/09/2026','1.500.000.000 ₫',pill('ok','Hiệu lực')]}]})}</div>`;
 
+/* ===== Price Book Entry (standard) + Price Book Entry Custom + Báo cáo biến động giá ===== */
+const PB_MONTHS=['T1','T2','T3','T4','T5','T6'];
+const PB_PRODUCTS=[
+  {code:'WTN-140',name:'White Top (WTN) 140gsm',base:15200,color:'#1b96ff'},
+  {code:'K2E-150',name:'Testliner (K2E+K3E) 150gsm',base:12700,color:'#2e844a'},
+  {code:'KA-150', name:'Testliner (KA) 150gsm',base:13000,color:'#e5a000'},
+  {code:'M1S-125',name:'Giấy Medium (M1S) 125gsm',base:10200,color:'#9050e9'},
+];
+// chênh lệch (₫/kg) so với giá chuẩn theo tháng T1..T6
+const PB_DELTAS={
+  'WTN-140':[200,350,150,-100,-300,-150],
+  'K2E-150':[100,150,50,-80,-200,-250],
+  'KA-150':[0,80,120,50,-60,-100],
+  'M1S-125':[100,200,-50,-150,-250,120],
+};
+const pbFmt=n=> (typeof n==='number'? n.toLocaleString('vi-VN')+' ₫':'—');
+function pbDelta(d){ return `<span style="color:${d>0?'var(--err)':(d<0?'var(--ok,#2e844a)':'inherit')};font-weight:600">${d>0?'▲ +':(d<0?'▼ ':'')}${d.toLocaleString('vi-VN')}</span>`; }
+function pbCustoms(code){ const out=[]; PB_PRODUCTS.forEach(p=>{ if(code&&p.code!==code) return; PB_MONTHS.forEach((m,i)=>{ const d=PB_DELTAS[p.code][i]; out.push({id:'PBEC-'+p.code+'-T'+(i+1), code:p.code, name:p.name, base:p.base, m:m, mi:i, delta:d, custom:p.base+d, date:'01/'+(i+1<10?'0':'')+(i+1)+'/2026'}); }); }); return out; }
+
+S.pbe_list = ()=> appnav('Dữ liệu nền tảng','Price Book Entry',TAB_MD,'Price Book Entry')
+ + `<div class="sf-body">${lv({crumb:'Price Book Entry',ico:'🏷️',color:'#5867e8',object:'Price Book Entry',view:'Bảng giá chuẩn DTP 2026',views:['Bảng giá chuẩn DTP 2026','Đang active','Tất cả'],count:String(PB_PRODUCTS.length),newLabel:'Entry mới',
+   cols:[{t:'Product Name'},{t:'Product Code'},{t:'Price Book'},{t:'List Price (₫/kg)',num:true},{t:'Active'}],
+   rows:PB_PRODUCTS.map(p=>({go:'pbe',cells:[p.name,p.code,'Bảng giá chuẩn DTP 2026',p.base.toLocaleString('vi-VN'),'✓']}))})}</div>`;
+S.pbe = ()=> appnav('Dữ liệu nền tảng','Price Book Entry',TAB_MD,'Price Book Entry')
+ + (()=>{ const p=PB_PRODUCTS.find(x=>x.code==='M1S-125');
+   return `<div class="sf-body narrow">
+   ${hl({crumb:'<span data-go="pbe_list">Price Book Entry</span> &rsaquo;',ico:'🏷️',color:'#5867e8',title:p.name+' · '+p.base.toLocaleString('vi-VN')+' ₫/kg',sub:'Price Book Entry · Bảng giá chuẩn DTP 2026',
+     fields:[['List Price',p.base.toLocaleString('vi-VN')+' ₫/kg'],['Product Code',p.code],['Active',pill('ok','✓ Active')],['Price Book','Bảng giá chuẩn DTP 2026']],
+     actions:[{t:'Thêm bảng giá custom',pri:true,fn:"go('pbec')"},'Sửa']})}
+   <div class="cols-side act-tab">
+     <div>
+     ${card('Thông tin Price Book Entry', fg([['Product',p.name,'link','product'],['Product Code',p.code],['Price Book','Bảng giá chuẩn DTP 2026','link','pricebook'],['List Price (giá chuẩn)',p.base.toLocaleString('vi-VN')+' ₫/kg'],['Use Standard Price','✓'],['Active','✓']]))}
+     ${card('Bảng giá custom (điều chỉnh theo tháng)', `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Mã</th><th>Tháng</th><th>Ngày áp dụng</th><th class="num">Giá chuẩn</th><th class="num">Giá lệch</th><th class="num">Giá custom</th></tr></thead><tbody>${pbCustoms(p.code).map(c=>`<tr><td><a data-go="pbec">${c.id}</a></td><td>${c.m}/2026</td><td>${c.date}</td><td class="num">${pbFmt(c.base)}</td><td class="num">${pbDelta(c.delta)}</td><td class="num"><b>${pbFmt(c.custom)}</b></td></tr>`).join('')}</tbody></table></div>`,{n:String(PB_MONTHS.length),r:'<button class="btn sm" onclick="go(\'pbec\')">＋ Thêm giá custom</button>'})}
+     </div>
+     ${activity([['🏷️','Tạo Price Book Entry cho '+p.name,'P.Kế toán'],['₫','Áp dụng list price chuẩn','01/01/2026']])}
+   </div>
+ </div>`; })();
+S.pbec_list = ()=> appnav('Dữ liệu nền tảng','Bảng giá custom',TAB_MD,'Bảng giá custom')
+ + `<div class="sf-body">${lv({crumb:'Bảng giá custom (Price Book Entry Custom)',ico:'📈',color:'#5867e8',object:'Price Book Entry Custom',view:'Theo tháng',views:['Theo tháng','Tháng hiện tại','Tất cả'],count:String(pbCustoms().length),newLabel:'Giá custom mới',
+   cols:[{t:'Mã'},{t:'Price Book Entry (SP)'},{t:'Tháng áp dụng'},{t:'Ngày áp dụng'},{t:'Giá chuẩn',num:true},{t:'Giá lệch',num:true},{t:'Giá custom',num:true},{t:'Active'}],
+   rows:pbCustoms().map(c=>({go:'pbec',cells:[c.id,c.name,c.m+'/2026',c.date,pbFmt(c.base),pbDelta(c.delta),pbFmt(c.custom),'✓']}))})}</div>`;
+S.pbec = ()=> appnav('Dữ liệu nền tảng','Bảng giá custom',TAB_MD,'Bảng giá custom')
+ + (()=>{ const c=pbCustoms('M1S-125')[0];
+   return `<div class="sf-body narrow">
+   ${hl({crumb:'<span data-go="pbec_list">Bảng giá custom</span> &rsaquo;',ico:'📈',color:'#5867e8',title:c.id+' · '+c.name,sub:'Price Book Entry Custom · '+c.m+'/2026 · điều chỉnh so với giá chuẩn',
+     fields:[['Giá chuẩn',pbFmt(c.base)],['Giá lệch',pbDelta(c.delta)],['Giá custom',pbFmt(c.custom)],['Ngày áp dụng',c.date]],
+     actions:[{t:'Kích hoạt giá custom',pri:true},'Sửa']})}
+   <div class="cols-side act-tab">
+     <div>
+     ${card('Chi tiết Price Book Entry Custom', fg([['Mã',c.id],
+       ['Price Book Entry (lookup)',c.name+' · giá chuẩn '+pbFmt(c.base),'link','pbe'],
+       ['Sản phẩm',c.name],['Tháng áp dụng',c.m+'/2026'],['Ngày áp dụng giá custom',c.date],
+       ['Giá chuẩn (từ Price Book Entry)',pbFmt(c.base)],
+       ['Giá lệch so với giá chuẩn',(c.delta>0?'+':'')+c.delta.toLocaleString('vi-VN')+' ₫/kg'],
+       ['Giá custom (= chuẩn + lệch)',pbFmt(c.custom)],
+       ['% thay đổi',(c.delta>0?'+':'')+(c.delta/c.base*100).toFixed(2)+'%'],
+       ['Active','✓']]))}
+     ${card('Các tháng khác của '+c.name+' (cùng Price Book Entry)', tbl([{t:'Mã'},{t:'Tháng'},{t:'Giá lệch',num:true},{t:'Giá custom',num:true}],
+       pbCustoms('M1S-125').map(x=>['<a data-go="pbec">'+x.id+'</a>',x.m+'/2026',pbDelta(x.delta),pbFmt(x.custom)])),{n:String(PB_MONTHS.length)})}
+     </div>
+     ${activity([['📈','Ghi nhận điều chỉnh giá '+c.m+'/2026','P.Kế toán'],['₫','Giá lệch '+(c.delta>0?'+':'')+c.delta+' ₫ so giá chuẩn','']])}
+   </div>
+ </div>`; })();
+function priceChartSVG(){
+  const W=940,H=360,pl=64,pb=40,pt=16,pr=190, plotW=W-pl-pr, plotH=H-pt-pb;
+  const all=PB_PRODUCTS.flatMap(p=>PB_MONTHS.map((_,i)=>p.base+PB_DELTAS[p.code][i]));
+  const max=Math.max(...all), min=Math.min(...all), rng=(max-min)||1;
+  const X=i=>pl+plotW*(i/(PB_MONTHS.length-1)), Y=v=>pt+plotH*(1-(v-min)/rng);
+  let grid=''; for(let g=0;g<=4;g++){ const val=min+rng*g/4, yy=Y(val); grid+=`<line x1="${pl}" y1="${yy.toFixed(1)}" x2="${(W-pr).toFixed(1)}" y2="${yy.toFixed(1)}" stroke="var(--line)"/><text x="${pl-6}" y="${(yy+3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--txt-mut)">${Math.round(val).toLocaleString('vi-VN')}</text>`; }
+  let xl=''; PB_MONTHS.forEach((m,i)=> xl+=`<text x="${X(i).toFixed(1)}" y="${(pt+plotH+14).toFixed(1)}" text-anchor="middle" font-size="10" fill="var(--txt-mut)">${m}</text>`);
+  let lines=''; PB_PRODUCTS.forEach(p=>{ const pts=PB_MONTHS.map((_,i)=>X(i).toFixed(1)+','+Y(p.base+PB_DELTAS[p.code][i]).toFixed(1)).join(' ');
+    lines+=`<polyline points="${pts}" fill="none" stroke="${p.color}" stroke-width="2.2"/>`;
+    PB_MONTHS.forEach((_,i)=>{ lines+=`<circle cx="${X(i).toFixed(1)}" cy="${Y(p.base+PB_DELTAS[p.code][i]).toFixed(1)}" r="3" fill="${p.color}"/>`; });
+    const ly=Y(p.base+PB_DELTAS[p.code][PB_MONTHS.length-1]); lines+=`<text x="${(W-pr+6).toFixed(1)}" y="${(ly+3).toFixed(1)}" font-size="10" fill="${p.color}">${p.name.split(' ')[0]} ${p.code}</text>`;
+  });
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:760px;height:auto">${grid}${xl}${lines}</svg></div><div class="legend">${PB_PRODUCTS.map(p=>`<span><i style="background:${p.color}"></i>${p.name}</span>`).join('')}<span class="wf-muted">Giá custom ₫/kg theo tháng</span></div>`;
+}
+function priceReportRows(){
+  return PB_PRODUCTS.map(p=>`<tr><td>${p.name}</td><td class="num">${p.base.toLocaleString('vi-VN')}</td>${PB_MONTHS.map((m,i)=>{const d=PB_DELTAS[p.code][i];return `<td class="num">${(p.base+d).toLocaleString('vi-VN')}<div style="font-size:10px">${pbDelta(d)}</div></td>`;}).join('')}</tr>`).join('');
+}
+S.pricerpt = ()=> appnav('Dữ liệu nền tảng','Biến động giá',TAB_MD,'Biến động giá')
+ + `<div class="sf-body">
+   ${hl({crumb:'Báo cáo biến động giá',ico:'📈',color:'#5867e8',title:'Biến động giá bán theo tháng — các loại giấy',sub:'Độ tăng/giảm giá custom so với giá chuẩn (list price) qua các tháng',
+     fields:[['Kỳ','T1 → T6/2026'],['Số sản phẩm',String(PB_PRODUCTS.length)],['ĐVT','₫/kg'],['Nguồn','Price Book Entry Custom']],actions:[{t:'Xuất báo cáo',pri:true},'Đổi kỳ']})}
+   ${card('Xu hướng giá bán theo tháng (Line chart)', priceChartSVG())}
+   ${card('Bảng giá custom theo tháng (₫/kg · kèm chênh lệch so giá chuẩn)',
+     `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Sản phẩm</th><th class="num">Giá chuẩn</th>${PB_MONTHS.map(m=>`<th class="num">${m}/2026</th>`).join('')}</tr></thead><tbody>${priceReportRows()}</tbody></table></div>
+      <div class="po-hint">Mỗi ô = giá custom (= giá chuẩn + chênh lệch của tháng). <span style="color:var(--err)">▲ đỏ</span> = tăng so giá chuẩn, <span style="color:var(--ok,#2e844a)">▼ xanh</span> = giảm. Nguồn: object Price Book Entry Custom.</div>`)}
+ </div>`;
 S.pricebook_list = ()=> appnav('Dữ liệu nền tảng','Bảng giá',TAB_MD,'Bảng giá')
- + `<div class="sf-body">${lv({crumb:'Bảng giá',ico:'₫',color:'#5867e8',object:'Price Book',view:'Tất cả bảng giá',count:'12',newLabel:'Bảng giá mới',
-   cols:[{t:'Tên bảng giá'},{t:'Nhóm SP'},{t:'Hiệu lực từ'},{t:'Trạng thái'}],
+ + `<div class="sf-body">${lv({crumb:'Price Book',ico:'₫',color:'#5867e8',object:'Price Book',view:'Tất cả bảng giá',views:['Tất cả bảng giá','Đang kích hoạt'],count:'2',newLabel:'Price Book mới',
+   cols:[{t:'Price Book Name'},{t:'Active'},{t:'Is Standard'},{t:'Số entry',num:true},{t:'Tiền tệ'}],
    rows:[
-    {go:'pricebook',cells:['Giá chuẩn Medium 07/2026','Giấy Medium','01/07/2026',pill('ok','Đang áp dụng')]},
-    {go:'pricebook',cells:['Giá chuẩn Hai da 07/2026','Giấy hai da','01/07/2026',pill('ok','Đang áp dụng')]},
-    {go:'pricebook',cells:['Giá Medium 04/2026','Giấy Medium','01/04/2026',pill('mut','Hết hiệu lực')]}]})}</div>`;
+    {go:'pricebook',cells:['Bảng giá chuẩn DTP 2026',pill('ok','✓ Active'),'✓','4','VND']},
+    {go:'pricebook',cells:['Bảng giá NCC (mua vào) 2026',pill('ok','✓ Active'),'—','18','VND']}]})}</div>`;
 
 function machineCell(def){
   const opts=['PM4','PM5','PM6'].map(m=>`<option ${m===def?'selected':''}>${m}</option>`).join('');
@@ -3333,7 +3420,7 @@ function setupSearch(){
 /* ---- in-page interactivity ---- */
 const TAB2ID={'Trang chủ':'home','Lead':'lead_list','Cơ hội':'opp_list','Báo giá':'quote_list','Sample Request':'sample_list','Opportunity PO':'oppo_list','Đơn hàng':'order_list','Khách hàng':'master',
  'NCC':'vendor_list','Case':'case_list','Báo cáo':'reports','Dashboard':'reports','Cảnh báo':'reports',
- 'Bảng giá':'pricebook_list','Hợp đồng':'contract_list','Sản phẩm':'product_list','Báo giá XK':'exquote_list','SO':'exso_list','Phiếu xuất kho':'issuenote_list','Chứng từ':'excontract_list',
+ 'Bảng giá':'pricebook_list','Price Book Entry':'pbe_list','Bảng giá custom':'pbec_list','Biến động giá':'pricerpt','Hợp đồng':'contract_list','Sản phẩm':'product_list','Báo giá XK':'exquote_list','SO':'exso_list','Phiếu xuất kho':'issuenote_list','Chứng từ':'excontract_list',
  'Thanh toán':'lc','Cước Logistics':'freight','Thống kê ĐNMH':'rpt_dnmh','Doanh số 3 tháng':'rpt_sales3','Top 10 NCC':'rpt_ncctop','Đánh giá NCC':'rpt_ncceval','Phiếu yêu cầu':'pr_list','Đơn mua (PO)':'ppo_list','Kế hoạch NVL':'matinv',
  'Shipment':'shipment_list','Knowledge':'case_list','Kế hoạch SX':'explan_list','Claim / Khiếu nại':'claimrpt','Payment':'payment_list','Payment Term':'pterm_list','Payment Term Item':'pitem_list'};
 function resolveTab(app,label){
