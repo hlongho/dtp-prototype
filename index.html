@@ -2236,9 +2236,8 @@ S.payment = ()=> appnav('Mua hàng nhập khẩu','Payment',TAB_IM,'Payment')
    <div class="cols-side act-tab">
      <div>
      ${card('Chi tiết Payment', fg([['Mã Payment',p.id],
-       ['① Payment Term (lookup)',tm.id+' · '+tm.ten,'link','pterm'],
-       ['② Payment Term Item (lookup)',it.id+' · Đợt '+it.dot+' ('+it.pct+'%)','link','pitem'],
-       ['— Thông tin suy ra từ Payment Term Item —',''],
+       ['Payment Term',tm.id+' · '+tm.ten,'link','pterm'],
+       ['Payment Term Item',it.id+' · Đợt '+it.dot+' ('+it.pct+'%)','link','pitem'],
        ['Số PO','PO '+tm.po],['Nhà cung cấp',tm.ncc,'link','vendor'],['Đợt / Tỷ lệ','Đợt '+it.dot+' · '+it.pct+'%'],
        ['Số tiền',payMoney(it.amt)],['Ngày thanh toán',it.due],['Trạng thái',it.st]]))}
      </div>
