@@ -2193,10 +2193,8 @@ S.pterm = ()=> appnav('Mua hàng nhập khẩu','Payment Term',TAB_IM,'Payment T
      ${card('Chi tiết Payment Term', fg([['Mã',t.id],['Record Type','Áp dụng (instance)'],['Sinh từ template ('+t.tmpl+')',tmpl.ten||t.tmpl,'link','pterm'],
        ['PO','PO '+t.po],['Nhà cung cấp',t.ncc,'link','vendor'],['Tổng giá trị hợp đồng',payMoney(t.total)],
        ['Tên phương thức thanh toán',t.ten],['Trường hợp',t.th],['Loại hợp đồng',t.hd],['Số đợt',String(t.dot)],['Mô tả',t.mota]]))}
-     ${card('Payment Term Item (các đợt — instance)', tbl([{t:'Mã đợt'},{t:'Đợt'},{t:'Tỷ lệ %',num:true},{t:'Số tiền',num:true},{t:'Ngày TT'},{t:'Mốc thời gian'},{t:'Trạng thái'}],
+     ${card('Payment Term Item', tbl([{t:'Mã đợt'},{t:'Đợt'},{t:'Tỷ lệ %',num:true},{t:'Số tiền',num:true},{t:'Ngày TT'},{t:'Mốc thời gian'},{t:'Trạng thái'}],
        PAY_ITEMS.filter(x=>x.term===t.id).map(x=>['<a data-go="pitem">'+x.id+'</a>','Đợt '+x.dot,x.pct+'%',payMoney(x.amt),x.due,x.moc,payPill(x.st)])),{n:String(PAY_ITEMS.filter(x=>x.term===t.id).length),r:'<button class="btn sm" onclick="go(\'pitem\')">＋ Thêm đợt</button>'})}
-     ${card('Payment (kế hoạch TT dùng phương thức này)', tbl([{t:'Mã Payment'},{t:'Đợt'},{t:'Số tiền',num:true},{t:'Ngày TT'},{t:'Trạng thái'}],
-       PAYMENTS.filter(p=>p.term===t.id).map(p=>{const it=ptItem(p.item);return ['<a data-go="payment">'+p.id+'</a>','Đợt '+it.dot,payMoney(it.amt),it.due,payPill(it.st)];})),{n:String(PAYMENTS.filter(p=>p.term===t.id).length)})}
      </div>
      ${activity([['📋','Sinh Payment Term + Item từ template '+t.tmpl,'Kế toán · Hôm nay'],['🔗','Áp dụng cho PO '+t.po,'Hôm nay']])}
    </div>
@@ -2231,7 +2229,7 @@ S.payment = ()=> appnav('Mua hàng nhập khẩu','Payment',TAB_IM,'Payment')
    return `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="payment_list">Payment</span> &rsaquo;',ico:'💰',color:'#0b827c',title:p.id+' · '+tm.ncc,sub:'Kế hoạch thanh toán · PO '+tm.po+' · Đợt '+it.dot+' ('+it.pct+'%)',
      fields:[['Số tiền',payMoney(it.amt)],['Ngày thanh toán',it.due],['Trạng thái',payPill(it.st)],['Đợt','Đợt '+it.dot+' · '+it.pct+'%']],
-     actions:[{t:'Đánh dấu đã thanh toán',pri:true},{t:'Dời lịch (delay)'},'Sửa']})}
+     actions:[]})}
    ${path(['Lập kế hoạch','Chờ thanh toán','Hoàn thành'],it.st==='Hoàn thành'?2:1)}
    <div class="cols-side act-tab">
      <div>
