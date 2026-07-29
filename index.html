@@ -2146,7 +2146,7 @@ function occData(idx){ // idx < 0 = tổng hợp tất cả loại OCC
 function invMonthRows(idx){
   const data=occData(idx==null?-1:idx);
   return INV_MONTHS.map((m,i)=>{ const ton=data[i][0], onsea=data[i][1], av=ton+onsea;
-    let trend='—'; if(i>0){ const d=av-(data[i-1][0]+data[i-1][1]); trend=`<span style="color:${d>=0?'var(--ok,#2e844a)':'var(--err)'}">${d>=0?'▲ +':'▼ '}${d.toLocaleString('vi-VN')}</span>`; }
+    let trend='—'; if(i>0){ const d=av-(data[i-1][0]+data[i-1][1]); trend=(d>0?'+':'')+d.toLocaleString('vi-VN'); }
     return `<tr${i===INV_MONTHS.length-1?' style="background:var(--bg)"':''}><td>${m}/2026${i===INV_MONTHS.length-1?' <span class="wf-muted" style="font-size:10px">(hiện tại)</span>':''}</td><td class="num">${ton.toLocaleString('vi-VN')}</td><td class="num">${onsea.toLocaleString('vi-VN')}</td><td class="num"><b>${av.toLocaleString('vi-VN')}</b></td><td class="num">${trend}</td></tr>`;
   }).join('');
 }
