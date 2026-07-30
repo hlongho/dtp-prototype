@@ -1923,8 +1923,6 @@ function ptfRecalcView(){
   const rows=[...document.querySelectorAll('#ptf-items .ptf-item')];
   rows.forEach((r,i)=>{ const it=PTF_ITEMS[i]||{}; const pct=+it.pct||0;
     const prev=r.querySelector('.ptf-prev'); if(prev) prev.innerHTML=`Đợt ${i+1}: Ngày thanh toán = <b>${it.moc} ${it.dir||'+'} ${it.days||0} ngày</b> · Thanh toán <b>${pct}%</b> giá trị hợp đồng`; });
-  const tot=PTF_ITEMS.reduce((s,it)=>s+(+it.pct||0),0);
-  const el=document.getElementById('ptf-total'); if(el) el.innerHTML=`Tổng % các đợt: <b style="color:${tot===100?'var(--ok,#2e844a)':'var(--err)'}">${tot}%</b> ${tot===100?'✓ hợp lệ':'· cần đúng 100% mới lưu được'}`;
 }
 function ptfRecalc(){ ptfSync(); ptfRecalcView(); }
 function ptfAddItem(){ ptfSync(); PTF_ITEMS.push({moc:PTF_MOC[3],dir:'−',days:0,pct:''}); ptfRender(); }
@@ -1938,8 +1936,7 @@ function openPtermForm(){
      </div>
      <div style="font-weight:600;margin:14px 0 6px">Payment Term Item (các đợt thanh toán)</div>
      <div id="ptf-items"></div>
-     <button class="btn sm" onclick="ptfAddItem()" style="margin-top:4px">＋ Thêm đợt (Payment Term Item)</button>
-     <div id="ptf-total" style="margin-top:12px;font-size:13px"></div>`;
+     <button class="btn sm" onclick="ptfAddItem()" style="margin-top:4px">＋ Thêm đợt (Payment Term Item)</button>`;
   ptfRender();
   document.getElementById('ptfback').classList.add('show');
   document.getElementById('ptfmodal').classList.add('show');
