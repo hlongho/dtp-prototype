@@ -280,6 +280,9 @@ a:hover{text-decoration:underline}
 .po-merge-prev .po-line{color:var(--ink)}
 .fee-inc{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:10px;font-size:12.5px}
 .fee-inc-t{font-weight:700;margin-bottom:4px;color:var(--ink)}
+.ptf-scope-cb{display:flex;gap:22px;margin-bottom:12px;font-size:13px}
+.ptf-scope-cb label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:600}
+.ptf-scope-cb input{width:15px;height:15px}
 .ptf-top{display:flex;gap:12px;flex-wrap:wrap}
 .ptf-f{display:flex;flex-direction:column;gap:3px;flex:1;min-width:80px}
 .ptf-f label{font-size:11px;color:var(--txt-mut);font-weight:600}
@@ -1903,6 +1906,8 @@ function confirmLogis(){
 const PTF_MOC=['Ngày ký hợp đồng','Ngày cần hàng','Ngày hóa đơn','Ngày giao hàng','Ngày hàng SX xong','Ngày nghiệm thu'];
 const PTF_SC_VALUE=4280000000; // giá trị Sales Contract IC-2026-041 (VND) — dùng tính số tiền từ %
 let PTF_ITEMS=[];
+let PTF_SCOPE='nd'; // 'nd' = nội địa · 'nk' = nhập khẩu
+const PTF_PTTT=['TT (T/T)','TTR','D/P','D/A','L/C','D/P + T/T','T/T + D/P','D/A + D/P','L/C + T/T','T/T + L/C'];
 function ptfMoney(n){ return Math.round(n).toLocaleString('vi-VN')+' ₫'; }
 function ptfItemHTML(it,i){
   const objList=Object.keys(PTF_OBJ_FIELDS); const obj=it.obj||objList[0];
@@ -1930,17 +1935,26 @@ function ptfRecalcView(){
     const prev=r.querySelector('.ptf-prev'); if(prev) prev.innerHTML=`Đợt ${i+1}: Ngày thanh toán = <b>${it.obj} · ${it.moc} ${ptfDays(it.days)} ngày</b> · Thanh toán <b>${pct}%</b> giá trị hợp đồng`; });
 }
 function ptfRecalc(){ ptfSync(); ptfRecalcView(); }
-function ptfScopeChanged(){ const nk=(document.getElementById('ptf-scope').value||'').includes('nhập khẩu'); const w=document.getElementById('ptf-pttt-wrap'); if(w) w.style.display=nk?'':'none'; }
+function ptfScopePick(which){ PTF_SCOPE=which;
+  const nd=document.getElementById('ptf-cb-nd'), nk=document.getElementById('ptf-cb-nk');
+  if(nd) nd.checked=(which==='nd'); if(nk) nk.checked=(which==='nk');
+  const lw=document.getElementById('ptf-loai-wrap'); if(lw) lw.style.display=(which==='nd')?'':'none';
+  const pw=document.getElementById('ptf-pttt-wrap'); if(pw) pw.style.display=(which==='nk')?'':'none';
+}
 function ptfAddItem(){ ptfSync(); PTF_ITEMS.push({obj:'Sales Contract',moc:'Ngày ký hợp đồng',days:0,pct:''}); ptfRender(); }
 function ptfRemoveItem(i){ ptfSync(); if(PTF_ITEMS.length<=1){ toast('Payment Term phải có ít nhất 1 đợt (Payment Term Item)'); return; } PTF_ITEMS.splice(i,1); ptfRender(); }
 function openPtermForm(){
+  PTF_SCOPE='nd';
   PTF_ITEMS=[{obj:'Sales Contract',moc:'Ngày ký hợp đồng',days:0,pct:''}];
   document.getElementById('ptf-body').innerHTML=
-    `<div class="ptf-top">
+    `<div class="ptf-scope-cb">
+       <label><input type="checkbox" id="ptf-cb-nd" checked onchange="ptfScopePick('nd')"> Mua hàng nội địa</label>
+       <label><input type="checkbox" id="ptf-cb-nk" onchange="ptfScopePick('nk')"> Mua hàng nhập khẩu</label>
+     </div>
+     <div class="ptf-top">
        <div class="ptf-f" style="flex:2.4"><label>Tên Payment Term *</label><input id="ptf-name" class="mass-sel" placeholder="VD: Cọc 30% ký HĐ + 70% trước giao hàng"></div>
-       <div class="ptf-f" style="flex:1.2"><label>Loại mua hàng *</label><select id="ptf-scope" class="mass-sel" onchange="ptfScopeChanged()"><option>Mua hàng nội địa</option><option>Mua hàng nhập khẩu</option></select></div>
-       <div class="ptf-f" style="flex:1"><label>Loại hàng *</label><select id="ptf-loai" class="mass-sel"><option>Hàng có sẵn</option><option>Hàng sản xuất</option></select></div>
-       <div class="ptf-f" style="flex:1.4;display:none" id="ptf-pttt-wrap"><label>Phương thức thanh toán *</label><select id="ptf-pttt" class="mass-sel">${['TT (T/T)','TTR','D/P','D/A','L/C','D/P + T/T','T/T + D/P','D/A + D/P','L/C + T/T','T/T + L/C'].map(o=>`<option>${o}</option>`).join('')}</select></div>
+       <div class="ptf-f" style="flex:1" id="ptf-loai-wrap"><label>Loại hàng *</label><select id="ptf-loai" class="mass-sel"><option>Hàng có sẵn</option><option>Hàng sản xuất</option></select></div>
+       <div class="ptf-f" style="flex:1.4;display:none" id="ptf-pttt-wrap"><label>Phương thức thanh toán *</label><select id="ptf-pttt" class="mass-sel">${PTF_PTTT.map(o=>`<option>${o}</option>`).join('')}</select></div>
      </div>
      <div style="font-weight:600;margin:14px 0 6px">Payment Term Item (các đợt thanh toán)</div>
      <div id="ptf-items"></div>
@@ -1956,12 +1970,10 @@ function confirmPterm(){
   if(!name){ toast('Nhập Tên Payment Term'); document.getElementById('ptf-name').focus(); return; }
   const tot=PTF_ITEMS.reduce((s,it)=>s+(+it.pct||0),0);
   if(tot!==100){ toast('⛔ Tổng % các đợt phải = 100% (hiện tại '+tot+'%)'); return; }
-  const loai=document.getElementById('ptf-loai').value;
-  const scope=document.getElementById('ptf-scope').value;
-  const nk=(scope||'').includes('nhập khẩu');
-  const pttt=nk?(' · PTTT '+document.getElementById('ptf-pttt').value):'';
+  const scope=PTF_SCOPE==='nk'?'Mua hàng nhập khẩu':'Mua hàng nội địa';
+  const extra=PTF_SCOPE==='nd'?(' · '+document.getElementById('ptf-loai').value):(' · PTTT '+document.getElementById('ptf-pttt').value);
   closePtermForm();
-  toast('✓ Đã tạo Payment Term "'+name+'" · '+scope+pttt+' · '+loai+' · '+PTF_ITEMS.length+' đợt · tổng 100%');
+  toast('✓ Đã tạo Payment Term "'+name+'" · '+scope+extra+' · '+PTF_ITEMS.length+' đợt · tổng 100%');
 }
 function openShipModal(){
   const f=(lbl,id,ph,type)=>`<div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">${lbl}</label><input id="${id}" class="mass-sel" ${type?`type="${type}"`:''} placeholder="${ph||''}"></div>`;
