@@ -280,6 +280,13 @@ a:hover{text-decoration:underline}
 .po-merge-prev .po-line{color:var(--ink)}
 .fee-inc{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:10px;font-size:12.5px}
 .fee-inc-t{font-weight:700;margin-bottom:4px;color:var(--ink)}
+.ptf-top{display:flex;gap:12px;flex-wrap:wrap}
+.ptf-f{display:flex;flex-direction:column;gap:3px;flex:1;min-width:80px}
+.ptf-f label{font-size:11px;color:var(--txt-mut);font-weight:600}
+.ptf-row{display:flex;gap:8px;align-items:flex-end}
+.ptf-item{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;background:var(--card)}
+.ptf-prev{font-size:11.5px;margin-top:6px}
+.ptf-del{align-self:flex-end;padding:6px 9px}
 .oppo-status-strip{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:8px;font-size:13px}
 .oppo-status-strip>span{display:inline-flex;align-items:center;gap:6px}
 .fr-filters{display:flex;gap:14px;flex-wrap:wrap;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-bottom:10px}
@@ -652,6 +659,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     <div class="pm-head"><h3>Thêm báo giá Logistics</h3><button title="Đóng" onclick="closeLogisModal()">✕</button></div>
     <div class="pm-body" id="lq-body"></div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeLogisModal()">Hủy</button><button class="btn pri" onclick="confirmLogis()">Lưu báo giá</button></div></div>
+  </div>
+  <!-- Modal form động: tạo Payment Term (từ Sales Contract NK) -->
+  <div class="modal-back" id="ptfback" onclick="closePtermForm()" style="z-index:135"></div>
+  <div class="po-modal" id="ptfmodal" style="z-index:140;width:min(760px,95vw)">
+    <div class="pm-head"><h3>Tạo Payment Term (kế hoạch thanh toán)</h3><button title="Đóng" onclick="closePtermForm()">✕</button></div>
+    <div class="pm-body" id="ptf-body"></div>
+    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closePtermForm()">Hủy</button><button class="btn pri" onclick="confirmPterm()">Lưu Payment Term</button></div></div>
   </div>
   <!-- Modal tạo báo giá -->
   <div class="modal-back" id="quoteback" onclick="closeQuoteModal()" style="z-index:135"></div>
@@ -1885,6 +1899,63 @@ function confirmLogis(){
   LOGIS_QUOTES.push({fwd:document.getElementById('lq-fwd').value,route:document.getElementById('lq-route').value,cont:document.getElementById('lq-cont').value,freight,cur:document.getElementById('lq-cur').value,sur:(document.getElementById('lq-sur').value||'').trim(),valid});
   renderLogis(); closeLogisModal(); toast('Đã thêm báo giá Logistics: '+document.getElementById('lq-fwd')?.value);
 }
+/* --- Form động: tạo Payment Term từ Sales Contract NK --- */
+const PTF_MOC=['Ngày ký hợp đồng','Ngày cần hàng','Ngày hóa đơn','Ngày giao hàng','Ngày hàng SX xong','Ngày nghiệm thu'];
+const PTF_SC_VALUE=4280000000; // giá trị Sales Contract IC-2026-041 (VND) — dùng tính số tiền từ %
+let PTF_ITEMS=[];
+function ptfMoney(n){ return Math.round(n).toLocaleString('vi-VN')+' ₫'; }
+function ptfItemHTML(it,i){
+  const mocOpt=PTF_MOC.map(o=>`<option ${o===it.moc?'selected':''}>${o}</option>`).join('');
+  return `<div class="ptf-item">
+    <div class="ptf-row">
+      <div class="ptf-f" style="flex:2.2"><label>Mốc thời gian (field ngày)</label><select class="ptf-moc mass-sel" onchange="ptfRecalc()">${mocOpt}</select></div>
+      <div class="ptf-f" style="flex:.7;min-width:60px"><label>Cộng/Trừ</label><select class="ptf-dir mass-sel" onchange="ptfRecalc()"><option ${it.dir!=='−'?'selected':''}>+</option><option ${it.dir==='−'?'selected':''}>−</option></select></div>
+      <div class="ptf-f" style="flex:.8"><label>Số ngày</label><input class="ptf-days mass-sel" type="number" min="0" value="${it.days}" oninput="ptfRecalc()"></div>
+      <div class="ptf-f" style="flex:.9"><label>% thanh toán</label><input class="ptf-pct mass-sel" type="number" min="0" max="100" value="${it.pct}" oninput="ptfRecalc()"></div>
+      <button class="btn sm ptf-del" title="Xoá đợt" onclick="ptfRemoveItem(${i})">✕</button>
+    </div>
+    <div class="ptf-prev wf-muted"></div>
+  </div>`;
+}
+function ptfSync(){ PTF_ITEMS=[...document.querySelectorAll('#ptf-items .ptf-item')].map(r=>({moc:r.querySelector('.ptf-moc').value,dir:r.querySelector('.ptf-dir').value,days:r.querySelector('.ptf-days').value,pct:r.querySelector('.ptf-pct').value})); }
+function ptfRender(){ const c=document.getElementById('ptf-items'); if(!c) return; c.innerHTML=PTF_ITEMS.map(ptfItemHTML).join(''); ptfRecalcView(); }
+function ptfRecalcView(){
+  const rows=[...document.querySelectorAll('#ptf-items .ptf-item')];
+  rows.forEach((r,i)=>{ const it=PTF_ITEMS[i]||{}; const pct=+it.pct||0; const amt=pct?ptfMoney(PTF_SC_VALUE*pct/100):'—';
+    const prev=r.querySelector('.ptf-prev'); if(prev) prev.innerHTML=`Đợt ${i+1}: Ngày thanh toán = <b>${it.moc} ${it.dir||'+'} ${it.days||0} ngày</b> · Số tiền ≈ <b>${amt}</b> (${pct}% × giá trị SC)`; });
+  const tot=PTF_ITEMS.reduce((s,it)=>s+(+it.pct||0),0);
+  const el=document.getElementById('ptf-total'); if(el) el.innerHTML=`Tổng % các đợt: <b style="color:${tot===100?'var(--ok,#2e844a)':'var(--err)'}">${tot}%</b> ${tot===100?'✓ hợp lệ':'· cần đúng 100% mới lưu được'}`;
+}
+function ptfRecalc(){ ptfSync(); ptfRecalcView(); }
+function ptfAddItem(){ ptfSync(); PTF_ITEMS.push({moc:PTF_MOC[3],dir:'−',days:0,pct:''}); ptfRender(); }
+function ptfRemoveItem(i){ ptfSync(); if(PTF_ITEMS.length<=1){ toast('Payment Term phải có ít nhất 1 đợt (Payment Term Item)'); return; } PTF_ITEMS.splice(i,1); ptfRender(); }
+function openPtermForm(){
+  PTF_ITEMS=[{moc:'Ngày ký hợp đồng',dir:'+',days:0,pct:''}];
+  document.getElementById('ptf-body').innerHTML=
+    `<p class="po-hint">Số tiền mỗi đợt <b>không nhập tay</b> — tự tính = <b>% × giá trị Sales Contract</b> (IC-2026-041 · ${ptfMoney(PTF_SC_VALUE)}). Tổng % các đợt phải = <b>100%</b>.</p>
+     <div class="ptf-top">
+       <div class="ptf-f" style="flex:2.4"><label>Tên Payment Term *</label><input id="ptf-name" class="mass-sel" placeholder="VD: Cọc 30% ký HĐ + 70% trước giao hàng"></div>
+       <div class="ptf-f" style="flex:1"><label>Loại hàng *</label><select id="ptf-loai" class="mass-sel"><option>Hàng có sẵn</option><option>Hàng sản xuất</option></select></div>
+     </div>
+     <div style="font-weight:600;margin:14px 0 6px">Payment Term Item (các đợt thanh toán)</div>
+     <div id="ptf-items"></div>
+     <button class="btn sm" onclick="ptfAddItem()" style="margin-top:4px">＋ Thêm đợt (Payment Term Item)</button>
+     <div id="ptf-total" style="margin-top:12px;font-size:13px"></div>`;
+  ptfRender();
+  document.getElementById('ptfback').classList.add('show');
+  document.getElementById('ptfmodal').classList.add('show');
+}
+function closePtermForm(){ const b=document.getElementById('ptfback'),m=document.getElementById('ptfmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
+function confirmPterm(){
+  ptfSync();
+  const name=(document.getElementById('ptf-name').value||'').trim();
+  if(!name){ toast('Nhập Tên Payment Term'); document.getElementById('ptf-name').focus(); return; }
+  const tot=PTF_ITEMS.reduce((s,it)=>s+(+it.pct||0),0);
+  if(tot!==100){ toast('⛔ Tổng % các đợt phải = 100% (hiện tại '+tot+'%)'); return; }
+  const loai=document.getElementById('ptf-loai').value;
+  closePtermForm();
+  toast('✓ Đã tạo Payment Term "'+name+'" · '+loai+' · '+PTF_ITEMS.length+' đợt · tổng 100%');
+}
 function openShipModal(){
   const f=(lbl,id,ph,type)=>`<div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">${lbl}</label><input id="${id}" class="mass-sel" ${type?`type="${type}"`:''} placeholder="${ph||''}"></div>`;
   document.getElementById('ship-body').innerHTML=
@@ -2295,7 +2366,7 @@ S.imcontract = ()=> appnav('Mua nhập khẩu','Sales Contract',TAB_IM,'Sales Co
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="imcontract_list">Sales Contract (NK)</span> &rsaquo;',ico:'💱',color:'#0b827c',title:'IC-2026-041 · OCC từ Mỹ',sub:'Đa tiền tệ · 800 tấn · Recycling Corp USA',
      fields:[['Trị giá','$168.000'],['Quy đổi','4.280.000.000 ₫'],['Tỷ giá','1 USD = 25.480'],['Trạng thái',pill('info','Đang thực hiện')]],
-     actions:[{t:'Tạo PO',pri:true,fn:'createPOfromContract()'},'Sửa']})}
+     actions:[{t:'Tạo PO',pri:true,fn:'createPOfromContract()'},{t:'Tạo Payment Term',fn:'openPtermForm()'},'Sửa']})}
    <div class="cols-side act-tab">
      <div>
      ${card('Chi tiết hợp đồng nhập', fg([['Nhà cung cấp','Recycling Corp USA','link','vendor'],['Mặt hàng','Giấy OCC'],
