@@ -280,6 +280,13 @@ a:hover{text-decoration:underline}
 .po-merge-prev .po-line{color:var(--ink)}
 .fee-inc{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:10px;font-size:12.5px}
 .fee-inc-t{font-weight:700;margin-bottom:4px;color:var(--ink)}
+.cpfee-blk{border:1px solid var(--line);border-radius:8px;margin-bottom:8px;overflow:hidden}
+.cpfee-hd{display:flex;align-items:center;gap:9px;padding:9px 12px;cursor:pointer;background:var(--bg);font-size:13px}
+.cpfee-hd:hover{background:var(--line)}
+.cpfee-hd .sp{flex:1}
+.cpfee-caret{font-size:9px;transition:transform .15s;color:var(--txt-mut)}
+.cpfee-blk.open .cpfee-caret{transform:rotate(90deg)}
+.cpfee-detail{padding:6px 12px 10px}
 .ptf-scope-cb{display:flex;gap:22px;margin-bottom:12px;font-size:13px}
 .ptf-scope-cb label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:600}
 .ptf-scope-cb input{width:15px;height:15px}
@@ -1851,15 +1858,20 @@ const PAST_SHIP_FEES=[
 ];
 function openCopyFeeModal(){
   document.getElementById('cpfee-body').innerHTML=
-    `<p class="po-hint">Chọn một Shipment kỳ trước để <b>sao chép bộ đơn giá phí (Local Charge)</b>. Các phí sẽ được tạo tương ứng cho shipment hiện tại (gốc).</p>
-     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Shipment</th><th>Diễn giải</th><th class="num">Số phí</th><th class="num">Tổng (VNĐ)</th><th></th></tr></thead><tbody>`
+    `<p class="po-hint">Bấm vào từng Shipment để <b>sổ ra chi tiết các khoản phí</b> sẽ được sao chép, rồi bấm "Sao chép" để tạo cho shipment hiện tại.</p>`
     + PAST_SHIP_FEES.map((s,i)=>{ const tot=s.fees.filter(f=>f.cur==='VNĐ').reduce((a,f)=>a+f.amount,0);
-        return `<tr><td><b>${s.code}</b></td><td>${s.label}</td><td class="num">${s.fees.length}</td><td class="num">${fmtMoney(tot)}</td><td class="num"><button class="btn sm pri" onclick="copyFeesFrom(${i})">Sao chép</button></td></tr>`;
-      }).join('')
-    + `</tbody></table></div>`;
+        const detail=`<div class="tbl-wrap"><table class="tbl sm"><thead><tr><th>Tên loại phí</th><th>Giai đoạn phí</th><th class="num">Đơn giá</th><th>Tiền tệ</th></tr></thead><tbody>`
+          + s.fees.map(f=>`<tr><td>${f.type}</td><td>${f.stage}</td><td class="num">${feeAmt(f)}</td><td>${f.cur}</td></tr>`).join('')
+          + `<tr style="font-weight:700;background:var(--bg)"><td colspan="2">Tổng (VNĐ)</td><td class="num">${fmtMoney(tot)}</td><td></td></tr></tbody></table></div>`;
+        return `<div class="cpfee-blk" id="cpfee-b-${i}">
+           <div class="cpfee-hd" onclick="cpfeeToggle(${i})"><span class="cpfee-caret">▸</span><span class="sp"><b>${s.code}</b> · ${s.label} · <span class="wf-muted">${s.fees.length} phí · Tổng ${fmtMoney(tot)}</span></span><button class="btn sm pri" onclick="event.stopPropagation();copyFeesFrom(${i})">Sao chép</button></div>
+           <div class="cpfee-detail" style="display:none">${detail}</div>
+         </div>`;
+      }).join('');
   document.getElementById('cpfeeback').classList.add('show');
   document.getElementById('cpfeemodal').classList.add('show');
 }
+function cpfeeToggle(i){ const b=document.getElementById('cpfee-b-'+i); if(!b) return; const d=b.querySelector('.cpfee-detail'); const open=b.classList.toggle('open'); if(d) d.style.display=open?'':'none'; }
 function closeCopyFeeModal(){ const b=document.getElementById('cpfeeback'),m=document.getElementById('cpfeemodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
 function copyFeesFrom(i){ const s=PAST_SHIP_FEES[i]; if(!s) return;
   s.fees.forEach(f=>SHIPFEES.push({type:f.type,stage:f.stage,amount:f.amount,cur:f.cur,ext:'',reason:'Sao chép đơn giá từ '+s.code}));
