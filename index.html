@@ -1913,8 +1913,7 @@ function ptfItemHTML(it,i){
     <div class="ptf-row">
       <div class="ptf-f" style="flex:1.6"><label>Object nguồn</label><select class="ptf-obj mass-sel" onchange="ptfObjChanged(this)">${objOpt}</select></div>
       <div class="ptf-f" style="flex:1.8"><label>Mốc thời gian (field ngày)</label><select class="ptf-moc mass-sel" onchange="ptfRecalc()">${mocOpt}</select></div>
-      <div class="ptf-f" style="flex:.55;min-width:52px"><label>±</label><select class="ptf-dir mass-sel" onchange="ptfRecalc()"><option ${it.dir!=='−'?'selected':''}>+</option><option ${it.dir==='−'?'selected':''}>−</option></select></div>
-      <div class="ptf-f" style="flex:.7"><label>Số ngày</label><input class="ptf-days mass-sel" type="number" min="0" value="${it.days}" oninput="ptfRecalc()"></div>
+      <div class="ptf-f" style="flex:.9"><label>Số ngày (+/-)</label><input class="ptf-days mass-sel" type="number" value="${it.days}" placeholder="VD: -7 hoặc 30" oninput="ptfRecalc()"></div>
       <div class="ptf-f" style="flex:.7"><label>% TT</label><input class="ptf-pct mass-sel" type="number" min="0" max="100" value="${it.pct}" oninput="ptfRecalc()"></div>
       <button class="btn sm ptf-del" title="Xoá đợt" onclick="ptfRemoveItem(${i})">✕</button>
     </div>
@@ -1922,18 +1921,19 @@ function ptfItemHTML(it,i){
   </div>`;
 }
 function ptfObjChanged(sel){ const fields=PTF_OBJ_FIELDS[sel.value]||[]; const mocSel=sel.closest('.ptf-item').querySelector('.ptf-moc'); if(mocSel) mocSel.innerHTML=fields.map(f=>`<option>${f}</option>`).join(''); ptfRecalc(); }
-function ptfSync(){ PTF_ITEMS=[...document.querySelectorAll('#ptf-items .ptf-item')].map(r=>({obj:r.querySelector('.ptf-obj').value,moc:r.querySelector('.ptf-moc').value,dir:r.querySelector('.ptf-dir').value,days:r.querySelector('.ptf-days').value,pct:r.querySelector('.ptf-pct').value})); }
+function ptfSync(){ PTF_ITEMS=[...document.querySelectorAll('#ptf-items .ptf-item')].map(r=>({obj:r.querySelector('.ptf-obj').value,moc:r.querySelector('.ptf-moc').value,days:r.querySelector('.ptf-days').value,pct:r.querySelector('.ptf-pct').value})); }
+function ptfDays(d){ d=+d||0; return (d>0?'+':'')+d; }
 function ptfRender(){ const c=document.getElementById('ptf-items'); if(!c) return; c.innerHTML=PTF_ITEMS.map(ptfItemHTML).join(''); ptfRecalcView(); }
 function ptfRecalcView(){
   const rows=[...document.querySelectorAll('#ptf-items .ptf-item')];
   rows.forEach((r,i)=>{ const it=PTF_ITEMS[i]||{}; const pct=+it.pct||0;
-    const prev=r.querySelector('.ptf-prev'); if(prev) prev.innerHTML=`Đợt ${i+1}: Ngày thanh toán = <b>${it.obj} · ${it.moc} ${it.dir||'+'} ${it.days||0} ngày</b> · Thanh toán <b>${pct}%</b> giá trị hợp đồng`; });
+    const prev=r.querySelector('.ptf-prev'); if(prev) prev.innerHTML=`Đợt ${i+1}: Ngày thanh toán = <b>${it.obj} · ${it.moc} ${ptfDays(it.days)} ngày</b> · Thanh toán <b>${pct}%</b> giá trị hợp đồng`; });
 }
 function ptfRecalc(){ ptfSync(); ptfRecalcView(); }
-function ptfAddItem(){ ptfSync(); PTF_ITEMS.push({obj:'Sales Contract',moc:'Ngày ký hợp đồng',dir:'+',days:0,pct:''}); ptfRender(); }
+function ptfAddItem(){ ptfSync(); PTF_ITEMS.push({obj:'Sales Contract',moc:'Ngày ký hợp đồng',days:0,pct:''}); ptfRender(); }
 function ptfRemoveItem(i){ ptfSync(); if(PTF_ITEMS.length<=1){ toast('Payment Term phải có ít nhất 1 đợt (Payment Term Item)'); return; } PTF_ITEMS.splice(i,1); ptfRender(); }
 function openPtermForm(){
-  PTF_ITEMS=[{obj:'Sales Contract',moc:'Ngày ký hợp đồng',dir:'+',days:0,pct:''}];
+  PTF_ITEMS=[{obj:'Sales Contract',moc:'Ngày ký hợp đồng',days:0,pct:''}];
   document.getElementById('ptf-body').innerHTML=
     `<div class="ptf-top">
        <div class="ptf-f" style="flex:2.4"><label>Tên Payment Term *</label><input id="ptf-name" class="mass-sel" placeholder="VD: Cọc 30% ký HĐ + 70% trước giao hàng"></div>
@@ -2277,21 +2277,21 @@ const PTF_OBJ_FIELDS={
 };
 const PAY_ITEMS=[
   // --- Template item (object nguồn + mốc + cộng/trừ + số ngày + %) ---
-  {id:'PTI-01-1',rt:'Template',term:'PT-01',dot:1,pct:100,obj:'Purchase Order (PO)',moc:'Ngày cần hàng',dir:'−',days:10},
-  {id:'PTI-02-1',rt:'Template',term:'PT-02',dot:1,pct:100,obj:'Hóa đơn (Invoice)',moc:'Ngày hóa đơn',dir:'+',days:15},
-  {id:'PTI-03-1',rt:'Template',term:'PT-03',dot:1,pct:100,obj:'Hóa đơn (Invoice)',moc:'Ngày hóa đơn',dir:'+',days:30},
-  {id:'PTI-04-1',rt:'Template',term:'PT-04',dot:1,pct:100,obj:'Hóa đơn (Invoice)',moc:'Ngày hóa đơn',dir:'+',days:0},
-  {id:'PTI-05-1',rt:'Template',term:'PT-05',dot:1,pct:30,obj:'Sales Contract',moc:'Ngày ký hợp đồng',dir:'+',days:0},
-  {id:'PTI-05-2',rt:'Template',term:'PT-05',dot:2,pct:70,obj:'Shipment',moc:'Ngày giao hàng',dir:'−',days:7},
-  {id:'PTI-06-1',rt:'Template',term:'PT-06',dot:1,pct:30,obj:'Sales Contract',moc:'Ngày ký hợp đồng',dir:'+',days:10},
-  {id:'PTI-06-2',rt:'Template',term:'PT-06',dot:2,pct:40,obj:'Sản xuất',moc:'Ngày hàng SX xong',dir:'+',days:0},
-  {id:'PTI-06-3',rt:'Template',term:'PT-06',dot:3,pct:30,obj:'Sản xuất',moc:'Ngày nghiệm thu',dir:'+',days:10},
+  {id:'PTI-01-1',rt:'Template',term:'PT-01',dot:1,pct:100,obj:'Purchase Order (PO)',moc:'Ngày cần hàng',days:-10},
+  {id:'PTI-02-1',rt:'Template',term:'PT-02',dot:1,pct:100,obj:'Hóa đơn (Invoice)',moc:'Ngày hóa đơn',days:15},
+  {id:'PTI-03-1',rt:'Template',term:'PT-03',dot:1,pct:100,obj:'Hóa đơn (Invoice)',moc:'Ngày hóa đơn',days:30},
+  {id:'PTI-04-1',rt:'Template',term:'PT-04',dot:1,pct:100,obj:'Hóa đơn (Invoice)',moc:'Ngày hóa đơn',days:0},
+  {id:'PTI-05-1',rt:'Template',term:'PT-05',dot:1,pct:30,obj:'Sales Contract',moc:'Ngày ký hợp đồng',days:0},
+  {id:'PTI-05-2',rt:'Template',term:'PT-05',dot:2,pct:70,obj:'Shipment',moc:'Ngày giao hàng',days:-7},
+  {id:'PTI-06-1',rt:'Template',term:'PT-06',dot:1,pct:30,obj:'Sales Contract',moc:'Ngày ký hợp đồng',days:10},
+  {id:'PTI-06-2',rt:'Template',term:'PT-06',dot:2,pct:40,obj:'Sản xuất',moc:'Ngày hàng SX xong',days:0},
+  {id:'PTI-06-3',rt:'Template',term:'PT-06',dot:3,pct:30,obj:'Sản xuất',moc:'Ngày nghiệm thu',days:10},
   // --- Áp dụng item (instance: amt/due/st dùng để sinh Payment) ---
-  {id:'PTIa-46222-1',rt:'Áp dụng',term:'PTa-46222',tmpl:'PTI-05-1',dot:1,pct:30,obj:'Sales Contract',moc:'Ngày ký hợp đồng',dir:'+',days:0,amt:164208319,due:'22/07/2026',st:'Hoàn thành'},
-  {id:'PTIa-46222-2',rt:'Áp dụng',term:'PTa-46222',tmpl:'PTI-05-2',dot:2,pct:70,obj:'Shipment',moc:'Ngày giao hàng',dir:'−',days:7,amt:383152745,due:'05/08/2026',st:'Chờ thanh toán'},
-  {id:'PTIa-46180-1',rt:'Áp dụng',term:'PTa-46180',tmpl:'PTI-06-1',dot:1,pct:30,obj:'Sales Contract',moc:'Ngày ký hợp đồng',dir:'+',days:10,amt:573246769,due:'15/07/2026',st:'Hoàn thành'},
-  {id:'PTIa-46180-2',rt:'Áp dụng',term:'PTa-46180',tmpl:'PTI-06-2',dot:2,pct:40,obj:'Sản xuất',moc:'Ngày hàng SX xong',dir:'+',days:0,amt:764329026,due:'—',st:'Delay'},
-  {id:'PTIa-46180-3',rt:'Áp dụng',term:'PTa-46180',tmpl:'PTI-06-3',dot:3,pct:30,obj:'Sản xuất',moc:'Ngày nghiệm thu',dir:'+',days:10,amt:573246770,due:'—',st:'Chờ thanh toán'},
+  {id:'PTIa-46222-1',rt:'Áp dụng',term:'PTa-46222',tmpl:'PTI-05-1',dot:1,pct:30,obj:'Sales Contract',moc:'Ngày ký hợp đồng',days:0,amt:164208319,due:'22/07/2026',st:'Hoàn thành'},
+  {id:'PTIa-46222-2',rt:'Áp dụng',term:'PTa-46222',tmpl:'PTI-05-2',dot:2,pct:70,obj:'Shipment',moc:'Ngày giao hàng',days:-7,amt:383152745,due:'05/08/2026',st:'Chờ thanh toán'},
+  {id:'PTIa-46180-1',rt:'Áp dụng',term:'PTa-46180',tmpl:'PTI-06-1',dot:1,pct:30,obj:'Sales Contract',moc:'Ngày ký hợp đồng',days:10,amt:573246769,due:'15/07/2026',st:'Hoàn thành'},
+  {id:'PTIa-46180-2',rt:'Áp dụng',term:'PTa-46180',tmpl:'PTI-06-2',dot:2,pct:40,obj:'Sản xuất',moc:'Ngày hàng SX xong',days:0,amt:764329026,due:'—',st:'Delay'},
+  {id:'PTIa-46180-3',rt:'Áp dụng',term:'PTa-46180',tmpl:'PTI-06-3',dot:3,pct:30,obj:'Sản xuất',moc:'Ngày nghiệm thu',days:10,amt:573246770,due:'—',st:'Chờ thanh toán'},
 ];
 const PAYMENTS=[
   {id:'PAY-0771-1',term:'PTa-46222',item:'PTIa-46222-1'},
@@ -2320,28 +2320,28 @@ S.pterm = ()=> appnav('Mua hàng nhập khẩu','Payment Term',TAB_IM,'Payment T
      <div>
      ${card('Chi tiết Payment Term', fg([['Mã',t.id],['Record Type',t.rt],['Sinh từ template',tmpl.ten?(t.tmpl+' · '+tmpl.ten):t.tmpl,'link','pterm'],
        ['Tên Payment Term',t.ten],['Loại hàng',t.th],['Số đợt',String(t.dot)]]))}
-     ${card('Payment Term Item', tbl([{t:'Mã đợt'},{t:'Đợt'},{t:'Object nguồn'},{t:'Mốc thời gian'},{t:'Cộng/Trừ'},{t:'Số ngày',num:true},{t:'% thanh toán',num:true}],
-       PAY_ITEMS.filter(x=>x.term===t.id).map(x=>['<a data-go="pitem">'+x.id+'</a>','Đợt '+x.dot,x.obj,x.moc,x.dir,String(x.days),x.pct+'%'])),{n:String(PAY_ITEMS.filter(x=>x.term===t.id).length),r:'<button class="btn sm" onclick="go(\'pitem\')">＋ Thêm đợt</button>'})}
+     ${card('Payment Term Item', tbl([{t:'Mã đợt'},{t:'Đợt'},{t:'Object nguồn'},{t:'Mốc thời gian'},{t:'Số ngày (±)',num:true},{t:'% thanh toán',num:true}],
+       PAY_ITEMS.filter(x=>x.term===t.id).map(x=>['<a data-go="pitem">'+x.id+'</a>','Đợt '+x.dot,x.obj,x.moc,ptfDays(x.days),x.pct+'%'])),{n:String(PAY_ITEMS.filter(x=>x.term===t.id).length),r:'<button class="btn sm" onclick="go(\'pitem\')">＋ Thêm đợt</button>'})}
      </div>
      ${activity([['📋','Tạo Payment Term từ Sales Contract','Kế toán · Hôm nay']])}
    </div>
  </div>`; })();
 S.pitem_list = ()=> appnav('Mua hàng nhập khẩu','Payment Term Item',TAB_IM,'Payment Term Item')
  + `<div class="sf-body">${lv({crumb:'Payment Term Item (Đợt thanh toán)',ico:'🧾',color:'#0b827c',object:'Payment Term Item',view:'Tất cả',views:['Tất cả','Template','Áp dụng (theo PO)'],count:String(PAY_ITEMS.length),newLabel:'Item mới',
-   cols:[{t:'Mã đợt'},{t:'Record Type'},{t:'Payment Term'},{t:'Đợt',num:true},{t:'Object nguồn'},{t:'Mốc thời gian'},{t:'Cộng/Trừ'},{t:'Số ngày',num:true},{t:'% thanh toán',num:true}],
-   rows:PAY_ITEMS.map(x=>({go:'pitem',cells:[x.id,rtPill(x.rt),x.term,String(x.dot),x.obj,x.moc,x.dir,String(x.days),x.pct+'%']}))})}</div>`;
+   cols:[{t:'Mã đợt'},{t:'Record Type'},{t:'Payment Term'},{t:'Đợt',num:true},{t:'Object nguồn'},{t:'Mốc thời gian'},{t:'Số ngày (±)',num:true},{t:'% thanh toán',num:true}],
+   rows:PAY_ITEMS.map(x=>({go:'pitem',cells:[x.id,rtPill(x.rt),x.term,String(x.dot),x.obj,x.moc,ptfDays(x.days),x.pct+'%']}))})}</div>`;
 S.pitem = ()=> appnav('Mua hàng nhập khẩu','Payment Term Item',TAB_IM,'Payment Term Item')
  + (()=>{ const x=ptItem('PTIa-46222-1'), tm=ptTerm(x.term);
    return `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="pitem_list">Payment Term Item</span> &rsaquo;',ico:'🧾',color:'#0b827c',title:x.id+' · Đợt '+x.dot+' — '+x.pct+'%',sub:'Thuộc '+x.term,
-     fields:[['Record Type',rtPill(x.rt)],['Mốc thời gian',x.moc],['Ngày thanh toán',x.moc+' '+x.dir+' '+x.days+' ngày'],['% thanh toán',x.pct+'%']],
+     fields:[['Record Type',rtPill(x.rt)],['Mốc thời gian',x.moc],['Ngày thanh toán',x.moc+' '+ptfDays(x.days)+' ngày'],['% thanh toán',x.pct+'%']],
      actions:['Sửa']})}
    <div class="cols-side act-tab">
      <div>
      ${card('Chi tiết Payment Term Item', fg([['Mã đợt',x.id],['Record Type',x.rt],['Sinh từ template item',x.tmpl||'—'],
        ['Payment Term',x.term+(tm.ten?' · '+tm.ten:''),'link','pterm'],['Đợt số',String(x.dot)],
-       ['Object nguồn (mốc)',x.obj],['Mốc thời gian',x.moc],['Cộng/Trừ',x.dir],['Số ngày',String(x.days)],
-       ['Ngày thanh toán (= mốc ± số ngày)',x.moc+' '+x.dir+' '+x.days+' ngày'],['% thanh toán',x.pct+'%']]))}
+       ['Object nguồn (mốc)',x.obj],['Mốc thời gian',x.moc],['Số ngày (±)',ptfDays(x.days)],
+       ['Ngày thanh toán (= mốc ± số ngày)',x.moc+' '+ptfDays(x.days)+' ngày'],['% thanh toán',x.pct+'%']]))}
      ${card('Payment (sinh từ đợt này)', tbl([{t:'Mã Payment'},{t:'Số PO'},{t:'Số tiền',num:true},{t:'Ngày TT'},{t:'Trạng thái'}],
        PAYMENTS.filter(p=>p.item===x.id).map(p=>['<a data-go="payment">'+p.id+'</a>',tm.po,payMoney(x.amt),x.due,payPill(x.st)])),{n:String(PAYMENTS.filter(p=>p.item===x.id).length)})}
      </div>
