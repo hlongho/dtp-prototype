@@ -2316,6 +2316,8 @@ S.ppo = ()=> appnav('Mua hàng','Đơn mua (PO)',['Trang chủ','Phiếu yêu c�
        ['Điều khoản TT','Net 30'],['Người mua','Nguyễn Văn A'],['Trạng thái',pill('info','Giao 1 phần')]]))}
      ${card('Theo dõi nhận hàng', tbl([{t:'Vật tư'},{t:'SL đặt',num:true},{t:'Đã nhận',num:true},{t:'Chưa nhận',num:true},{t:'Ngày nhận dự kiến'},{t:'Phiếu nhập'},{t:'Trạng thái'}],[
        ['Keo dán công nghiệp','3.500','3.200','300','30/07/2026','NK-2201',pill('warn','Còn thiếu 300 kg')]]),{n:'1',r:'<button class="btn sm">Ghi nhận nhận hàng</button>'})}
+     ${card('Payment', tbl([{t:'Đợt / Điều khoản'},{t:'Số tiền',num:true},{t:'Ngày TT dự kiến'},{t:'Trạng thái'}],[
+       ['Đợt 1 · 100% (Net 30)','182.000.000 ₫','29/08/2026',payPill('Chờ thanh toán')]]),{n:'1'})}
      ${card('Xuất nhập kho', tbl([{t:'Số phiếu'},{t:'Loại phiếu'},{t:'Ngày'},{t:'Vật tư'},{t:'SL (kg)',num:true},{t:'Kho'},{t:'Trạng thái'}],[
        ['<a style="cursor:pointer" onclick="openSlipModal(\'NK-2201\')">NK-2201</a>',pill('mut','Phiếu nhập kho'),'18/07/2026','Keo dán công nghiệp','3.200','Kho Long An',pill('ok','Đã nhập')],
        ['<a style="cursor:pointer" onclick="openSlipModal(\'NK-2210\')">NK-2210</a>',pill('mut','Phiếu nhập kho'),'—','Keo dán công nghiệp','300','Kho Long An',pill('warn','Chờ nhập')]]),{n:'2'})}
@@ -2343,6 +2345,9 @@ S.impo = ()=> appnav('Mua hàng nhập khẩu','Đơn mua (PO)',TAB_IM,'Đơn mu
        ['Điều khoản TT','L/C'],['Người mua','Nguyễn Văn XNK'],['Trạng thái',pill('info','Chờ giao hàng')]]))}
      ${card('Theo dõi nhận hàng', tbl([{t:'Vật tư'},{t:'SL đặt',num:true},{t:'Đã nhận',num:true},{t:'Chưa nhận',num:true},{t:'Ngày nhận dự kiến'},{t:'Phiếu nhập'},{t:'Trạng thái'}],[
        ['Giấy OCC','800','0','800','02/08/2026','—',pill('warn','Chưa nhận')]]),{n:'1',r:'<button class="btn sm">Ghi nhận nhận hàng</button>'})}
+     ${card('Payment', tbl([{t:'Mã Payment'},{t:'Payment Term'},{t:'Đợt'},{t:'Số tiền',num:true},{t:'Ngày TT'},{t:'Trạng thái'}],
+       PAYMENTS.filter(p=>p.po==='PO-NK-0088').map(p=>{const it=ptItem(p.item);return ['<a data-go="payment">'+p.id+'</a>','<a data-go="pterm">'+p.term+'</a>','Đợt '+it.dot+' · '+it.pct+'%',payMoney(it.amt),it.due,payPill(it.st)];})),
+       {n:String(PAYMENTS.filter(p=>p.po==='PO-NK-0088').length)})}
      ${card('Xuất nhập kho', tbl([{t:'Số phiếu'},{t:'Loại phiếu'},{t:'Ngày'},{t:'Vật tư'},{t:'SL (tấn)',num:true},{t:'Kho'},{t:'Trạng thái'}],[]),{n:'0'})}
      ${card('Shipment', tbl([{t:'Số lô / Booking'},{t:'Hãng tàu'},{t:'ETD'},{t:'ETA'},{t:'Trạng thái'}],[
        ['<a data-go="shipment">SHP-2026-018</a>','ONE','19/07/2026','02/08/2026',pill('info','Trên biển')]]),{n:'1',r:'<button class="btn sm" onclick="openShipModal()">＋ Tạo mới</button>'})}
@@ -2473,11 +2478,11 @@ const PAY_ITEMS=[
   {id:'PTIa-46180-3',rt:'Áp dụng',term:'PTa-46180',tmpl:'PTI-06-3',dot:3,pct:30,obj:'Sản xuất',moc:'Ngày nghiệm thu',days:10,amt:573246770,due:'—',st:'Chờ thanh toán'},
 ];
 const PAYMENTS=[
-  {id:'PAY-0771-1',term:'PTa-46222',item:'PTIa-46222-1',ext:0},
-  {id:'PAY-0771-2',term:'PTa-46222',item:'PTIa-46222-2',ext:0},
-  {id:'PAY-0655-1',term:'PTa-46180',item:'PTIa-46180-1',ext:0},
-  {id:'PAY-0655-2',term:'PTa-46180',item:'PTIa-46180-2',ext:12},
-  {id:'PAY-0655-3',term:'PTa-46180',item:'PTIa-46180-3',ext:0},
+  {id:'PAY-0771-1',term:'PTa-46222',item:'PTIa-46222-1',ext:0,po:'PO-NK-0088',poObj:'impo'},
+  {id:'PAY-0771-2',term:'PTa-46222',item:'PTIa-46222-2',ext:0,po:'PO-NK-0088',poObj:'impo'},
+  {id:'PAY-0655-1',term:'PTa-46180',item:'PTIa-46180-1',ext:0,po:'PO-NK-0088',poObj:'impo'},
+  {id:'PAY-0655-2',term:'PTa-46180',item:'PTIa-46180-2',ext:12,po:'PO-NK-0088',poObj:'impo'},
+  {id:'PAY-0655-3',term:'PTa-46180',item:'PTIa-46180-3',ext:0,po:'PO-NK-0088',poObj:'impo'},
 ];
 const payMoney=n=> (typeof n==='number'? n.toLocaleString('vi-VN')+' ₫' : (n||'—'));
 function payPill(s){ return s==='Hoàn thành'?pill('ok','Hoàn thành'):(s==='Delay'?pill('err','Delay'):(s?pill('info','Chờ thanh toán'):'—')); }
@@ -2522,20 +2527,20 @@ S.pitem = ()=> appnav('Mua hàng nhập khẩu','Payment Term Item',TAB_IM,'Paym
        ['Payment Term',x.term+(tm.ten?' · '+tm.ten:''),'link','pterm'],['Đợt số',String(x.dot)],
        ['Object nguồn (mốc)',x.obj],['Mốc thời gian',x.moc],['Số ngày (±)',ptfDays(x.days)],
        ['Ngày thanh toán (= mốc ± số ngày)',x.moc+' '+ptfDays(x.days)+' ngày'],['% thanh toán',x.pct+'%']]))}
-     ${card('Payment (sinh từ đợt này)', tbl([{t:'Mã Payment'},{t:'Số PO'},{t:'Số tiền',num:true},{t:'Ngày TT'},{t:'Số ngày TT kéo dài'},{t:'Trạng thái'}],
-       PAYMENTS.filter(p=>p.item===x.id).map(p=>['<a data-go="payment">'+p.id+'</a>',tm.po,payMoney(x.amt),x.due,payExt(p.ext),payPill(x.st)])),{n:String(PAYMENTS.filter(p=>p.item===x.id).length)})}
+     ${card('Payment (sinh từ đợt này)', tbl([{t:'Mã Payment'},{t:'PO'},{t:'Số tiền',num:true},{t:'Ngày TT'},{t:'Số ngày TT kéo dài'},{t:'Trạng thái'}],
+       PAYMENTS.filter(p=>p.item===x.id).map(p=>['<a data-go="payment">'+p.id+'</a>','<a data-go="'+p.poObj+'">'+p.po+'</a>',payMoney(x.amt),x.due,payExt(p.ext),payPill(x.st)])),{n:String(PAYMENTS.filter(p=>p.item===x.id).length)})}
      </div>
      ${activity([['🧾','Tạo đợt thanh toán','Kế toán']])}
    </div>
  </div>`; })();
 S.payment_list = ()=> appnav('Mua hàng nhập khẩu','Payment',TAB_IM,'Payment')
  + `<div class="sf-body">${lv({crumb:'Payment (Kế hoạch thanh toán)',ico:'💰',color:'#0b827c',object:'Payment (Kế hoạch thanh toán)',view:'Sắp đến hạn',views:['Sắp đến hạn','Chưa hoàn thành','Đã hoàn thành','Delay','Tất cả'],count:String(PAYMENTS.length),newLabel:'Payment mới',
-   cols:[{t:'Mã Payment'},{t:'Số PO'},{t:'Nhà cung cấp'},{t:'Payment Term'},{t:'Payment Term Item'},{t:'Đợt'},{t:'Số tiền',num:true},{t:'Ngày TT'},{t:'Số ngày TT kéo dài'},{t:'Trạng thái'}],
-   rows:PAYMENTS.map(p=>{const it=ptItem(p.item),tm=ptTerm(p.term);return {go:'payment',cells:[p.id,tm.po,tm.ncc,p.term,p.item,'Đợt '+it.dot+' · '+it.pct+'%',payMoney(it.amt),it.due,payExt(p.ext),payPill(it.st)]};})})}</div>`;
+   cols:[{t:'Mã Payment'},{t:'PO'},{t:'Nhà cung cấp'},{t:'Payment Term'},{t:'Payment Term Item'},{t:'Đợt'},{t:'Số tiền',num:true},{t:'Ngày TT'},{t:'Số ngày TT kéo dài'},{t:'Trạng thái'}],
+   rows:PAYMENTS.map(p=>{const it=ptItem(p.item),tm=ptTerm(p.term);return {go:'payment',cells:[p.id,'<a data-go="'+p.poObj+'">'+p.po+'</a>',tm.ncc,p.term,p.item,'Đợt '+it.dot+' · '+it.pct+'%',payMoney(it.amt),it.due,payExt(p.ext),payPill(it.st)]};})})}</div>`;
 S.payment = ()=> appnav('Mua hàng nhập khẩu','Payment',TAB_IM,'Payment')
  + (()=>{ const p=PAYMENTS[0], it=ptItem(p.item), tm=ptTerm(p.term);
    return `<div class="sf-body narrow">
-   ${hl({crumb:'<span data-go="payment_list">Payment</span> &rsaquo;',ico:'💰',color:'#0b827c',title:p.id+' · '+tm.ncc,sub:'Kế hoạch thanh toán · PO '+tm.po+' · Đợt '+it.dot+' ('+it.pct+'%)',
+   ${hl({crumb:'<span data-go="payment_list">Payment</span> &rsaquo;',ico:'💰',color:'#0b827c',title:p.id+' · '+tm.ncc,sub:'Kế hoạch thanh toán · PO '+p.po+' · Đợt '+it.dot+' ('+it.pct+'%)',
      fields:[['Số tiền',payMoney(it.amt)],['Ngày thanh toán',it.due],['Số ngày TT kéo dài',payExt(p.ext)],['Trạng thái',payPill(it.st)],['Đợt','Đợt '+it.dot+' · '+it.pct+'%']],
      actions:[]})}
    ${path(['Lập kế hoạch','Chờ thanh toán','Hoàn thành'],it.st==='Hoàn thành'?2:1)}
@@ -2544,7 +2549,7 @@ S.payment = ()=> appnav('Mua hàng nhập khẩu','Payment',TAB_IM,'Payment')
      ${card('Chi tiết Payment', fg([['Mã Payment',p.id],
        ['Payment Term',tm.id+' · '+tm.ten,'link','pterm'],
        ['Payment Term Item',it.id+' · Đợt '+it.dot+' ('+it.pct+'%)','link','pitem'],
-       ['Số PO','PO '+tm.po],['Nhà cung cấp',tm.ncc,'link','vendor'],['Đợt / Tỷ lệ','Đợt '+it.dot+' · '+it.pct+'%'],
+       ['PO',p.po,'link',p.poObj],['Nhà cung cấp',tm.ncc,'link','vendor'],['Đợt / Tỷ lệ','Đợt '+it.dot+' · '+it.pct+'%'],
        ['Số tiền',payMoney(it.amt)],['Ngày thanh toán',it.due],['Số ngày thanh toán kéo dài',payExt(p.ext)],['Trạng thái',it.st]]))}
      </div>
      ${activity([['💰','Sinh Payment từ Payment Term Item '+it.id,'Kế toán · Hôm nay'],['✅','Đợt '+it.dot+' đã thanh toán',it.due]])}
@@ -3004,6 +3009,8 @@ S.oppo = ()=> appnav('Bán hàng nội địa','Opportunity PO',TAB_SALES,'Oppor
      ${card('SO (Sales Order)', tbl([{t:'Số SO'},{t:'Từ PO'},{t:'Ngày tạo'},{t:'SL (tấn)',num:true},{t:'Hạn giao'},{t:'Trạng thái'}],[
        ['<a data-go="so">SO-7788</a>','PO-2619','13/07/2026','120','29/07/2026',pill('info','Đang SX')],
        ['<a data-go="so">SO-7801</a>','PO-2619','15/07/2026','30','02/08/2026',pill('mut','Chờ SX')]]),{n:'2',r:'<button class="btn sm" onclick="go(\'so\')">SO mới</button>'})}
+     ${card('Payment', tbl([{t:'Đợt / Điều khoản'},{t:'Số tiền',num:true},{t:'Ngày TT dự kiến'},{t:'Trạng thái'}],[
+       ['Đợt 1 · 100% (Net 30)','1.180.000.000 ₫','28/08/2026',payPill('Chờ thanh toán')]]),{n:'1'})}
      ${card('Dòng sản phẩm đặt hàng', tbl([{t:'Sản phẩm'},{t:'ĐL/Khổ'},{t:'Đã SX (cuộn)',num:true},{t:'Đã SX (tấn)',num:true},{t:'Chưa SX (cuộn)',num:true},{t:'Chưa SX (tấn)',num:true},{t:'Tổng (cuộn)',num:true},{t:'Tổng (tấn)',num:true},{t:'Máy SX'}],[
        ['Giấy Medium','125gsm / 200','—','—','38','20.058','38','20.058',pill('info','PM5')],
        ['Giấy Medium','110gsm / 180','14','9.942','—','—','14','9.942',pill('info','PM5')],
@@ -3285,6 +3292,9 @@ S.exoppo = ()=> appnav('Bán hàng xuất khẩu','PO',TAB_EX,'PO')
      ${card('Invoice', tbl([{t:'Số Invoice'},{t:'Ngày phát hành'},{t:'SO liên quan'},{t:'Trị giá',num:true},{t:'Trạng thái'}],[
        ['<a data-go="excontract">INV-XK-0142</a>','28/07/2026','<a data-go="exso">SO-XK-0142</a>','$118.500',pill('ok','Đã phát hành')],
        ['<a data-go="excontract">INV-XK-0143</a>','—','<a data-go="exso">SO-XK-0143</a>','$30.000',pill('mut','Nháp')]]),{n:'2',r:'<button class="btn sm" onclick="go(\'excontract\')">Tạo Invoice</button>'})}
+     ${card('Payment', tbl([{t:'Đợt / Điều khoản'},{t:'Số tiền',num:true},{t:'Ngày TT'},{t:'Trạng thái'}],[
+       ['Đợt 1 · 30% (cọc T/T)','$44.550','20/07/2026',payPill('Hoàn thành')],
+       ['Đợt 2 · 70% (trước giao hàng)','$103.950','05/08/2026',payPill('Chờ thanh toán')]]),{n:'2'})}
      ${card('Sales Contract', tbl([{t:'Số Contract'},{t:'Mặt hàng'},{t:'Trị giá',num:true},{t:'Payment'},{t:'Trạng thái'}],[
        ['<a data-go="excontract">TI2619</a>','Kraft Liner','$148.500','L/C',pill('info','Đang thực hiện')]]),{n:'1',r:'<button class="btn sm" onclick="go(\'excontract\')">Contract mới</button>'})}
      ${card('Case',
