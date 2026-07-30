@@ -656,6 +656,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     <div class="pm-body" id="fee-body"></div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeFeeModal()">Hủy</button><button class="btn pri" onclick="confirmFee()">Lưu phí</button></div></div>
   </div>
+  <!-- Modal sao chép đơn giá phí từ shipment cũ -->
+  <div class="modal-back" id="cpfeeback" onclick="closeCopyFeeModal()" style="z-index:135"></div>
+  <div class="po-modal" id="cpfeemodal" style="z-index:140;width:min(720px,95vw)">
+    <div class="pm-head"><h3>Sao chép đơn giá cũ (từ Shipment trước)</h3><button title="Đóng" onclick="closeCopyFeeModal()">✕</button></div>
+    <div class="pm-body" id="cpfee-body"></div>
+    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeCopyFeeModal()">Đóng</button></div></div>
+  </div>
   <!-- Modal thêm báo giá Logistics (Báo giá XK) -->
   <div class="modal-back" id="lqback" onclick="closeLogisModal()" style="z-index:135"></div>
   <div class="po-modal" id="lqmodal" style="z-index:140;width:min(640px,94vw)">
@@ -1825,6 +1832,39 @@ function shipFeesRows(){
   return SHIPFEES.map(f=>`<tr><td>${f.type}</td><td>${f.stage}</td><td class="num">${feeAmt(f)}</td><td>${f.cur}</td><td>${f.ext||'—'}</td><td>${f.reason||'—'}</td><td class="num"><button class="btn sm" title="Tạo Case khiếu nại cho phí này" onclick="createCaseFromFee('${f.type}')">Tạo Case</button></td></tr>`).join('');
 }
 function createCaseFromFee(type){ toast('Đã tạo Case khiếu nại cho phí "'+type+'" — mở màn Case'); setTimeout(function(){ if(S.case) go('case'); }, 700); }
+/* --- Sao chép đơn giá phí từ shipment kỳ trước --- */
+const PAST_SHIP_FEES=[
+  {code:'SHP-039', label:'DLK 400 tấn · Maersk · ETA 12/07/2026', fees:[
+    {type:'THC',stage:'Phí tại cảng',amount:4200000,cur:'VNĐ'},
+    {type:'CIC',stage:'Phí trả Hãng tàu',amount:1050000,cur:'VNĐ'},
+    {type:'Phí vệ sinh cont',stage:'Phí tại cảng',amount:750000,cur:'VNĐ'},
+    {type:'Nâng hạ (LOLO)',stage:'Phí tại cảng',amount:900000,cur:'VNĐ'}]},
+  {code:'SHP-042', label:'Bột giấy 300 tấn · ONE · ETA 28/07/2026', fees:[
+    {type:'THC',stage:'Phí tại cảng',amount:4350000,cur:'VNĐ'},
+    {type:'CIC',stage:'Phí trả Hãng tàu',amount:1100000,cur:'VNĐ'},
+    {type:'Phí chứng từ',stage:'Phí trả Hãng tàu',amount:700000,cur:'VNĐ'}]},
+  {code:'SHP-036', label:'OCC 750 tấn · ONE · ETA 20/06/2026', fees:[
+    {type:'THC',stage:'Phí tại cảng',amount:4100000,cur:'VNĐ'},
+    {type:'CIC',stage:'Phí trả Hãng tàu',amount:1100000,cur:'VNĐ'},
+    {type:'Phí vệ sinh cont',stage:'Phí tại cảng',amount:800000,cur:'VNĐ'},
+    {type:'DEM (lưu bãi)',stage:'Phí tại cảng',amount:2400000,cur:'VNĐ'}]},
+];
+function openCopyFeeModal(){
+  document.getElementById('cpfee-body').innerHTML=
+    `<p class="po-hint">Chọn một Shipment kỳ trước để <b>sao chép bộ đơn giá phí (Local Charge)</b>. Các phí sẽ được tạo tương ứng cho shipment hiện tại (gốc).</p>
+     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Shipment</th><th>Diễn giải</th><th class="num">Số phí</th><th class="num">Tổng (VNĐ)</th><th></th></tr></thead><tbody>`
+    + PAST_SHIP_FEES.map((s,i)=>{ const tot=s.fees.filter(f=>f.cur==='VNĐ').reduce((a,f)=>a+f.amount,0);
+        return `<tr><td><b>${s.code}</b></td><td>${s.label}</td><td class="num">${s.fees.length}</td><td class="num">${fmtMoney(tot)}</td><td class="num"><button class="btn sm pri" onclick="copyFeesFrom(${i})">Sao chép</button></td></tr>`;
+      }).join('')
+    + `</tbody></table></div>`;
+  document.getElementById('cpfeeback').classList.add('show');
+  document.getElementById('cpfeemodal').classList.add('show');
+}
+function closeCopyFeeModal(){ const b=document.getElementById('cpfeeback'),m=document.getElementById('cpfeemodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
+function copyFeesFrom(i){ const s=PAST_SHIP_FEES[i]; if(!s) return;
+  s.fees.forEach(f=>SHIPFEES.push({type:f.type,stage:f.stage,amount:f.amount,cur:f.cur,ext:'',reason:'Sao chép đơn giá từ '+s.code}));
+  renderShipFees(); closeCopyFeeModal(); toast('Đã sao chép '+s.fees.length+' phí (đơn giá) từ '+s.code+' sang shipment hiện tại');
+}
 function shipFeesTotal(){ return SHIPFEES.filter(f=>f.cur==='VNĐ').reduce((a,f)=>a+f.amount,0); }
 function renderShipFees(){
   const tb=document.getElementById('ship-fee-tbody'); if(tb) tb.innerHTML=shipFeesRows();
@@ -2462,7 +2502,7 @@ S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',TAB_IM,'Shipment')
           <tbody id="ship-fee-tbody">${shipFeesRows()}</tbody>
           <tfoot><tr><td colspan="2"><b>Tổng phí Local Charge</b></td><td class="num"><b id="ship-fee-foot">${fmtMoney(shipFeesTotal())}</b></td><td colspan="4"></td></tr></tfoot>
         </table></div>`,
-       {n:String(SHIPFEES.length), r:'<button class="btn sm" onclick="openFeeModal()">＋ Thêm phí phát sinh</button>'})}
+       {n:String(SHIPFEES.length), r:'<button class="btn sm" onclick="openCopyFeeModal()">⧉ Sao chép đơn giá cũ</button> <button class="btn sm" onclick="openFeeModal()">＋ Thêm phí phát sinh</button>'})}
      ${card('Cảnh báo chi phí lưu bãi', banner('info','Sau ETA 19/07/2026, còn <b>7 ngày Free time</b> để kéo hàng. Quá hạn phát sinh Dem ≈ <b>$120/cont/ngày</b>.')
        + tbl([{t:'Loại phí'},{t:'Miễn phí đến'},{t:'Phí phát sinh',num:true}],[
        ['Demurrage (lưu bãi)','26/07/2026','$120/cont/ngày'],
