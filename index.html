@@ -1842,27 +1842,27 @@ function createCaseFromFee(type){ toast('Đã tạo Case khiếu nại cho phí 
 /* --- Sao chép đơn giá phí từ shipment kỳ trước --- */
 const PAST_SHIP_FEES=[
   {code:'SHP-039', label:'DLK 400 tấn · Maersk · ETA 12/07/2026', fees:[
-    {type:'THC',stage:'Phí tại cảng',amount:4200000,cur:'VNĐ'},
-    {type:'CIC',stage:'Phí trả Hãng tàu',amount:1050000,cur:'VNĐ'},
-    {type:'Phí vệ sinh cont',stage:'Phí tại cảng',amount:750000,cur:'VNĐ'},
-    {type:'Nâng hạ (LOLO)',stage:'Phí tại cảng',amount:900000,cur:'VNĐ'}]},
+    {type:'THC',stage:'Phí tại cảng',amount:4200000,cur:'VNĐ',ext:'',reason:''},
+    {type:'CIC',stage:'Phí trả Hãng tàu',amount:1050000,cur:'VNĐ',ext:'',reason:''},
+    {type:'Phí vệ sinh cont',stage:'Phí tại cảng',amount:750000,cur:'VNĐ',ext:'',reason:''},
+    {type:'Nâng hạ (LOLO)',stage:'Phí tại cảng',amount:900000,cur:'VNĐ',ext:'',reason:'Cont nặng — nâng hạ tầng 2/3'}]},
   {code:'SHP-042', label:'Bột giấy 300 tấn · ONE · ETA 28/07/2026', fees:[
-    {type:'THC',stage:'Phí tại cảng',amount:4350000,cur:'VNĐ'},
-    {type:'CIC',stage:'Phí trả Hãng tàu',amount:1100000,cur:'VNĐ'},
-    {type:'Phí chứng từ',stage:'Phí trả Hãng tàu',amount:700000,cur:'VNĐ'}]},
+    {type:'THC',stage:'Phí tại cảng',amount:4350000,cur:'VNĐ',ext:'',reason:''},
+    {type:'CIC',stage:'Phí trả Hãng tàu',amount:1100000,cur:'VNĐ',ext:'',reason:''},
+    {type:'Phí chứng từ',stage:'Phí trả Hãng tàu',amount:700000,cur:'VNĐ',ext:'',reason:'Chỉnh sửa B/L'}]},
   {code:'SHP-036', label:'OCC 750 tấn · ONE · ETA 20/06/2026', fees:[
-    {type:'THC',stage:'Phí tại cảng',amount:4100000,cur:'VNĐ'},
-    {type:'CIC',stage:'Phí trả Hãng tàu',amount:1100000,cur:'VNĐ'},
-    {type:'Phí vệ sinh cont',stage:'Phí tại cảng',amount:800000,cur:'VNĐ'},
-    {type:'DEM (lưu bãi)',stage:'Phí tại cảng',amount:2400000,cur:'VNĐ'}]},
+    {type:'THC',stage:'Phí tại cảng',amount:4100000,cur:'VNĐ',ext:'',reason:''},
+    {type:'CIC',stage:'Phí trả Hãng tàu',amount:1100000,cur:'VNĐ',ext:'',reason:''},
+    {type:'Phí vệ sinh cont',stage:'Phí tại cảng',amount:800000,cur:'VNĐ',ext:'',reason:''},
+    {type:'DEM (lưu bãi)',stage:'Phí tại cảng',amount:2400000,cur:'VNĐ',ext:'25/06/2026',reason:'Kho hết chỗ, kéo hàng trễ 2 ngày'}]},
 ];
 function openCopyFeeModal(){
   document.getElementById('cpfee-body').innerHTML=
     `<p class="po-hint">Bấm vào từng Shipment để <b>sổ ra chi tiết các khoản phí</b> sẽ được sao chép, rồi bấm "Sao chép" để tạo cho shipment hiện tại.</p>`
     + PAST_SHIP_FEES.map((s,i)=>{ const tot=s.fees.filter(f=>f.cur==='VNĐ').reduce((a,f)=>a+f.amount,0);
-        const detail=`<div class="tbl-wrap"><table class="tbl sm"><thead><tr><th>Tên loại phí</th><th>Giai đoạn phí</th><th class="num">Đơn giá</th><th>Tiền tệ</th></tr></thead><tbody>`
-          + s.fees.map(f=>`<tr><td>${f.type}</td><td>${f.stage}</td><td class="num">${feeAmt(f)}</td><td>${f.cur}</td></tr>`).join('')
-          + `<tr style="font-weight:700;background:var(--bg)"><td colspan="2">Tổng (VNĐ)</td><td class="num">${fmtMoney(tot)}</td><td></td></tr></tbody></table></div>`;
+        const detail=`<div class="tbl-wrap"><table class="tbl sm"><thead><tr><th>Tên loại phí</th><th>Giai đoạn phí</th><th class="num">Đơn giá</th><th>Tiền tệ</th><th>Lý do phát sinh</th></tr></thead><tbody>`
+          + s.fees.map(f=>`<tr><td>${f.type}</td><td>${f.stage}</td><td class="num">${feeAmt(f)}</td><td>${f.cur}</td><td>${f.reason||'—'}</td></tr>`).join('')
+          + `<tr style="font-weight:700;background:var(--bg)"><td colspan="2">Tổng (VNĐ)</td><td class="num">${fmtMoney(tot)}</td><td colspan="2"></td></tr></tbody></table></div>`;
         return `<div class="cpfee-blk" id="cpfee-b-${i}">
            <div class="cpfee-hd" onclick="cpfeeToggle(${i})"><span class="cpfee-caret">▸</span><span class="sp"><b>${s.code}</b> · ${s.label} · <span class="wf-muted">${s.fees.length} phí · Tổng ${fmtMoney(tot)}</span></span><button class="btn sm pri" onclick="event.stopPropagation();copyFeesFrom(${i})">Sao chép</button></div>
            <div class="cpfee-detail" style="display:none">${detail}</div>
@@ -1874,8 +1874,8 @@ function openCopyFeeModal(){
 function cpfeeToggle(i){ const b=document.getElementById('cpfee-b-'+i); if(!b) return; const d=b.querySelector('.cpfee-detail'); const open=b.classList.toggle('open'); if(d) d.style.display=open?'':'none'; }
 function closeCopyFeeModal(){ const b=document.getElementById('cpfeeback'),m=document.getElementById('cpfeemodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
 function copyFeesFrom(i){ const s=PAST_SHIP_FEES[i]; if(!s) return;
-  s.fees.forEach(f=>SHIPFEES.push({type:f.type,stage:f.stage,amount:f.amount,cur:f.cur,ext:'',reason:'Sao chép đơn giá từ '+s.code}));
-  renderShipFees(); closeCopyFeeModal(); toast('Đã sao chép '+s.fees.length+' phí (đơn giá) từ '+s.code+' sang shipment hiện tại');
+  s.fees.forEach(f=>SHIPFEES.push({type:f.type,stage:f.stage,amount:f.amount,cur:f.cur,ext:f.ext||'',reason:f.reason||''}));
+  renderShipFees(); closeCopyFeeModal(); toast('Đã sao chép '+s.fees.length+' phí (đơn giá + lý do) từ '+s.code+' sang shipment hiện tại');
 }
 function shipFeesTotal(){ return SHIPFEES.filter(f=>f.cur==='VNĐ').reduce((a,f)=>a+f.amount,0); }
 function renderShipFees(){
