@@ -1921,8 +1921,8 @@ function ptfSync(){ PTF_ITEMS=[...document.querySelectorAll('#ptf-items .ptf-ite
 function ptfRender(){ const c=document.getElementById('ptf-items'); if(!c) return; c.innerHTML=PTF_ITEMS.map(ptfItemHTML).join(''); ptfRecalcView(); }
 function ptfRecalcView(){
   const rows=[...document.querySelectorAll('#ptf-items .ptf-item')];
-  rows.forEach((r,i)=>{ const it=PTF_ITEMS[i]||{}; const pct=+it.pct||0; const amt=pct?ptfMoney(PTF_SC_VALUE*pct/100):'—';
-    const prev=r.querySelector('.ptf-prev'); if(prev) prev.innerHTML=`Đợt ${i+1}: Ngày thanh toán = <b>${it.moc} ${it.dir||'+'} ${it.days||0} ngày</b> · Số tiền ≈ <b>${amt}</b> (${pct}% × giá trị SC)`; });
+  rows.forEach((r,i)=>{ const it=PTF_ITEMS[i]||{}; const pct=+it.pct||0;
+    const prev=r.querySelector('.ptf-prev'); if(prev) prev.innerHTML=`Đợt ${i+1}: Ngày thanh toán = <b>${it.moc} ${it.dir||'+'} ${it.days||0} ngày</b> · Thanh toán <b>${pct}%</b> giá trị hợp đồng`; });
   const tot=PTF_ITEMS.reduce((s,it)=>s+(+it.pct||0),0);
   const el=document.getElementById('ptf-total'); if(el) el.innerHTML=`Tổng % các đợt: <b style="color:${tot===100?'var(--ok,#2e844a)':'var(--err)'}">${tot}%</b> ${tot===100?'✓ hợp lệ':'· cần đúng 100% mới lưu được'}`;
 }
@@ -1932,7 +1932,7 @@ function ptfRemoveItem(i){ ptfSync(); if(PTF_ITEMS.length<=1){ toast('Payment Te
 function openPtermForm(){
   PTF_ITEMS=[{moc:'Ngày ký hợp đồng',dir:'+',days:0,pct:''}];
   document.getElementById('ptf-body').innerHTML=
-    `<p class="po-hint">Số tiền mỗi đợt <b>không nhập tay</b> — tự tính = <b>% × giá trị Sales Contract</b> (IC-2026-041 · ${ptfMoney(PTF_SC_VALUE)}). Tổng % các đợt phải = <b>100%</b>.</p>
+    `<p class="po-hint">Payment Term chỉ định nghĩa <b>% và mốc thời gian</b> của từng đợt. <b>Số tiền chỉ được tính khi sinh Payment</b> từ term này (= % × giá trị hợp đồng). Tổng % các đợt phải = <b>100%</b>.</p>
      <div class="ptf-top">
        <div class="ptf-f" style="flex:2.4"><label>Tên Payment Term *</label><input id="ptf-name" class="mass-sel" placeholder="VD: Cọc 30% ký HĐ + 70% trước giao hàng"></div>
        <div class="ptf-f" style="flex:1"><label>Loại hàng *</label><select id="ptf-loai" class="mass-sel"><option>Hàng có sẵn</option><option>Hàng sản xuất</option></select></div>
