@@ -2443,8 +2443,9 @@ S.payment = ()=> appnav('Mua hàng nhập khẩu','Payment',TAB_IM,'Payment')
 S.imcontract = ()=> appnav('Mua nhập khẩu','Sales Contract',TAB_IM,'Sales Contract')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="imcontract_list">Sales Contract (NK)</span> &rsaquo;',ico:'💱',color:'#0b827c',title:'IC-2026-041 · OCC từ Mỹ',sub:'Đa tiền tệ · 800 tấn · Recycling Corp USA',
-     fields:[['Trị giá','$168.000'],['Quy đổi','4.280.000.000 ₫'],['Tỷ giá','1 USD = 25.480'],['Trạng thái',pill('info','Đang thực hiện')]],
+     fields:[['Trị giá','$168.000'],['Quy đổi','4.280.000.000 ₫'],['Tỷ giá','1 USD = 25.480'],['Trạng thái',pill('ok','Chấp nhận')]],
      actions:[{t:'Tạo PO',pri:true,fn:'createPOfromContract()'},{t:'Tạo Payment Term',fn:'openPtermForm()'},'Sửa']})}
+   ${path(['Nháp','Chờ phê duyệt','Gửi Khách hàng','Chấp nhận','Từ chối'],3)}
    <div class="cols-side act-tab">
      <div>
      ${card('Chi tiết hợp đồng nhập', fg([['Nhà cung cấp','Recycling Corp USA','link','vendor'],['Mặt hàng','Giấy OCC'],
