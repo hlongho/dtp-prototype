@@ -685,6 +685,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     <div class="pm-body" id="ptf-body"></div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closePtermForm()">Hủy</button><button class="btn pri" onclick="confirmPterm()">Lưu Payment Term</button></div></div>
   </div>
+  <!-- Modal tạo Sales Contract từ Đơn mua PO (NK) -->
+  <div class="modal-back" id="scback" onclick="closeScFromPoModal()" style="z-index:135"></div>
+  <div class="po-modal" id="scmodal" style="z-index:140;width:min(700px,95vw)">
+    <div class="pm-head"><h3>Tạo Sales Contract (từ Đơn mua PO)</h3><button title="Đóng" onclick="closeScFromPoModal()">✕</button></div>
+    <div class="pm-body" id="sc-body"></div>
+    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeScFromPoModal()">Hủy</button><button class="btn pri" onclick="confirmScFromPo()">Tạo Sales Contract</button></div></div>
+  </div>
   <!-- Modal tạo báo giá -->
   <div class="modal-back" id="quoteback" onclick="closeQuoteModal()" style="z-index:135"></div>
   <div class="po-modal" id="quotemodal" style="z-index:140;width:min(640px,94vw)">
@@ -1097,6 +1104,40 @@ function createPOfromContract(){
   IMPOS.unshift({no, ncc:'Recycling Corp USA', item:'Giấy OCC', qty:'800 tấn', val:'$168.000', status:'Nháp'});
   renderImpos();
   toast('Đã tạo '+no+' từ hợp đồng IC-2026-041 · NCC Recycling Corp USA · Giấy OCC 800 tấn · $210/tấn · CIF Cát Lái');
+}
+/* --- Tạo Sales Contract (NK) từ 1 hoặc nhiều Đơn mua PO --- */
+function openScFromPoModal(poNos){
+  const list=(poNos&&poNos.length)?poNos:['PO-NK-0088'];
+  const f=(lbl,id,ph,type)=>`<div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">${lbl}</label><input id="${id}" class="mass-sel" ${type?`type="${type}"`:''} placeholder="${ph||''}"></div>`;
+  document.getElementById('sc-body').innerHTML=
+    `<p class="po-hint">Tạo Sales Contract (NK) từ ${list.length} PO đã chọn: <b>${list.join(', ')}</b></p>
+     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+       ${f('Nhà cung cấp *','sc-ncc','VD: Recycling Corp USA')}
+       ${f('Mặt hàng *','sc-item','VD: Giấy OCC')}
+       ${f('Số lượng *','sc-qty','VD: 800 tấn')}
+       ${f('Đơn giá','sc-price','VD: $210/tấn')}
+       ${f('Incoterm','sc-incoterm','VD: CIF Cát Lái')}
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Tiền tệ</label><select id="sc-currency" class="mass-sel"><option>USD</option><option>VND</option><option>EUR</option></select></div>
+       ${f('Ngày ký hợp đồng','sc-date','','date')}
+     </div>`;
+  document.getElementById('scback').classList.add('show');
+  document.getElementById('scmodal').classList.add('show');
+  setTimeout(function(){ const i=document.getElementById('sc-ncc'); if(i) i.focus(); }, 50);
+}
+function closeScFromPoModal(){ const b=document.getElementById('scback'),m=document.getElementById('scmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
+function confirmScFromPo(){
+  const ncc=(document.getElementById('sc-ncc').value||'').trim();
+  const item=(document.getElementById('sc-item').value||'').trim();
+  const qty=(document.getElementById('sc-qty').value||'').trim();
+  if(!ncc||!item||!qty){ toast('Nhập đủ Nhà cung cấp, Mặt hàng, Số lượng'); return; }
+  closeScFromPoModal();
+  toast('✓ Đã tạo Sales Contract (NK) · NCC '+ncc+' · '+item+' · '+qty);
+}
+function openScFromPoListBulk(){
+  const rows=[...document.querySelectorAll('.lv-row:checked')].map(cb=>cb.closest('tr'));
+  if(!rows.length) return;
+  const poNos=rows.map(tr=>{ const tds=tr.querySelectorAll('td'); return tds[1]?tds[1].textContent.trim():''; }).filter(Boolean);
+  openScFromPoModal(poNos);
 }
 function exportQuotePDF(no){
   const q=QUOTES.find(x=>x.no===no)||QUOTES[0];
@@ -2289,7 +2330,7 @@ S.impo = ()=> appnav('Mua hàng nhập khẩu','Đơn mua (PO)',TAB_IM,'Đơn mu
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="impo_list">Đơn mua hàng (NK)</span> &rsaquo;',ico:'🛒',color:'#0b827c',title:'PO-NK-0088 · Giấy OCC',sub:'Từ Sales Contract IC-2026-041 · 800 tấn · Recycling Corp USA',
      fields:[['Giá trị','$168.000'],['NCC được chọn','Recycling Corp USA'],['Trạng thái',pill('info','Chờ giao hàng')],['SL','800 tấn'],['Đã thanh toán','<input type="checkbox" style="width:16px;height:16px;vertical-align:middle" onchange="togglePaid(this)" title="Đã thanh toán">']],
-     actions:[{t:'Trình duyệt',pri:true},'Export PDF']})}
+     actions:[{t:'Trình duyệt',pri:true},{t:'Tạo Sales Contract',fn:"openScFromPoModal(['PO-NK-0088'])"},'Export PDF']})}
    ${path(['Đã đặt hàng','Chờ đặt cọc','Chờ sản xuất','Chờ giao hàng','Giao 1 phần','Chờ thanh toán','Hoàn thành'],3)}
    <div class="cols-side act-tab">
      <div>
@@ -2297,7 +2338,7 @@ S.impo = ()=> appnav('Mua hàng nhập khẩu','Đơn mua (PO)',TAB_IM,'Đơn mu
        ['Sales Contract (NK)','IC-2026-041','link','imcontract'],
        ['Sản phẩm','Giấy OCC (từ Mỹ)','link','product'],['Số lượng','800 tấn'],
        ['Giá trị','$168.000'],
-       ['Ngày SX dự kiến','—'],['Ngày giao dự kiến','02/08/2026'],
+       ['Ngày SX dự kiến','22/07/2026'],['Ngày giao dự kiến','02/08/2026'],
        ['Số ngày kéo dài sản xuất','—'],['Số ngày kéo dài giao hàng dự kiến','0'],
        ['Điều khoản TT','L/C'],['Người mua','Nguyễn Văn XNK'],['Trạng thái',pill('info','Chờ giao hàng')]]))}
      ${card('Theo dõi nhận hàng', tbl([{t:'Vật tư'},{t:'SL đặt',num:true},{t:'Đã nhận',num:true},{t:'Chưa nhận',num:true},{t:'Ngày nhận dự kiến'},{t:'Phiếu nhập'},{t:'Trạng thái'}],[
@@ -3554,6 +3595,7 @@ S.ppo_list = ()=> appnav('Mua hàng','Đơn mua (PO)',TAB_PUR,'Đơn mua (PO)')
 
 S.impo_list = ()=> appnav('Mua hàng nhập khẩu','Đơn mua (PO)',TAB_IM,'Đơn mua (PO)')
  + `<div class="sf-body">${lv({crumb:'<span data-go="impo_list">Đơn mua hàng (NK)</span> &rsaquo;',ico:'🛒',color:'#0b827c',object:'Purchase Order (Nhập khẩu)',view:'Đơn mua đang xử lý',views:['Đơn mua đang xử lý','Chờ duyệt','Của tôi','Tất cả đơn mua'],count:'12',newLabel:'PO mới',
+   bulk:[{label:'Tạo Sales Contract',fn:'openScFromPoListBulk()'}],
    cols:[{t:'Số PO'},{t:'Vật tư chính'},{t:'NCC'},{t:'Giá trị',num:true},{t:'Trạng thái'}],
    rows:[
     {go:'impo',cells:['PO-NK-0088','Giấy OCC','Recycling Corp USA','$168.000',pill('info','Chờ giao hàng')]},
