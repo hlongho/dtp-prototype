@@ -1936,10 +1936,9 @@ function ptfRecalcView(){
 }
 function ptfRecalc(){ ptfSync(); ptfRecalcView(); }
 function ptfScopePick(which){ PTF_SCOPE=which;
-  const nd=document.getElementById('ptf-cb-nd'), nk=document.getElementById('ptf-cb-nk');
-  if(nd) nd.checked=(which==='nd'); if(nk) nk.checked=(which==='nk');
+  ['nd','nk','xk'].forEach(k=>{ const el=document.getElementById('ptf-cb-'+k); if(el) el.checked=(k===which); });
   const lw=document.getElementById('ptf-loai-wrap'); if(lw) lw.style.display=(which==='nd')?'':'none';
-  const pw=document.getElementById('ptf-pttt-wrap'); if(pw) pw.style.display=(which==='nk')?'':'none';
+  const pw=document.getElementById('ptf-pttt-wrap'); if(pw) pw.style.display=(which==='nd')?'none':'';
 }
 function ptfAddItem(){ ptfSync(); PTF_ITEMS.push({obj:'Sales Contract',moc:'Ngày ký hợp đồng',days:0,pct:''}); ptfRender(); }
 function ptfRemoveItem(i){ ptfSync(); if(PTF_ITEMS.length<=1){ toast('Payment Term phải có ít nhất 1 đợt (Payment Term Item)'); return; } PTF_ITEMS.splice(i,1); ptfRender(); }
@@ -1950,6 +1949,7 @@ function openPtermForm(){
     `<div class="ptf-scope-cb">
        <label><input type="checkbox" id="ptf-cb-nd" checked onchange="ptfScopePick('nd')"> Mua hàng nội địa</label>
        <label><input type="checkbox" id="ptf-cb-nk" onchange="ptfScopePick('nk')"> Mua hàng nhập khẩu</label>
+       <label><input type="checkbox" id="ptf-cb-xk" onchange="ptfScopePick('xk')"> Bán hàng xuất khẩu</label>
      </div>
      <div class="ptf-top">
        <div class="ptf-f" style="flex:2.4"><label>Tên Payment Term *</label><input id="ptf-name" class="mass-sel" placeholder="VD: Cọc 30% ký HĐ + 70% trước giao hàng"></div>
@@ -1970,7 +1970,7 @@ function confirmPterm(){
   if(!name){ toast('Nhập Tên Payment Term'); document.getElementById('ptf-name').focus(); return; }
   const tot=PTF_ITEMS.reduce((s,it)=>s+(+it.pct||0),0);
   if(tot!==100){ toast('⛔ Tổng % các đợt phải = 100% (hiện tại '+tot+'%)'); return; }
-  const scope=PTF_SCOPE==='nk'?'Mua hàng nhập khẩu':'Mua hàng nội địa';
+  const scope=PTF_SCOPE==='nk'?'Mua hàng nhập khẩu':(PTF_SCOPE==='xk'?'Bán hàng xuất khẩu':'Mua hàng nội địa');
   const extra=PTF_SCOPE==='nd'?(' · '+document.getElementById('ptf-loai').value):(' · PTTT '+document.getElementById('ptf-pttt').value);
   closePtermForm();
   toast('✓ Đã tạo Payment Term "'+name+'" · '+scope+extra+' · '+PTF_ITEMS.length+' đợt · tổng 100%');
