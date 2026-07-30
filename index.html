@@ -1995,25 +1995,32 @@ function ptfScopePick(which){ PTF_SCOPE=which;
   const lw=document.getElementById('ptf-loai-wrap'); if(lw) lw.style.display=(which==='nd')?'':'none';
   const pw=document.getElementById('ptf-pttt-wrap'); if(pw) pw.style.display=(which==='nd')?'none':'';
 }
-function ptfAddItem(){ ptfSync(); PTF_ITEMS.push({obj:'Sales Contract',moc:'Ngày ký hợp đồng',days:0,pct:''}); ptfRender(); }
-function ptfRemoveItem(i){ ptfSync(); if(PTF_ITEMS.length<=1){ toast('Payment Term phải có ít nhất 1 đợt (Payment Term Item)'); return; } PTF_ITEMS.splice(i,1); ptfRender(); }
+function ptfAddItem(){ ptfSync(); PTF_ITEMS.push({obj:'Sales Contract',moc:'Ngày ký hợp đồng',days:0,pct:''}); ptfRender();
+  ptfSyncMini('prod'); ptfMiniRender('prod'); ptfSyncMini('deliv'); ptfMiniRender('deliv'); }
+function ptfRemoveItem(i){ ptfSync(); if(PTF_ITEMS.length<=1){ toast('Payment Term phải có ít nhất 1 đợt (Payment Term Item)'); return; } PTF_ITEMS.splice(i,1); ptfRender();
+  ptfSyncMini('prod'); ptfMiniRender('prod'); ptfSyncMini('deliv'); ptfMiniRender('deliv'); }
 /* --- Hoàn tất sản xuất / Hoàn tất giao hàng: dòng mốc độc lập, tự thêm bằng nút riêng --- */
 let PTF_PROD=[], PTF_DELIV=[];
+const PTF_MINI_PTI='Payment Term Item';
+function ptfMiniObjList(){ return [...Object.keys(PTF_OBJ_FIELDS), PTF_MINI_PTI]; }
 function ptfMiniItemHTML(it,i,cls){
-  const objList=Object.keys(PTF_OBJ_FIELDS); const obj=it.obj||objList[0];
+  const objList=ptfMiniObjList(); const obj=it.obj||objList[0];
   const objOpt=objList.map(o=>`<option ${o===obj?'selected':''}>${o}</option>`).join('');
-  const fields=PTF_OBJ_FIELDS[obj]||[];
-  const mocOpt=fields.map(o=>`<option ${o===it.moc?'selected':''}>${o}</option>`).join('');
+  const isPTI=obj===PTF_MINI_PTI;
+  const dotCount=Math.max(PTF_ITEMS.length,1);
+  const midField=isPTI
+    ? `<div class="ptf-f" style="flex:1.8"><label>Đợt thanh toán</label><select class="${cls}-moc mass-sel">${Array.from({length:dotCount},(_,k)=>`Đợt ${k+1}`).map(o=>`<option ${o===it.moc?'selected':''}>${o}</option>`).join('')}</select></div>`
+    : `<div class="ptf-f" style="flex:1.8"><label>Mốc thời gian (field ngày)</label><select class="${cls}-moc mass-sel">${(PTF_OBJ_FIELDS[obj]||[]).map(o=>`<option ${o===it.moc?'selected':''}>${o}</option>`).join('')}</select></div>`;
   return `<div class="ptf-item">
     <div class="ptf-row">
       <div class="ptf-f" style="flex:1.6"><label>Object nguồn</label><select class="${cls}-obj mass-sel" onchange="ptfMiniObjChanged(this,'${cls}')">${objOpt}</select></div>
-      <div class="ptf-f" style="flex:1.8"><label>Mốc thời gian (field ngày)</label><select class="${cls}-moc mass-sel">${mocOpt}</select></div>
+      ${midField}
       <div class="ptf-f" style="flex:.9"><label>Số ngày (+/-)</label><input class="${cls}-days mass-sel" type="number" value="${it.days||0}" placeholder="VD: -7 hoặc 30"></div>
       <button class="btn sm ptf-del" title="Xoá dòng" onclick="ptfRemoveMini('${cls}',${i})">✕</button>
     </div>
   </div>`;
 }
-function ptfMiniObjChanged(sel,cls){ const fields=PTF_OBJ_FIELDS[sel.value]||[]; const mocSel=sel.closest('.ptf-item').querySelector('.'+cls+'-moc'); if(mocSel) mocSel.innerHTML=fields.map(f=>`<option>${f}</option>`).join(''); }
+function ptfMiniObjChanged(sel,cls){ ptfSyncMini(cls); ptfMiniRender(cls); }
 function ptfSyncMini(cls){ const c=document.getElementById('ptf-'+cls); if(!c) return; const arr=[...c.querySelectorAll('.ptf-item')].map(r=>({obj:r.querySelector('.'+cls+'-obj').value,moc:r.querySelector('.'+cls+'-moc').value,days:r.querySelector('.'+cls+'-days').value}));
   if(cls==='prod') PTF_PROD=arr; else PTF_DELIV=arr; }
 function ptfMiniRender(cls){ const c=document.getElementById('ptf-'+cls); if(!c) return; const arr=cls==='prod'?PTF_PROD:PTF_DELIV; c.innerHTML=arr.map((it,i)=>ptfMiniItemHTML(it,i,cls)).join(''); }
