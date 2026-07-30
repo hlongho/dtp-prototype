@@ -1088,7 +1088,7 @@ function confirmSubmit(kind){
 let IMPOS=[{no:'PO-NK-0088', ncc:'Recycling Corp USA', item:'Giấy OCC', qty:'800 tấn', val:'$168.000', status:'Đã duyệt'}];
 let impoSeq=89;
 function imposRows(){
-  return IMPOS.map(p=>`<tr><td><a data-go="ppo">${p.no}</a></td><td>${p.ncc}</td><td>${p.item}</td><td class="num">${p.qty}</td><td class="num">${p.val}</td><td><span class="slds-badge">${p.status}</span></td></tr>`).join('');
+  return IMPOS.map(p=>`<tr><td><a data-go="impo">${p.no}</a></td><td>${p.ncc}</td><td>${p.item}</td><td class="num">${p.qty}</td><td class="num">${p.val}</td><td><span class="slds-badge">${p.status}</span></td></tr>`).join('');
 }
 function renderImpos(){ const tb=document.getElementById('impo-tbody'); if(tb) tb.innerHTML=imposRows(); }
 function createPOfromContract(){
@@ -1180,6 +1180,8 @@ const NAV = [
    ['matinv','Cảnh báo tồn NVL + hàng đi đường','BGĐ','custom'],
    ['imcontract_list','Sales Contract NK','Mua hàng','list'],
    ['imcontract','↳ Chi tiết Contract (đa tiền tệ)','','record'],
+   ['impo_list','Đơn mua (PO)','Mua hàng','list'],
+   ['impo','↳ Chi tiết PO (NK)','','record'],
    ['shipment_list','Shipment','Logistics','list'],
    ['shipment','↳ Theo dõi shipment (Free time/Dem-Det)','','record'],
    ['claimrpt','Theo dõi Claim / Khiếu nại','XNK / Kế toán','list'],
@@ -2252,18 +2254,18 @@ function confirmMass(){
 S.ppo = ()=> appnav('Mua hàng','Đơn mua (PO)',['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'],'Đơn mua (PO)')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="ppo_list">Đơn mua hàng</span> &rsaquo;',ico:'🛒',color:'#2e844a',title:'PPO-0915 · Keo dán công nghiệp',sub:'Gộp từ PR-3301, PR-3302 · 3.500 kg',
-     fields:[['Giá trị','182.000.000 ₫'],['NCC được chọn','Cty Hóa chất Tân Tiến'],['Trạng thái',pill('warn','Chờ duyệt')],['SL','3.500 kg'],['Đã thanh toán','<input type="checkbox" style="width:16px;height:16px;vertical-align:middle" onchange="togglePaid(this)" title="Đã thanh toán">']],
+     fields:[['Giá trị','182.000.000 ₫'],['NCC được chọn','Cty Hóa chất Tân Tiến'],['Trạng thái',pill('info','Giao 1 phần')],['SL','3.500 kg'],['Đã thanh toán','<input type="checkbox" style="width:16px;height:16px;vertical-align:middle" onchange="togglePaid(this)" title="Đã thanh toán">']],
      actions:[{t:'Trình duyệt',pri:true},'Export PDF']})}
-   ${path(['Draft','Processing','Completed'],1)}
+   ${path(['Đã đặt hàng','Chờ đặt cọc','Chờ sản xuất','Chờ giao hàng','Giao 1 phần','Chờ thanh toán','Hoàn thành'],4)}
    <div class="cols-side act-tab">
      <div>
      ${card('Thông tin PO', fg([['Số PO','PPO-0915'],['Nhà cung cấp','Cty Hóa chất Tân Tiến','link','vendor'],
        ['Sales Contract (NK)','IC-2026-041','link','imcontract'],['Từ PR','PR-3301, PR-3302','link','pr'],
        ['Sản phẩm','Keo dán công nghiệp','link','product'],['Số lượng','3.500 kg'],
        ['Giá trị','182.000.000 ₫'],
-       ['Ngày SX dự kiến','—'],['Ngày giao dự kiến','30/07/2026'],
-       ['Số ngày kéo dài sản xuất','—'],['Số ngày kéo dài giao hàng dự kiến','+1 ngày'],
-       ['Điều khoản TT','Net 30'],['Người mua','Nguyễn Văn A'],['Trạng thái',pill('warn','Chờ duyệt')]]))}
+       ['Ngày SX dự kiến','16/07/2026'],['Ngày giao dự kiến','30/07/2026'],
+       ['Số ngày kéo dài sản xuất','—'],['Số ngày kéo dài giao hàng dự kiến','1'],
+       ['Điều khoản TT','Net 30'],['Người mua','Nguyễn Văn A'],['Trạng thái',pill('info','Giao 1 phần')]]))}
      ${card('Theo dõi nhận hàng', tbl([{t:'Vật tư'},{t:'SL đặt',num:true},{t:'Đã nhận',num:true},{t:'Chưa nhận',num:true},{t:'Ngày nhận dự kiến'},{t:'Phiếu nhập'},{t:'Trạng thái'}],[
        ['Keo dán công nghiệp','3.500','3.200','300','30/07/2026','NK-2201',pill('warn','Còn thiếu 300 kg')]]),{n:'1',r:'<button class="btn sm">Ghi nhận nhận hàng</button>'})}
      ${card('Xuất nhập kho', tbl([{t:'Số phiếu'},{t:'Loại phiếu'},{t:'Ngày'},{t:'Vật tư'},{t:'SL (kg)',num:true},{t:'Kho'},{t:'Trạng thái'}],[
@@ -2273,6 +2275,31 @@ S.ppo = ()=> appnav('Mua hàng','Đơn mua (PO)',['Trang chủ','Phiếu yêu c�
        ['<a data-go="shipment">SHP-2026-018</a>','ONE','19/07/2026','02/08/2026',pill('info','Trên biển')]]),{n:'1',r:'<button class="btn sm" onclick="openShipModal()">＋ Tạo mới</button>'})}
      </div>
      ${activity([['📞','Đàm phán giá với 3 NCC','Mua hàng · Hôm nay'],['🔗','Gộp PR-3301 + 3302','Hôm nay'],['📥','Kho nhập 3.200 kg (NK-2201)','Kho · Hôm nay']])}
+   </div>
+ </div>`;
+
+S.impo = ()=> appnav('Mua hàng nhập khẩu','Đơn mua (PO)',TAB_IM,'Đơn mua (PO)')
+ + `<div class="sf-body narrow">
+   ${hl({crumb:'<span data-go="impo_list">Đơn mua hàng (NK)</span> &rsaquo;',ico:'🛒',color:'#0b827c',title:'PO-NK-0088 · Giấy OCC',sub:'Từ Sales Contract IC-2026-041 · 800 tấn · Recycling Corp USA',
+     fields:[['Giá trị','$168.000'],['NCC được chọn','Recycling Corp USA'],['Trạng thái',pill('info','Chờ giao hàng')],['SL','800 tấn'],['Đã thanh toán','<input type="checkbox" style="width:16px;height:16px;vertical-align:middle" onchange="togglePaid(this)" title="Đã thanh toán">']],
+     actions:[{t:'Trình duyệt',pri:true},'Export PDF']})}
+   ${path(['Đã đặt hàng','Chờ đặt cọc','Chờ sản xuất','Chờ giao hàng','Giao 1 phần','Chờ thanh toán','Hoàn thành'],3)}
+   <div class="cols-side act-tab">
+     <div>
+     ${card('Thông tin PO', fg([['Số PO','PO-NK-0088'],['Nhà cung cấp','Recycling Corp USA','link','vendor'],
+       ['Sales Contract (NK)','IC-2026-041','link','imcontract'],
+       ['Sản phẩm','Giấy OCC (từ Mỹ)','link','product'],['Số lượng','800 tấn'],
+       ['Giá trị','$168.000'],
+       ['Ngày SX dự kiến','—'],['Ngày giao dự kiến','02/08/2026'],
+       ['Số ngày kéo dài sản xuất','—'],['Số ngày kéo dài giao hàng dự kiến','0'],
+       ['Điều khoản TT','L/C'],['Người mua','Nguyễn Văn XNK'],['Trạng thái',pill('info','Chờ giao hàng')]]))}
+     ${card('Theo dõi nhận hàng', tbl([{t:'Vật tư'},{t:'SL đặt',num:true},{t:'Đã nhận',num:true},{t:'Chưa nhận',num:true},{t:'Ngày nhận dự kiến'},{t:'Phiếu nhập'},{t:'Trạng thái'}],[
+       ['Giấy OCC','800','0','800','02/08/2026','—',pill('warn','Chưa nhận')]]),{n:'1',r:'<button class="btn sm">Ghi nhận nhận hàng</button>'})}
+     ${card('Xuất nhập kho', tbl([{t:'Số phiếu'},{t:'Loại phiếu'},{t:'Ngày'},{t:'Vật tư'},{t:'SL (tấn)',num:true},{t:'Kho'},{t:'Trạng thái'}],[]),{n:'0'})}
+     ${card('Shipment', tbl([{t:'Số lô / Booking'},{t:'Hãng tàu'},{t:'ETD'},{t:'ETA'},{t:'Trạng thái'}],[
+       ['<a data-go="shipment">SHP-2026-018</a>','ONE','19/07/2026','02/08/2026',pill('info','Trên biển')]]),{n:'1',r:'<button class="btn sm" onclick="openShipModal()">＋ Tạo mới</button>'})}
+     </div>
+     ${activity([['💱','Chốt PO từ Sales Contract IC-2026-041','Mua hàng NK · Hôm nay'],['🚢','Cập nhật ETD/ETA từ Shipment SHP-2026-018','Logistics · Hôm nay']])}
    </div>
  </div>`;
 
@@ -2837,7 +2864,7 @@ function lv({crumb,ico,color,object,view,count,cols,rows,newLabel,views,bulk,hea
 const TAB_SALES=['Trang chủ','Lead','Cơ hội','Báo giá','Sample Request','Opportunity PO','SO','Khách hàng','Case'];
 const TAB_EX=['Trang chủ','Báo giá XK','PO','Sales Contract','SO','Phiếu xuất kho','Kế hoạch SX','Chứng từ','Thanh toán','Cước Logistics'];
 const TAB_PUR=['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'];
-const TAB_IM=['Trang chủ','Kế hoạch NVL','Sales Contract','Shipment','Claim / Khiếu nại','Payment','Payment Term','Payment Term Item'];
+const TAB_IM=['Trang chủ','Kế hoạch NVL','Sales Contract','Đơn mua (PO)','Shipment','Claim / Khiếu nại','Payment','Payment Term','Payment Term Item'];
 const TAB_MD=['Bảng giá','Price Book Entry','Bảng giá custom','Biến động giá','Hợp đồng','Sản phẩm','Khách hàng','NCC'];
 S.product_list = ()=> appnav('Dữ liệu nền tảng','Sản phẩm',TAB_MD,'Sản phẩm')
  + `<div class="sf-body">${lv({crumb:'Sản phẩm',ico:'📦',color:'#5867e8',object:'Sản phẩm (Product)',view:'Tất cả sản phẩm',count:'8',newLabel:'Sản phẩm mới',
@@ -2919,7 +2946,7 @@ S.oppo = ()=> appnav('Bán hàng nội địa','Opportunity PO',TAB_SALES,'Oppor
        ['Loại đơn','Bán hàng nội địa'],
        ['Ngày nhận PO','13/07/2026'],['Ngày đóng dự kiến','30/07/2026'],['Ngày giao cam kết','29/07/2026'],
        ['Ngày SX dự kiến','20/07/2026'],['Ngày giao dự kiến','29/07/2026'],
-       ['Số ngày kéo dài sản xuất','+2 ngày'],['Số ngày kéo dài giao hàng dự kiến','0 ngày'],
+       ['Số ngày kéo dài sản xuất','+2 ngày'],['Số ngày kéo dài giao hàng dự kiến','0'],
        ['Điều khoản thanh toán','Net 30'],['Người phụ trách','Trần Thị B'],['Đối thủ','Giấy An Bình'],
        ['Total Outstanding Debt (Tổng công nợ)','1.620.000.000 ₫'],
        ['Overdue Debt Amount (Nợ quá hạn)','420.000.000 ₫'],
@@ -3201,7 +3228,7 @@ S.exoppo = ()=> appnav('Bán hàng xuất khẩu','PO',TAB_EX,'PO')
        ['Payment','30% cọc T/T · 70% trước giao hàng'],
        ['Ngày nhận PO','15/07/2026'],['Ngày đóng dự kiến','05/08/2026'],['Ngày giao cam kết','Trong 30 ngày kể từ ngày cọc'],
        ['Ngày SX dự kiến','25/07/2026'],['Ngày giao dự kiến','05/08/2026'],
-       ['Số ngày kéo dài sản xuất','0 ngày'],['Số ngày kéo dài giao hàng dự kiến','+3 ngày'],
+       ['Số ngày kéo dài sản xuất','0 ngày'],['Số ngày kéo dài giao hàng dự kiến','3'],
        ['Người phụ trách','Lê Thị XK'],['Đối thủ','—'],
        ['Total Outstanding Debt (Tổng công nợ)','$62.000'],
        ['Overdue Debt Amount (Nợ quá hạn)','$0'],
@@ -3514,9 +3541,17 @@ S.ppo_list = ()=> appnav('Mua hàng','Đơn mua (PO)',TAB_PUR,'Đơn mua (PO)')
  + `<div class="sf-body">${lv({crumb:'<span data-go="ppo_list">Đơn mua hàng</span> &rsaquo;',ico:'🛒',color:'#2e844a',object:'Purchase Order',view:'Đơn mua đang xử lý',views:['Đơn mua đang xử lý','Chờ duyệt','Của tôi','Tất cả đơn mua'],count:'37',newLabel:'PO mới',
    cols:[{t:'Số PO'},{t:'Vật tư chính'},{t:'NCC'},{t:'Giá trị',num:true},{t:'Trạng thái'}],
    rows:[
-    {go:'ppo',cells:['PPO-0915','Keo dán công nghiệp','Hóa chất Tân Tiến','182.000.000 ₫',pill('warn','Chờ duyệt')]},
-    {go:'ppo',cells:['PPO-0910','Dây đai PP','TM Hải Đăng','64.000.000 ₫',pill('info','Đang nhận')]},
-    {go:'ppo',cells:['PPO-0908','Lô cao su máy xeo','Cơ khí Tân Bình','210.000.000 ₫',pill('ok','Hoàn tất')]}]})}</div>`;
+    {go:'ppo',cells:['PPO-0915','Keo dán công nghiệp','Hóa chất Tân Tiến','182.000.000 ₫',pill('info','Giao 1 phần')]},
+    {go:'ppo',cells:['PPO-0910','Dây đai PP','TM Hải Đăng','64.000.000 ₫',pill('info','Chờ giao hàng')]},
+    {go:'ppo',cells:['PPO-0908','Lô cao su máy xeo','Cơ khí Tân Bình','210.000.000 ₫',pill('ok','Hoàn thành')]}]})}</div>`;
+
+S.impo_list = ()=> appnav('Mua hàng nhập khẩu','Đơn mua (PO)',TAB_IM,'Đơn mua (PO)')
+ + `<div class="sf-body">${lv({crumb:'<span data-go="impo_list">Đơn mua hàng (NK)</span> &rsaquo;',ico:'🛒',color:'#0b827c',object:'Purchase Order (Nhập khẩu)',view:'Đơn mua đang xử lý',views:['Đơn mua đang xử lý','Chờ duyệt','Của tôi','Tất cả đơn mua'],count:'12',newLabel:'PO mới',
+   cols:[{t:'Số PO'},{t:'Vật tư chính'},{t:'NCC'},{t:'Giá trị',num:true},{t:'Trạng thái'}],
+   rows:[
+    {go:'impo',cells:['PO-NK-0088','Giấy OCC','Recycling Corp USA','$168.000',pill('info','Chờ giao hàng')]},
+    {go:'impo',cells:['PO-NK-0081','Giấy Kraft tái chế','Green Fiber (Thailand)','$92.000',pill('ok','Hoàn thành')]},
+    {go:'impo',cells:['PO-NK-0075','Bột giấy NBKP','Nippon Pulp Co.','$210.000',pill('warn','Chờ sản xuất')]}]})}</div>`;
 
 S.vendor_list = ()=> appnav('Mua hàng','NCC',TAB_PUR,'NCC')
  + `<div class="sf-body">${lv({crumb:'Nhà cung cấp',ico:'⭐',color:'#2e844a',object:'Nhà cung cấp (Account)',view:'NCC đang hợp tác',views:['NCC đang hợp tác','Đánh giá thấp','Tạm ngưng','Tất cả NCC'],count:'84',newLabel:'NCC mới',
@@ -3679,6 +3714,7 @@ function resolveTab(app,label){
   if(label==='Sales Contract') return app.includes('nhập khẩu')?'imcontract_list':'excontract_list';
   if(label==='SO') return app.includes('nội địa')?'so_list':'exso_list';
   if(label==='PO') return 'exoppo_list';
+  if(label==='Đơn mua (PO)') return app.includes('nhập khẩu')?'impo_list':'ppo_list';
   return TAB2ID[label];
 }
 function toast(msg){
