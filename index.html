@@ -297,6 +297,7 @@ a:hover{text-decoration:underline}
 .ptf-item{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;background:var(--card)}
 .ptf-prev{font-size:11.5px;margin-top:6px}
 .ptf-del{align-self:flex-end;padding:6px 9px}
+.ptf-dotlbl{padding:7px 0;font-weight:600;color:var(--txt-mut);font-size:13px}
 .oppo-status-strip{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:8px;font-size:13px}
 .oppo-status-strip>span{display:inline-flex;align-items:center;gap:6px}
 .fr-filters{display:flex;gap:14px;flex-wrap:wrap;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-bottom:10px}
@@ -1992,11 +1993,39 @@ function ptfScopePick(which){ PTF_SCOPE=which;
   const lw=document.getElementById('ptf-loai-wrap'); if(lw) lw.style.display=(which==='nd')?'':'none';
   const pw=document.getElementById('ptf-pttt-wrap'); if(pw) pw.style.display=(which==='nd')?'none':'';
 }
-function ptfAddItem(){ ptfSync(); PTF_ITEMS.push({obj:'Sales Contract',moc:'Ngày ký hợp đồng',days:0,pct:''}); ptfRender(); }
-function ptfRemoveItem(i){ ptfSync(); if(PTF_ITEMS.length<=1){ toast('Payment Term phải có ít nhất 1 đợt (Payment Term Item)'); return; } PTF_ITEMS.splice(i,1); ptfRender(); }
+function ptfAddItem(){ ptfSync(); PTF_ITEMS.push({obj:'Sales Contract',moc:'Ngày ký hợp đồng',days:0,pct:''});
+  ptfSyncMini('prod'); PTF_PROD.push({obj:'Sales Contract',moc:'Ngày hàng SX xong',days:0});
+  ptfSyncMini('deliv'); PTF_DELIV.push({obj:'Sales Contract',moc:'Ngày giao hàng',days:0});
+  ptfRender(); ptfMiniRender('prod'); ptfMiniRender('deliv'); }
+function ptfRemoveItem(i){ ptfSync(); if(PTF_ITEMS.length<=1){ toast('Payment Term phải có ít nhất 1 đợt (Payment Term Item)'); return; } PTF_ITEMS.splice(i,1);
+  ptfSyncMini('prod'); PTF_PROD.splice(i,1);
+  ptfSyncMini('deliv'); PTF_DELIV.splice(i,1);
+  ptfRender(); ptfMiniRender('prod'); ptfMiniRender('deliv'); }
+/* --- Hoàn tất sản xuất / Hoàn tất giao hàng: 1 mốc cho mỗi đợt Payment Term Item --- */
+let PTF_PROD=[], PTF_DELIV=[];
+function ptfMiniItemHTML(it,i,cls){
+  const objList=Object.keys(PTF_OBJ_FIELDS); const obj=it.obj||objList[0];
+  const objOpt=objList.map(o=>`<option ${o===obj?'selected':''}>${o}</option>`).join('');
+  const fields=PTF_OBJ_FIELDS[obj]||[];
+  const mocOpt=fields.map(o=>`<option ${o===it.moc?'selected':''}>${o}</option>`).join('');
+  return `<div class="ptf-item">
+    <div class="ptf-row">
+      <div class="ptf-f" style="flex:.5"><label>Đợt</label><div class="ptf-dotlbl">Đợt ${i+1}</div></div>
+      <div class="ptf-f" style="flex:1.6"><label>Object nguồn</label><select class="${cls}-obj mass-sel" onchange="ptfMiniObjChanged(this,'${cls}')">${objOpt}</select></div>
+      <div class="ptf-f" style="flex:1.8"><label>Mốc thời gian (field ngày)</label><select class="${cls}-moc mass-sel">${mocOpt}</select></div>
+      <div class="ptf-f" style="flex:.9"><label>Số ngày (+/-)</label><input class="${cls}-days mass-sel" type="number" value="${it.days||0}" placeholder="VD: -7 hoặc 30"></div>
+    </div>
+  </div>`;
+}
+function ptfMiniObjChanged(sel,cls){ const fields=PTF_OBJ_FIELDS[sel.value]||[]; const mocSel=sel.closest('.ptf-item').querySelector('.'+cls+'-moc'); if(mocSel) mocSel.innerHTML=fields.map(f=>`<option>${f}</option>`).join(''); }
+function ptfSyncMini(cls){ const c=document.getElementById('ptf-'+cls); if(!c) return; const arr=[...c.querySelectorAll('.ptf-item')].map(r=>({obj:r.querySelector('.'+cls+'-obj').value,moc:r.querySelector('.'+cls+'-moc').value,days:r.querySelector('.'+cls+'-days').value}));
+  if(cls==='prod') PTF_PROD=arr; else PTF_DELIV=arr; }
+function ptfMiniRender(cls){ const c=document.getElementById('ptf-'+cls); if(!c) return; const arr=cls==='prod'?PTF_PROD:PTF_DELIV; c.innerHTML=arr.map((it,i)=>ptfMiniItemHTML(it,i,cls)).join(''); }
 function openPtermForm(){
   PTF_SCOPE='nd';
   PTF_ITEMS=[{obj:'Sales Contract',moc:'Ngày ký hợp đồng',days:0,pct:''}];
+  PTF_PROD=[{obj:'Sales Contract',moc:'Ngày hàng SX xong',days:0}];
+  PTF_DELIV=[{obj:'Sales Contract',moc:'Ngày giao hàng',days:0}];
   document.getElementById('ptf-body').innerHTML=
     `<div class="ptf-scope-cb">
        <label><input type="checkbox" id="ptf-cb-nd" checked onchange="ptfScopePick('nd')"> Mua hàng nội địa</label>
@@ -2010,14 +2039,18 @@ function openPtermForm(){
      </div>
      <div style="font-weight:600;margin:14px 0 6px">Payment Term Item (các đợt thanh toán)</div>
      <div id="ptf-items"></div>
-     <button class="btn sm" onclick="ptfAddItem()" style="margin-top:4px">＋ Thêm đợt (Payment Term Item)</button>`;
-  ptfRender();
+     <button class="btn sm" onclick="ptfAddItem()" style="margin-top:4px">＋ Thêm đợt (Payment Term Item)</button>
+     <div style="font-weight:600;margin:18px 0 6px">Hoàn tất sản xuất <span class="wf-muted" style="font-weight:400;font-size:11.5px">(mốc xác định ngày hoàn tất sản xuất — 1 mốc / đợt)</span></div>
+     <div id="ptf-prod"></div>
+     <div style="font-weight:600;margin:18px 0 6px">Hoàn tất giao hàng <span class="wf-muted" style="font-weight:400;font-size:11.5px">(mốc xác định ngày hoàn tất giao hàng — 1 mốc / đợt)</span></div>
+     <div id="ptf-deliv"></div>`;
+  ptfRender(); ptfMiniRender('prod'); ptfMiniRender('deliv');
   document.getElementById('ptfback').classList.add('show');
   document.getElementById('ptfmodal').classList.add('show');
 }
 function closePtermForm(){ const b=document.getElementById('ptfback'),m=document.getElementById('ptfmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
 function confirmPterm(){
-  ptfSync();
+  ptfSync(); ptfSyncMini('prod'); ptfSyncMini('deliv');
   const name=(document.getElementById('ptf-name').value||'').trim();
   if(!name){ toast('Nhập Tên Payment Term'); document.getElementById('ptf-name').focus(); return; }
   const tot=PTF_ITEMS.reduce((s,it)=>s+(+it.pct||0),0);
