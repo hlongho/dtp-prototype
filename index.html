@@ -1932,8 +1932,7 @@ function ptfRemoveItem(i){ ptfSync(); if(PTF_ITEMS.length<=1){ toast('Payment Te
 function openPtermForm(){
   PTF_ITEMS=[{moc:'Ngày ký hợp đồng',dir:'+',days:0,pct:''}];
   document.getElementById('ptf-body').innerHTML=
-    `<p class="po-hint">Payment Term chỉ định nghĩa <b>% và mốc thời gian</b> của từng đợt. <b>Số tiền chỉ được tính khi sinh Payment</b> từ term này (= % × giá trị hợp đồng). Tổng % các đợt phải = <b>100%</b>.</p>
-     <div class="ptf-top">
+    `<div class="ptf-top">
        <div class="ptf-f" style="flex:2.4"><label>Tên Payment Term *</label><input id="ptf-name" class="mass-sel" placeholder="VD: Cọc 30% ký HĐ + 70% trước giao hàng"></div>
        <div class="ptf-f" style="flex:1"><label>Loại hàng *</label><select id="ptf-loai" class="mass-sel"><option>Hàng có sẵn</option><option>Hàng sản xuất</option></select></div>
      </div>
@@ -2267,24 +2266,23 @@ const PAY_TERMS=[
   {id:'PTa-46180',rt:'Áp dụng',tmpl:'PT-06',po:'46180',ncc:'Andritz',total:1910822565,ten:'30/40/30 — PO 46180',th:'Hàng sản xuất',hd:'HĐ mua bán',dot:3,mota:'Sinh từ template PT-06 cho PO 46180'},
 ];
 const PAY_ITEMS=[
-  // --- Template item ---
-  {id:'PTI-01-1',rt:'Template',term:'PT-01',dot:1,pct:100,moc:'Ngày cần hàng (ký duyệt BG/HĐ)',adj:'-10 ngày',dg:'TT 100% trước giao hàng'},
-  {id:'PTI-02-1',rt:'Template',term:'PT-02',dot:1,pct:100,moc:'Ngày hóa đơn',adj:'+7…15 ngày',dg:'TT 100% sau giao hàng 7–15 ngày'},
-  {id:'PTI-03-1',rt:'Template',term:'PT-03',dot:1,pct:100,moc:'Ngày hóa đơn',adj:'+30/45/60/90 ngày',dg:'TT 100% net theo ngày hóa đơn'},
-  {id:'PTI-04-1',rt:'Template',term:'PT-04',dot:1,pct:100,moc:'Ngày hóa đơn',adj:'+0 ngày',dg:'TT 100% ngay khi có hóa đơn'},
-  {id:'PTI-05-1',rt:'Template',term:'PT-05',dot:1,pct:30,moc:'Ngày ký hợp đồng',adj:'+0 ngày',dg:'Cọc 30% giá trị HĐ (gồm VAT) sau khi ký'},
-  {id:'PTI-05-2',rt:'Template',term:'PT-05',dot:2,pct:70,moc:'Ngày giao hàng',adj:'-7 ngày',dg:'TT 70% còn lại — trước giao hàng 7 ngày'},
-  {id:'PTI-06-1',rt:'Template',term:'PT-06',dot:1,pct:30,moc:'Ngày ký hợp đồng',adj:'+10 ngày',dg:'Đợt 1: 30% trong 10 ngày từ ngày ký HĐ'},
-  {id:'PTI-06-2',rt:'Template',term:'PT-06',dot:2,pct:40,moc:'Ngày hàng SX xong',adj:'+0 ngày',dg:'Đợt 2: 40% khi thông báo hàng SX xong'},
-  {id:'PTI-06-3',rt:'Template',term:'PT-06',dot:3,pct:30,moc:'Ngày nghiệm thu (hóa đơn)',adj:'+10 ngày',dg:'Đợt 3: 30% còn lại theo ngày nghiệm thu'},
-  // --- Áp dụng item (instance: có số tiền + ngày cụ thể) ---
-  {id:'PTIa-46222-1',rt:'Áp dụng',term:'PTa-46222',tmpl:'PTI-05-1',dot:1,pct:30,moc:'Ngày ký hợp đồng',adj:'+0 ngày',dg:'Cọc 30% sau khi ký HĐ',amt:164208319,due:'22/07/2026',st:'Hoàn thành'},
-  {id:'PTIa-46222-2',rt:'Áp dụng',term:'PTa-46222',tmpl:'PTI-05-2',dot:2,pct:70,moc:'Ngày giao hàng',adj:'-7 ngày',dg:'TT 70% còn lại trước giao hàng',amt:383152745,due:'05/08/2026',st:'Chờ thanh toán'},
-  {id:'PTIa-46180-1',rt:'Áp dụng',term:'PTa-46180',tmpl:'PTI-06-1',dot:1,pct:30,moc:'Ngày ký hợp đồng',adj:'+10 ngày',dg:'Đợt 1: 30% từ ngày ký HĐ',amt:573246769,due:'15/07/2026',st:'Hoàn thành'},
-  {id:'PTIa-46180-2',rt:'Áp dụng',term:'PTa-46180',tmpl:'PTI-06-2',dot:2,pct:40,moc:'Ngày hàng SX xong',adj:'+0 ngày',dg:'Đợt 2: 40% khi SX xong',amt:764329026,due:'—',st:'Delay'},
-  {id:'PTIa-46180-3',rt:'Áp dụng',term:'PTa-46180',tmpl:'PTI-06-3',dot:3,pct:30,moc:'Ngày nghiệm thu (hóa đơn)',adj:'+10 ngày',dg:'Đợt 3: 30% theo nghiệm thu',amt:573246770,due:'—',st:'Chờ thanh toán'},
+  // --- Template item (mốc + cộng/trừ + số ngày + %) ---
+  {id:'PTI-01-1',rt:'Template',term:'PT-01',dot:1,pct:100,moc:'Ngày cần hàng',dir:'−',days:10},
+  {id:'PTI-02-1',rt:'Template',term:'PT-02',dot:1,pct:100,moc:'Ngày hóa đơn',dir:'+',days:15},
+  {id:'PTI-03-1',rt:'Template',term:'PT-03',dot:1,pct:100,moc:'Ngày hóa đơn',dir:'+',days:30},
+  {id:'PTI-04-1',rt:'Template',term:'PT-04',dot:1,pct:100,moc:'Ngày hóa đơn',dir:'+',days:0},
+  {id:'PTI-05-1',rt:'Template',term:'PT-05',dot:1,pct:30,moc:'Ngày ký hợp đồng',dir:'+',days:0},
+  {id:'PTI-05-2',rt:'Template',term:'PT-05',dot:2,pct:70,moc:'Ngày giao hàng',dir:'−',days:7},
+  {id:'PTI-06-1',rt:'Template',term:'PT-06',dot:1,pct:30,moc:'Ngày ký hợp đồng',dir:'+',days:10},
+  {id:'PTI-06-2',rt:'Template',term:'PT-06',dot:2,pct:40,moc:'Ngày hàng SX xong',dir:'+',days:0},
+  {id:'PTI-06-3',rt:'Template',term:'PT-06',dot:3,pct:30,moc:'Ngày nghiệm thu',dir:'+',days:10},
+  // --- Áp dụng item (instance: amt/due/st dùng để sinh Payment) ---
+  {id:'PTIa-46222-1',rt:'Áp dụng',term:'PTa-46222',tmpl:'PTI-05-1',dot:1,pct:30,moc:'Ngày ký hợp đồng',dir:'+',days:0,amt:164208319,due:'22/07/2026',st:'Hoàn thành'},
+  {id:'PTIa-46222-2',rt:'Áp dụng',term:'PTa-46222',tmpl:'PTI-05-2',dot:2,pct:70,moc:'Ngày giao hàng',dir:'−',days:7,amt:383152745,due:'05/08/2026',st:'Chờ thanh toán'},
+  {id:'PTIa-46180-1',rt:'Áp dụng',term:'PTa-46180',tmpl:'PTI-06-1',dot:1,pct:30,moc:'Ngày ký hợp đồng',dir:'+',days:10,amt:573246769,due:'15/07/2026',st:'Hoàn thành'},
+  {id:'PTIa-46180-2',rt:'Áp dụng',term:'PTa-46180',tmpl:'PTI-06-2',dot:2,pct:40,moc:'Ngày hàng SX xong',dir:'+',days:0,amt:764329026,due:'—',st:'Delay'},
+  {id:'PTIa-46180-3',rt:'Áp dụng',term:'PTa-46180',tmpl:'PTI-06-3',dot:3,pct:30,moc:'Ngày nghiệm thu',dir:'+',days:10,amt:573246770,due:'—',st:'Chờ thanh toán'},
 ];
-// Payment CHỈ có 2 lookup: Payment Term (instance) + Payment Term Item (instance). PO/số tiền/ngày/trạng thái suy ra từ item.
 const PAYMENTS=[
   {id:'PAY-0771-1',term:'PTa-46222',item:'PTIa-46222-1'},
   {id:'PAY-0771-2',term:'PTa-46222',item:'PTIa-46222-2'},
@@ -2300,44 +2298,44 @@ function ptItem(id){ return PAY_ITEMS.find(x=>x.id===id)||{}; }
 
 S.pterm_list = ()=> appnav('Mua hàng nhập khẩu','Payment Term',TAB_IM,'Payment Term')
  + `<div class="sf-body">${lv({crumb:'Payment Term (Phương thức thanh toán)',ico:'📋',color:'#0b827c',object:'Payment Term (Phương thức thanh toán)',view:'Tất cả',views:['Tất cả','Template (thư viện)','Áp dụng (theo PO)'],count:String(PAY_TERMS.length),newLabel:'Payment Term mới',
-   cols:[{t:'Mã'},{t:'Record Type'},{t:'Tên phương thức thanh toán'},{t:'PO áp dụng'},{t:'Trường hợp'},{t:'Loại hợp đồng'},{t:'Số đợt',num:true}],
-   rows:PAY_TERMS.map(t=>({go:'pterm',cells:[t.id,rtPill(t.rt),t.ten,t.po||'—',t.th,t.hd,String(t.dot)]}))})}</div>`;
+   cols:[{t:'Mã'},{t:'Record Type'},{t:'Tên Payment Term'},{t:'Loại hàng'},{t:'Số đợt',num:true}],
+   rows:PAY_TERMS.map(t=>({go:'pterm',cells:[t.id,rtPill(t.rt),t.ten,t.th,String(t.dot)]}))})}</div>`;
 S.pterm = ()=> appnav('Mua hàng nhập khẩu','Payment Term',TAB_IM,'Payment Term')
  + (()=>{ const t=ptTerm('PTa-46222'), tmpl=ptTerm(t.tmpl);
    return `<div class="sf-body narrow">
-   ${hl({crumb:'<span data-go="pterm_list">Payment Term</span> &rsaquo;',ico:'📋',color:'#0b827c',title:t.id+' · '+t.ten,sub:'Record Type: Áp dụng · sinh từ template '+t.tmpl+' · PO '+t.po,
-     fields:[['Record Type',rtPill(t.rt)],['Từ template',t.tmpl],['PO / NCC',t.po+' · '+t.ncc],['Tổng giá trị',payMoney(t.total)]],
+   ${hl({crumb:'<span data-go="pterm_list">Payment Term</span> &rsaquo;',ico:'📋',color:'#0b827c',title:t.id+' · '+t.ten,sub:t.th+' · '+t.dot+' đợt',
+     fields:[['Record Type',rtPill(t.rt)],['Từ template',t.tmpl],['Loại hàng',t.th],['Số đợt',String(t.dot)]],
      actions:[{t:'Thêm đợt (Payment Term Item)',pri:true,fn:"go('pitem')"},'Sửa']})}
    <div class="cols-side act-tab">
      <div>
-     ${card('Chi tiết Payment Term', fg([['Mã',t.id],['Record Type','Áp dụng (instance)'],['Sinh từ template ('+t.tmpl+')',tmpl.ten||t.tmpl,'link','pterm'],
-       ['PO','PO '+t.po],['Nhà cung cấp',t.ncc,'link','vendor'],['Tổng giá trị hợp đồng',payMoney(t.total)],
-       ['Tên phương thức thanh toán',t.ten],['Trường hợp',t.th],['Loại hợp đồng',t.hd],['Số đợt',String(t.dot)],['Mô tả',t.mota]]))}
-     ${card('Payment Term Item', tbl([{t:'Mã đợt'},{t:'Đợt'},{t:'Tỷ lệ %',num:true},{t:'Số tiền',num:true},{t:'Ngày TT'},{t:'Mốc thời gian'},{t:'Trạng thái'}],
-       PAY_ITEMS.filter(x=>x.term===t.id).map(x=>['<a data-go="pitem">'+x.id+'</a>','Đợt '+x.dot,x.pct+'%',payMoney(x.amt),x.due,x.moc,payPill(x.st)])),{n:String(PAY_ITEMS.filter(x=>x.term===t.id).length),r:'<button class="btn sm" onclick="go(\'pitem\')">＋ Thêm đợt</button>'})}
+     ${card('Chi tiết Payment Term', fg([['Mã',t.id],['Record Type',t.rt],['Sinh từ template',tmpl.ten?(t.tmpl+' · '+tmpl.ten):t.tmpl,'link','pterm'],
+       ['Tên Payment Term',t.ten],['Loại hàng',t.th],['Số đợt',String(t.dot)]]))}
+     ${card('Payment Term Item', tbl([{t:'Mã đợt'},{t:'Đợt'},{t:'Mốc thời gian'},{t:'Cộng/Trừ'},{t:'Số ngày',num:true},{t:'% thanh toán',num:true}],
+       PAY_ITEMS.filter(x=>x.term===t.id).map(x=>['<a data-go="pitem">'+x.id+'</a>','Đợt '+x.dot,x.moc,x.dir,String(x.days),x.pct+'%'])),{n:String(PAY_ITEMS.filter(x=>x.term===t.id).length),r:'<button class="btn sm" onclick="go(\'pitem\')">＋ Thêm đợt</button>'})}
      </div>
-     ${activity([['📋','Sinh Payment Term + Item từ template '+t.tmpl,'Kế toán · Hôm nay'],['🔗','Áp dụng cho PO '+t.po,'Hôm nay']])}
+     ${activity([['📋','Tạo Payment Term từ Sales Contract','Kế toán · Hôm nay']])}
    </div>
  </div>`; })();
 S.pitem_list = ()=> appnav('Mua hàng nhập khẩu','Payment Term Item',TAB_IM,'Payment Term Item')
  + `<div class="sf-body">${lv({crumb:'Payment Term Item (Đợt thanh toán)',ico:'🧾',color:'#0b827c',object:'Payment Term Item',view:'Tất cả',views:['Tất cả','Template','Áp dụng (theo PO)'],count:String(PAY_ITEMS.length),newLabel:'Item mới',
-   cols:[{t:'Mã đợt'},{t:'Record Type'},{t:'Payment Term'},{t:'Đợt',num:true},{t:'Tỷ lệ %',num:true},{t:'Số tiền',num:true},{t:'Ngày TT'},{t:'Mốc thời gian'}],
-   rows:PAY_ITEMS.map(x=>({go:'pitem',cells:[x.id,rtPill(x.rt),x.term,String(x.dot),x.pct+'%',x.amt?payMoney(x.amt):'—',x.due||'—',x.moc]}))})}</div>`;
+   cols:[{t:'Mã đợt'},{t:'Record Type'},{t:'Payment Term'},{t:'Đợt',num:true},{t:'Mốc thời gian'},{t:'Cộng/Trừ'},{t:'Số ngày',num:true},{t:'% thanh toán',num:true}],
+   rows:PAY_ITEMS.map(x=>({go:'pitem',cells:[x.id,rtPill(x.rt),x.term,String(x.dot),x.moc,x.dir,String(x.days),x.pct+'%']}))})}</div>`;
 S.pitem = ()=> appnav('Mua hàng nhập khẩu','Payment Term Item',TAB_IM,'Payment Term Item')
  + (()=>{ const x=ptItem('PTIa-46222-1'), tm=ptTerm(x.term);
    return `<div class="sf-body narrow">
-   ${hl({crumb:'<span data-go="pitem_list">Payment Term Item</span> &rsaquo;',ico:'🧾',color:'#0b827c',title:x.id+' · Đợt '+x.dot+' — '+x.pct+'%',sub:'Record Type: Áp dụng · thuộc '+x.term+' · sinh từ '+x.tmpl,
-     fields:[['Record Type',rtPill(x.rt)],['Số tiền',payMoney(x.amt)],['Ngày TT',x.due],['Trạng thái',payPill(x.st)]],
-     actions:[{t:'Đánh dấu đã thanh toán',pri:true},'Sửa']})}
+   ${hl({crumb:'<span data-go="pitem_list">Payment Term Item</span> &rsaquo;',ico:'🧾',color:'#0b827c',title:x.id+' · Đợt '+x.dot+' — '+x.pct+'%',sub:'Thuộc '+x.term,
+     fields:[['Record Type',rtPill(x.rt)],['Mốc thời gian',x.moc],['Ngày thanh toán',x.moc+' '+x.dir+' '+x.days+' ngày'],['% thanh toán',x.pct+'%']],
+     actions:['Sửa']})}
    <div class="cols-side act-tab">
      <div>
-     ${card('Chi tiết Payment Term Item', fg([['Mã đợt',x.id],['Record Type','Áp dụng (instance)'],['Sinh từ template item',x.tmpl],
-       ['Payment Term ('+x.term+')',tm.ten||x.term,'link','pterm'],['Đợt số',String(x.dot)],['Tỷ lệ % giá trị',x.pct+'%'],
-       ['Số tiền',payMoney(x.amt)],['Ngày thanh toán',x.due],['Mốc thời gian',x.moc],['Điều chỉnh (số ngày)',x.adj],['Trạng thái',x.st],['Diễn giải',x.dg]]))}
+     ${card('Chi tiết Payment Term Item', fg([['Mã đợt',x.id],['Record Type',x.rt],['Sinh từ template item',x.tmpl||'—'],
+       ['Payment Term',x.term+(tm.ten?' · '+tm.ten:''),'link','pterm'],['Đợt số',String(x.dot)],
+       ['Mốc thời gian',x.moc],['Cộng/Trừ',x.dir],['Số ngày',String(x.days)],
+       ['Ngày thanh toán (= mốc ± số ngày)',x.moc+' '+x.dir+' '+x.days+' ngày'],['% thanh toán',x.pct+'%']]))}
      ${card('Payment (sinh từ đợt này)', tbl([{t:'Mã Payment'},{t:'Số PO'},{t:'Số tiền',num:true},{t:'Ngày TT'},{t:'Trạng thái'}],
        PAYMENTS.filter(p=>p.item===x.id).map(p=>['<a data-go="payment">'+p.id+'</a>',tm.po,payMoney(x.amt),x.due,payPill(x.st)])),{n:String(PAYMENTS.filter(p=>p.item===x.id).length)})}
      </div>
-     ${activity([['🧾','Sinh đợt từ template item '+x.tmpl,'Kế toán']])}
+     ${activity([['🧾','Tạo đợt thanh toán','Kế toán']])}
    </div>
  </div>`; })();
 S.payment_list = ()=> appnav('Mua hàng nhập khẩu','Payment',TAB_IM,'Payment')
