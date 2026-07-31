@@ -2729,10 +2729,9 @@ S.case_im = ()=> appnav('Chăm sóc KH','Case',['Trang chủ','Case','Khách hà
        ['Shipment liên quan','SHP-041','link','shipment'],['Sales Contract (NK)','IC-2026-041','link','imcontract'],
        ['Loại sự vụ','Phí Local Charge phát sinh ngoài dự kiến'],['Hãng tàu / Cảng','ONE / Cát Lái'],
        ['Mô tả','Phát sinh phí lưu bãi (DEM) và gia hạn lệnh do thủ tục hải quan chậm — làm việc với Hãng tàu để miễn/giảm phí.']]))}
-     ${card('Chi phí khiếu nại đã chọn',
+     ${card('Chi phí khiếu nại',
        `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tên loại phí</th><th>Giai đoạn phí</th><th class="num">Số tiền</th><th>Lý do phát sinh</th></tr></thead>
-        <tbody id="claimfee-tbody">${claimFeeRows()}</tbody>
-        <tfoot><tr><td colspan="2"><b>Tổng</b></td><td class="num"><b id="claimfee-foot">${fmtMoney(claimFeeTotal())}</b></td><td></td></tr></tfoot></table></div>`,
+        <tbody id="claimfee-tbody">${claimFeeRows()}</tbody></table></div>`,
        {n:String(CLAIM_FEES.size), r:'<button class="btn sm" onclick="openClaimFeeModal()">Chọn chi phí khiếu nại</button>'})}
      </div>
      ${activity([['🎧','Tạo Case từ Shipment SHP-041','Logistics · Hôm nay'],['💵','Chọn khoản phí khiếu nại (DEM, Gia hạn lệnh)','Hôm nay']])}
