@@ -2426,7 +2426,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
 /* ===== Cảnh báo tồn kho + hàng đi đường (1 bảng: OCC theo hàng dọc, tháng theo hàng ngang) ===== */
 const INV_CUR_MONTH='T7/2026';
 const INV_NEXT_MONTHS=['T8/2026','T9/2026','T10/2026','T11/2026'];
-// mỗi loại OCC: usage = sản lượng sử dụng dự kiến/tháng (tấn) · cur = [tồn đầu kỳ, hàng đang đi biển] tháng hiện tại
+// mỗi loại OCC: usage = sản lượng sử dụng dự kiến/tháng (tấn) · cur = [tồn đầu kỳ, hàng đang về] tháng hiện tại
 const OCC_TYPES=[
   {name:'Giấy OCC (US)',      usage:900, cur:[1240,800]},
   {name:'Giấy OCC (EU)',      usage:500, cur:[1550,400]},
@@ -2453,8 +2453,8 @@ function invMatrixRows(){
 }
 S.matinv = ()=> appnav('Mua nhập khẩu','Cảnh báo tồn kho',TAB_IM,'Kế hoạch NVL')
  + `<div class="sf-body">
-   ${hl({crumb:'Cảnh báo tồn kho + hàng đi đường',ico:'🌐',color:'#0b827c',title:'Tồn kho khả dụng NVL chính (Giấy OCC) — báo cáo theo tháng',sub:'Tồn kho + hàng đang đi trên biển (Rosy) → Tồn khả dụng · cơ sở để BGĐ quyết định thời điểm ký hợp đồng nhập khẩu',
-     fields:[['Kỳ hiện tại',INV_CUR_MONTH],['Loại OCC theo dõi','4'],['Tồn hiện tại (tổng OCC)','5.190 tấn'],['Đang đi biển','1.400 tấn'],['Tồn khả dụng','6.590 tấn']],
+   ${hl({crumb:'Cảnh báo tồn kho + hàng đi đường',ico:'🌐',color:'#0b827c',title:'Tồn kho khả dụng NVL chính (Giấy OCC) — báo cáo theo tháng',sub:'Tồn kho + hàng đang về (Rosy) → Tồn khả dụng · cơ sở để BGĐ quyết định thời điểm ký hợp đồng nhập khẩu',
+     fields:[['Kỳ hiện tại',INV_CUR_MONTH],['Loại OCC theo dõi','4'],['Tồn hiện tại (tổng OCC)','5.190 tấn'],['Đang về','1.400 tấn'],['Tồn khả dụng','6.590 tấn']],
      actions:[{t:'Ký hợp đồng nhập khẩu',pri:true,fn:"go('imcontract_list')"},'Xuất báo cáo']})}
    ${banner('warn','Giấy OCC (US) tồn khả dụng dự kiến <b>âm từ T10/2026</b> nếu không nhập thêm — BGĐ cân nhắc thời điểm chốt lô nhập OCC (US). Các loại OCC khác (EU, Japan, nội địa) hiện ổn định.')}
    ${card('Tồn kho khả dụng theo tháng — theo loại giấy OCC',
@@ -2463,14 +2463,9 @@ S.matinv = ()=> appnav('Mua nhập khẩu','Cảnh báo tồn kho',TAB_IM,'Kế 
           <tr><th rowspan="2">Loại giấy OCC</th><th rowspan="2" class="num" style="text-align:center">Sản lượng SD dự kiến<br>(tấn/tháng)</th>
             <th colspan="3" style="text-align:center">Tháng hiện tại (${INV_CUR_MONTH})</th>
             ${INV_NEXT_MONTHS.map(m=>`<th rowspan="2" class="num">${m}</th>`).join('')}</tr>
-          <tr><th class="num">Tồn đầu kỳ</th><th class="num">Hàng đang đi biển</th><th class="num">Tồn khả dụng</th></tr>
+          <tr><th class="num">Tồn đầu kỳ</th><th class="num">Hàng đang về</th><th class="num">Tồn khả dụng</th></tr>
         </thead>
         <tbody>${invMatrixRows()}</tbody></table></div>`)}
-   ${card('Hàng đang đi trên biển (từ Rosy)', tbl([{t:'Shipment'},{t:'Hàng'},{t:'SL (tấn)',num:true},{t:'Hãng tàu'},{t:'ETA'},{t:'Trạng thái'}],[
-       ['<a data-go="shipment">SHP-041</a>','Giấy OCC (US)','800','ONE','12/08/2026',pill('info','Trên biển')],
-       ['<a data-go="shipment">SHP-043</a>','Giấy OCC (EU)','400','Maersk','15/08/2026',pill('info','Trên biển')],
-       ['<a data-go="shipment">SHP-044</a>','Giấy OCC (Japan)','200','ONE','08/08/2026',pill('info','Trên biển')],
-       ['<a data-go="shipment">SHP-042</a>','Bột giấy','120','ONE','28/07/2026',pill('mut','Chờ booking')]]),{n:'4'})}
  </div>`;
 
 /* ===== Payment / Payment Term / Payment Term Item (Mua hàng nhập khẩu) =====
