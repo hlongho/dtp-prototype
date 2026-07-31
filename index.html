@@ -2732,7 +2732,7 @@ S.case_im = ()=> appnav('Chăm sóc KH','Case',['Trang chủ','Case','Khách hà
      ${card('Chi phí khiếu nại',
        `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tên loại phí</th><th>Giai đoạn phí</th><th class="num">Số tiền</th><th>Lý do phát sinh</th></tr></thead>
         <tbody id="claimfee-tbody">${claimFeeRows()}</tbody></table></div>`,
-       {n:String(CLAIM_FEES.size), r:'<button class="btn sm" onclick="openClaimFeeModal()">Chọn chi phí khiếu nại</button>'})}
+       {n:String(CLAIM_FEES.size)})}
      </div>
      ${activity([['🎧','Tạo Case từ Shipment SHP-041','Logistics · Hôm nay'],['💵','Chọn khoản phí khiếu nại (DEM, Gia hạn lệnh)','Hôm nay']])}
    </div>
