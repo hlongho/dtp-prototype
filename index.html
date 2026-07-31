@@ -2404,7 +2404,7 @@ function invMatrixRows(){
   let h=OCC_TYPES.map(t=>{
     const ton=t.cur[0], onsea=t.cur[1], avail=ton+onsea;
     const future=[1,2,3,4].map(x=>avail-x*t.usage);
-    return `<tr><td>${t.name}</td><td class="num">${t.usage.toLocaleString('vi-VN')}</td>
+    return `<tr><td>${t.name}</td><td class="num" style="text-align:center">${t.usage.toLocaleString('vi-VN')}</td>
       <td class="num">${ton.toLocaleString('vi-VN')}</td><td class="num">${onsea.toLocaleString('vi-VN')}</td><td class="num"><b>${avail.toLocaleString('vi-VN')}</b></td>
       ${future.map(v=>`<td class="num"${v<0?' style="color:var(--err);font-weight:700"':''}>${v.toLocaleString('vi-VN')}</td>`).join('')}</tr>`;
   }).join('');
@@ -2413,7 +2413,7 @@ function invMatrixRows(){
   const sumOnsea=OCC_TYPES.reduce((s,t)=>s+t.cur[1],0);
   const sumAvail=sumTon+sumOnsea;
   const sumFuture=[1,2,3,4].map(x=>sumAvail-x*sumUsage);
-  h+=`<tr style="font-weight:700;background:var(--bg)"><td>Tổng OCC</td><td class="num">${sumUsage.toLocaleString('vi-VN')}</td>
+  h+=`<tr style="font-weight:700;background:var(--bg)"><td>Tổng OCC</td><td class="num" style="text-align:center">${sumUsage.toLocaleString('vi-VN')}</td>
     <td class="num">${sumTon.toLocaleString('vi-VN')}</td><td class="num">${sumOnsea.toLocaleString('vi-VN')}</td><td class="num">${sumAvail.toLocaleString('vi-VN')}</td>
     ${sumFuture.map(v=>`<td class="num"${v<0?' style="color:var(--err);font-weight:700"':''}>${v.toLocaleString('vi-VN')}</td>`).join('')}</tr>`;
   return h;
