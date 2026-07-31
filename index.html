@@ -671,6 +671,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     <div class="pm-body" id="cpfee-body"></div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeCopyFeeModal()">Đóng</button></div></div>
   </div>
+  <!-- Modal chọn chi phí khiếu nại (Case Sự vụ Nhập khẩu - Logistics) -->
+  <div class="modal-back" id="claimfeeback" onclick="closeClaimFeeModal()" style="z-index:135"></div>
+  <div class="po-modal" id="claimfeemodal" style="z-index:140;width:min(720px,95vw)">
+    <div class="pm-head"><h3>Chọn chi phí khiếu nại</h3><button title="Đóng" onclick="closeClaimFeeModal()">✕</button></div>
+    <div class="pm-body" id="claimfee-body"></div>
+    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeClaimFeeModal()">Hủy</button><button class="btn pri" onclick="confirmClaimFee()">Lưu</button></div></div>
+  </div>
   <!-- Modal thêm báo giá Logistics (Báo giá XK) -->
   <div class="modal-back" id="lqback" onclick="closeLogisModal()" style="z-index:135"></div>
   <div class="po-modal" id="lqmodal" style="z-index:140;width:min(640px,94vw)">
@@ -1233,7 +1240,8 @@ const NAV = [
  {g:'Khiếu nại', items:[
    ['case_list','Case khiếu nại','CSKH','list'],
    ['case','↳ Chi tiết Case — Bán hàng trong nước','','record'],
-   ['case_xk','↳ Chi tiết Case — Bán hàng xuất khẩu','','record']]},
+   ['case_xk','↳ Chi tiết Case — Bán hàng xuất khẩu','','record'],
+   ['case_im','↳ Chi tiết Case — Sự vụ Nhập khẩu Logistics','','record']]},
  {g:'Báo cáo', items:[
    ['reports','Báo cáo & Dashboard','Quản lý / BGĐ','custom'],
    ['rpt_dnmh','Thống kê ĐNMH & mã vật tư','BGĐ','list'],
@@ -1878,9 +1886,8 @@ const FEE_PENALTY=['DEM (lưu bãi)','DET (lưu vỏ)','Phí lưu bãi','Gia h�
 function fmtMoney(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,'.')+' ₫'; }
 function feeAmt(f){ return f.cur==='USD' ? ('$'+f.amount.toLocaleString('en-US')) : fmtMoney(f.amount); }
 function shipFeesRows(){
-  return SHIPFEES.map(f=>`<tr><td>${f.type}</td><td>${f.stage}</td><td class="num">${feeAmt(f)}</td><td>${f.cur}</td><td>${f.ext||'—'}</td><td>${f.reason||'—'}</td><td class="num"><button class="btn sm" title="Tạo Case khiếu nại cho phí này" onclick="createCaseFromFee('${f.type}')">Tạo Case</button></td></tr>`).join('');
+  return SHIPFEES.map(f=>`<tr><td>${f.type}</td><td>${f.stage}</td><td class="num">${feeAmt(f)}</td><td>${f.cur}</td><td>${f.ext||'—'}</td><td>${f.reason||'—'}</td></tr>`).join('');
 }
-function createCaseFromFee(type){ toast('Đã tạo Case khiếu nại cho phí "'+type+'" — mở màn Case'); setTimeout(function(){ if(S.case) go('case'); }, 700); }
 /* --- Sao chép đơn giá phí từ shipment kỳ trước --- */
 const PAST_SHIP_FEES=[
   {code:'SHP-039', label:'DLK 400 tấn · Maersk · ETA 12/07/2026', fees:[
@@ -1924,6 +1931,34 @@ function renderShipFees(){
   const tb=document.getElementById('ship-fee-tbody'); if(tb) tb.innerHTML=shipFeesRows();
   const tot=fmtMoney(shipFeesTotal());
   ['ship-fee-total','ship-fee-foot'].forEach(id=>{const e=document.getElementById(id); if(e) e.textContent=tot;});
+}
+/* --- Case "Sự vụ Nhập khẩu - Logistics" từ Shipment + chọn chi phí khiếu nại --- */
+function createCaseFromShipment(){ toast('Đã tạo Case (Sự vụ Nhập khẩu - Logistics) từ Shipment SHP-041 — mở màn Case'); setTimeout(function(){ if(S.case_im) go('case_im'); }, 700); }
+let CLAIM_FEES=new Set(['DEM (lưu bãi)','Gia hạn lệnh']);
+function claimFeeModalRows(){
+  return SHIPFEES.map(f=>`<tr><td><input type="checkbox" class="claimfee-cb" data-type="${f.type.replace(/"/g,'&quot;')}" ${CLAIM_FEES.has(f.type)?'checked':''}></td><td>${f.type}</td><td>${f.stage}</td><td class="num">${feeAmt(f)}</td><td>${f.reason||'—'}</td></tr>`).join('');
+}
+function openClaimFeeModal(){
+  document.getElementById('claimfee-body').innerHTML=
+    `<p class="po-hint">Chọn các khoản phí (Shipment Fee) của Shipment SHP-041 để đưa vào hồ sơ khiếu nại này — có thể bỏ chọn hoặc chọn thêm.</p>
+     <div class="tbl-wrap"><table class="tbl sm"><thead><tr><th style="width:2rem"></th><th>Tên loại phí</th><th>Giai đoạn phí</th><th class="num">Số tiền</th><th>Lý do phát sinh</th></tr></thead>
+     <tbody>${claimFeeModalRows()}</tbody></table></div>`;
+  document.getElementById('claimfeeback').classList.add('show');
+  document.getElementById('claimfeemodal').classList.add('show');
+}
+function closeClaimFeeModal(){ const b=document.getElementById('claimfeeback'),m=document.getElementById('claimfeemodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
+function confirmClaimFee(){
+  const boxes=[...document.querySelectorAll('.claimfee-cb')];
+  CLAIM_FEES=new Set(boxes.filter(b=>b.checked).map(b=>b.dataset.type));
+  closeClaimFeeModal(); renderClaimFees();
+  toast('Đã cập nhật '+CLAIM_FEES.size+' khoản phí khiếu nại');
+}
+function claimFeeRows(){ return SHIPFEES.filter(f=>CLAIM_FEES.has(f.type)).map(f=>`<tr><td>${f.type}</td><td>${f.stage}</td><td class="num">${feeAmt(f)}</td><td>${f.reason||'—'}</td></tr>`).join(''); }
+function claimFeeTotal(){ return SHIPFEES.filter(f=>CLAIM_FEES.has(f.type)&&f.cur==='VNĐ').reduce((a,f)=>a+f.amount,0); }
+function renderClaimFees(){
+  const tb=document.getElementById('claimfee-tbody'); if(tb) tb.innerHTML=claimFeeRows();
+  const tot=fmtMoney(claimFeeTotal());
+  ['claimfee-total','claimfee-foot'].forEach(id=>{const e=document.getElementById(id); if(e) e.textContent=tot;});
 }
 function toggleFeeExt(){
   const t=document.getElementById('fee-type').value;
@@ -2613,7 +2648,7 @@ S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',TAB_IM,'Shipment')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="shipment_list">Theo dõi Shipment</span> &rsaquo;',ico:'⚓',color:'#0b827c',title:'SHP-041 · OCC 800 tấn (32x40HC)',sub:'Record Type: Mua hàng nhập khẩu · HĐ IC-2026-041 · Hãng ONE',
      fields:[['Trạng thái',pill('info','Đang trên biển')],['ETA','19/07/2026'],['Free time','7 ngày'],['Tổng phí Local Charge','<span id="ship-fee-total">12.900.000 ₫</span>']],
-     actions:[{t:'Lên kế hoạch kéo hàng',pri:true},'Sửa']})}
+     actions:[{t:'Lên kế hoạch kéo hàng',pri:true},{t:'Tạo Case',fn:'createCaseFromShipment()'},'Sửa']})}
    ${path(['Draft','Final Docx','Open tờ khai','Completed'],1)}
    <div class="cols-side act-tab">
      <div>
@@ -2627,9 +2662,9 @@ S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',TAB_IM,'Shipment')
           <div>${IC_INCLUDED_FEES}</div>
           <div class="wf-muted" style="margin-top:4px;font-size:11.5px">Kế thừa tự động từ Sale Contract <b>IC-2026-041</b>. Nếu bị thu trùng các phí này → làm thủ tục khiếu nại.</div></div>
         <div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Tên loại phí</th><th>Giai đoạn phí</th><th class="num">Số tiền</th><th>Tiền tệ</th><th>Ngày gia hạn lệnh</th><th>Lý do phát sinh</th><th></th></tr></thead>
+          <thead><tr><th>Tên loại phí</th><th>Giai đoạn phí</th><th class="num">Số tiền</th><th>Tiền tệ</th><th>Ngày gia hạn lệnh</th><th>Lý do phát sinh</th></tr></thead>
           <tbody id="ship-fee-tbody">${shipFeesRows()}</tbody>
-          <tfoot><tr><td colspan="2"><b>Tổng phí Local Charge</b></td><td class="num"><b id="ship-fee-foot">${fmtMoney(shipFeesTotal())}</b></td><td colspan="4"></td></tr></tfoot>
+          <tfoot><tr><td colspan="2"><b>Tổng phí Local Charge</b></td><td class="num"><b id="ship-fee-foot">${fmtMoney(shipFeesTotal())}</b></td><td colspan="3"></td></tr></tfoot>
         </table></div>`,
        {n:String(SHIPFEES.length), r:'<button class="btn sm" onclick="openCopyFeeModal()">⧉ Sao chép đơn giá cũ</button> <button class="btn sm" onclick="openFeeModal()">＋ Thêm phí phát sinh</button>'})}
      ${card('Cảnh báo chi phí lưu bãi', banner('info','Sau ETA 19/07/2026, còn <b>7 ngày Free time</b> để kéo hàng. Quá hạn phát sinh Dem ≈ <b>$120/cont/ngày</b>.')
@@ -2680,6 +2715,27 @@ S.case = ()=> appnav('Chăm sóc KH','Case',['Trang chủ','Case','Khách hàng'
        ['<b>Tổng thiệt hại</b>','<b>38.000.000 ₫</b>','—']]),{n:'2'})}
      </div>
      ${activity([['📞','KH báo hàng ướt','CSKH · 11/07/2026'],['🔍','Điều tra: container thấm nước','12/07/2026'],['✉','Gửi khiếu nại hãng tàu','Hôm nay']])}
+   </div>
+ </div>`;
+S.case_im = ()=> appnav('Chăm sóc KH','Case',['Trang chủ','Case','Khách hàng','Knowledge','Báo cáo'],'Case')
+ + `<div class="sf-body narrow">
+   ${hl({crumb:'<span data-go="case_list">Case · Sự vụ Nhập khẩu - Logistics</span> &rsaquo;',ico:'🎧',color:'#e07a00',title:'CASE-IM-0031 · Phí Local Charge phát sinh ngoài dự kiến',sub:'Record Type: Sự vụ Nhập khẩu - Logistics · Shipment SHP-041 · HĐ IC-2026-041',
+     fields:[['Record Type','Sự vụ Nhập khẩu - Logistics'],['Trạng thái',pill('warn','Đang khiếu nại')],['Shipment liên quan','SHP-041'],['Tổng chi phí khiếu nại','<span id="claimfee-total">'+fmtMoney(claimFeeTotal())+'</span>']],
+     actions:[{t:'Chọn chi phí khiếu nại',pri:true,fn:'openClaimFeeModal()'},'Trình duyệt','Đóng Case']})}
+   ${path(['Mới tiếp nhận','Đánh giá','Khiếu nại Hãng tàu / Cảng','Xử lý tài chính','Đóng hồ sơ'],1)}
+   <div class="cols-side act-tab">
+     <div>
+     ${card('Chi tiết Case — Sự vụ Nhập khẩu Logistics', fg([
+       ['Shipment liên quan','SHP-041','link','shipment'],['Sales Contract (NK)','IC-2026-041','link','imcontract'],
+       ['Loại sự vụ','Phí Local Charge phát sinh ngoài dự kiến'],['Hãng tàu / Cảng','ONE / Cát Lái'],
+       ['Mô tả','Phát sinh phí lưu bãi (DEM) và gia hạn lệnh do thủ tục hải quan chậm — làm việc với Hãng tàu để miễn/giảm phí.']]))}
+     ${card('Chi phí khiếu nại đã chọn',
+       `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tên loại phí</th><th>Giai đoạn phí</th><th class="num">Số tiền</th><th>Lý do phát sinh</th></tr></thead>
+        <tbody id="claimfee-tbody">${claimFeeRows()}</tbody>
+        <tfoot><tr><td colspan="2"><b>Tổng</b></td><td class="num"><b id="claimfee-foot">${fmtMoney(claimFeeTotal())}</b></td><td></td></tr></tfoot></table></div>`,
+       {n:String(CLAIM_FEES.size), r:'<button class="btn sm" onclick="openClaimFeeModal()">Chọn chi phí khiếu nại</button>'})}
+     </div>
+     ${activity([['🎧','Tạo Case từ Shipment SHP-041','Logistics · Hôm nay'],['💵','Chọn khoản phí khiếu nại (DEM, Gia hạn lệnh)','Hôm nay']])}
    </div>
  </div>`;
 
