@@ -2427,13 +2427,12 @@ S.matinv = ()=> appnav('Mua nhập khẩu','Cảnh báo tồn kho',TAB_IM,'Kế 
    ${card('Tồn kho khả dụng theo tháng — theo loại giấy OCC',
      `<div class="tbl-wrap"><table class="tbl">
         <thead>
-          <tr><th rowspan="2">Loại giấy OCC</th><th rowspan="2" class="num">Sản lượng SD dự kiến<br>(tấn/tháng)</th>
-            <th colspan="3">Tháng hiện tại (${INV_CUR_MONTH})</th>
+          <tr><th rowspan="2">Loại giấy OCC</th><th rowspan="2" class="num" style="text-align:center">Sản lượng SD dự kiến<br>(tấn/tháng)</th>
+            <th colspan="3" style="text-align:center">Tháng hiện tại (${INV_CUR_MONTH})</th>
             ${INV_NEXT_MONTHS.map(m=>`<th rowspan="2" class="num">${m}</th>`).join('')}</tr>
           <tr><th class="num">Tồn đầu kỳ</th><th class="num">Hàng đang đi biển</th><th class="num">Tồn khả dụng</th></tr>
         </thead>
-        <tbody>${invMatrixRows()}</tbody></table></div>
-      <div class="po-hint">Tồn khả dụng = Tồn đầu kỳ + Hàng đang đi trên biển (đồng bộ từ Rosy). Từ tháng T+1: Tồn khả dụng dự kiến = Tồn khả dụng tháng hiện tại − (x × Sản lượng sử dụng dự kiến hàng tháng), x = số tháng tiếp theo.</div>`)}
+        <tbody>${invMatrixRows()}</tbody></table></div>`)}
    ${card('Hàng đang đi trên biển (từ Rosy)', tbl([{t:'Shipment'},{t:'Hàng'},{t:'SL (tấn)',num:true},{t:'Hãng tàu'},{t:'ETA'},{t:'Trạng thái'}],[
        ['<a data-go="shipment">SHP-041</a>','Giấy OCC (US)','800','ONE','12/08/2026',pill('info','Trên biển')],
        ['<a data-go="shipment">SHP-043</a>','Giấy OCC (EU)','400','Maersk','15/08/2026',pill('info','Trên biển')],
