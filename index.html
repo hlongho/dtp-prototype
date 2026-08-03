@@ -1948,8 +1948,10 @@ function claimFeeModalRows(){
     <td>${f.reason||'—'}</td>
     <td>${f.compReason||'—'}</td>
     <td style="white-space:nowrap"><label style="margin-right:8px;font-weight:400"><input type="checkbox" class="compparty-cb" data-type="${esc}" data-party="Hãng tàu" ${parties.includes('Hãng tàu')?'checked':''}> Hãng tàu</label><label style="font-weight:400"><input type="checkbox" class="compparty-cb" data-type="${esc}" data-party="NCC" ${parties.includes('NCC')?'checked':''}> NCC</label></td>
-    <td class="num">${moneyOrDash(f.compAmount)}</td><td class="num">${usdOrDash(f.compAmount)}</td></tr>`; }).join('');
+    <td class="num"><input type="number" class="compamt-inp mass-sel" data-type="${esc}" value="${f.compAmount||0}" style="width:110px;text-align:right" oninput="updateCompUSD(this)"></td>
+    <td class="num compamt-usd">${usdOrDash(f.compAmount)}</td></tr>`; }).join('');
 }
+function updateCompUSD(inp){ const tr=inp.closest('tr'); const usdCell=tr&&tr.querySelector('.compamt-usd'); if(usdCell) usdCell.textContent=usdOrDash(+inp.value||0); }
 function openClaimFeeModal(){
   document.getElementById('claimfee-body').innerHTML=
     `<p class="po-hint">Chọn các khoản phí (Shipment Fee) của Shipment SHP-041 để đưa vào hồ sơ khiếu nại này — có thể bỏ chọn hoặc chọn thêm.</p>
@@ -1965,6 +1967,9 @@ function confirmClaimFee(){
   const partyMap={};
   document.querySelectorAll('.compparty-cb').forEach(cb=>{ if(!partyMap[cb.dataset.type]) partyMap[cb.dataset.type]=[]; if(cb.checked) partyMap[cb.dataset.type].push(cb.dataset.party); });
   SHIPFEES.forEach(f=>{ if(partyMap.hasOwnProperty(f.type)) f.compParty=partyMap[f.type]; });
+  const amtMap={};
+  document.querySelectorAll('.compamt-inp').forEach(inp=>{ amtMap[inp.dataset.type]=+inp.value||0; });
+  SHIPFEES.forEach(f=>{ if(amtMap.hasOwnProperty(f.type)) f.compAmount=amtMap[f.type]; });
   closeClaimFeeModal(); renderClaimFees();
   toast('Đã cập nhật '+CLAIM_FEES.size+' khoản phí khiếu nại');
 }
