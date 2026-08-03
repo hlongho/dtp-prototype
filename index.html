@@ -2129,13 +2129,10 @@ function logisDetailFormHTML(){
      </div>
      <div class="ptf-item" style="background:var(--bg)">
        <div style="font-weight:600;margin-bottom:6px">Tổng chi phí</div>
-       <table class="tbl sm"><tbody>
-         <tr><td>Tổng chi phí EWS (USD/CONT)</td><td class="num" id="ld-tot-ews">0</td><td></td></tr>
-         <tr><td>VND/CONT</td><td class="num" id="ld-tot-ews-vnd">0 ₫</td><td></td></tr>
-         <tr><td>Tổng chi phí FOB (USD/CONT)</td><td class="num" id="ld-tot-fob">0</td><td class="wf-muted" style="font-size:11px">(Có C/O)</td></tr>
-         <tr><td>VND/CONT</td><td class="num" id="ld-tot-fob-vnd">0 ₫</td><td></td></tr>
-         <tr><td>Tổng chi phí CIF (USD/CONT)</td><td class="num" id="ld-tot-cif">0</td><td></td></tr>
-         <tr><td>VND/CONT</td><td class="num" id="ld-tot-cif-vnd">0 ₫</td><td></td></tr>
+       <table class="tbl sm"><thead><tr><th></th><th class="num">USD/CONT</th><th class="num">VND/CONT</th></tr></thead><tbody>
+         <tr><td>Tổng chi phí EWS</td><td class="num" id="ld-tot-ews">0</td><td class="num" id="ld-tot-ews-vnd">0 ₫</td></tr>
+         <tr><td>Tổng chi phí FOB <span class="wf-muted" style="font-size:10px">(Có C/O)</span></td><td class="num" id="ld-tot-fob">0</td><td class="num" id="ld-tot-fob-vnd">0 ₫</td></tr>
+         <tr><td>Tổng chi phí CIF</td><td class="num" id="ld-tot-cif">0</td><td class="num" id="ld-tot-cif-vnd">0 ₫</td></tr>
        </tbody></table>
      </div>`;
 }
