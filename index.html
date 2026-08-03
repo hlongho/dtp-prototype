@@ -2118,9 +2118,9 @@ function ldApplyNccPrices(){
   recalcLogisDetail();
 }
 function ldSectionHead(title,curId,extra){
-  return `<div class="ptf-row" style="margin-bottom:8px;align-items:baseline">
+  return `<div class="ptf-row" style="margin-bottom:8px;align-items:center">
     <div style="font-weight:600;flex:1">${title}</div>${extra||''}
-    <div style="width:110px"><label class="wf-muted" style="font-size:11px;display:block">Đơn vị tiền tệ</label>${ldCurSel(curId)}</div>
+    <div style="width:90px">${ldCurSel(curId)}</div>
   </div>`;
 }
 function logisDetailFormHTML(){
