@@ -2425,7 +2425,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
 
 /* ===== Cảnh báo tồn kho + hàng đi đường (1 bảng: NVL theo hàng dọc, tuần theo hàng ngang) =====
    Công thức cuốn chiếu theo ETA (chốt với Helen Phan / Trinh Phạm):
-   Tồn khả dụng (tuần N) = Tồn đầu kỳ (N) + Hàng về (SL có ETA trong tuần N)
+   Tồn khả dụng (tuần N) = Tồn đầu kỳ (N) + ETA (SL hàng có ETA trong tuần N)
    Tồn cuối kỳ (tuần N)  = Tồn khả dụng (N) − Sản lượng SD dự kiến (N)
    Tồn đầu kỳ (tuần N+1) = Tồn cuối kỳ (tuần N) */
 // mỗi tuần gắn kèm tháng dương lịch chứa phần lớn số ngày của tuần đó, để người xem đối chiếu tuần ↔ tháng
@@ -2487,7 +2487,7 @@ function invTotals(){
   };
 }
 function invFutureCell(f){
-  return `<td class="num"${f.cuoiKy<0?' style="color:var(--err);font-weight:700"':''}>${f.hangVe>0?`<div class="wf-muted" style="font-size:10px">Về: ${f.hangVe.toLocaleString('vi-VN')}</div>`:''}${f.cuoiKy.toLocaleString('vi-VN')}</td>`;
+  return `<td class="num"${f.cuoiKy<0?' style="color:var(--err);font-weight:700"':''}>${f.hangVe>0?`<div class="wf-muted" style="font-size:10px">ETA: ${f.hangVe.toLocaleString('vi-VN')}</div>`:''}${f.cuoiKy.toLocaleString('vi-VN')}</td>`;
 }
 function invMatrixRows(){
   let h=OCC_TYPES.map(t=>{
@@ -2504,8 +2504,8 @@ function invMatrixRows(){
 }
 S.matinv = ()=> appnav('Mua nhập khẩu','Cảnh báo tồn kho',TAB_IM,'Kế hoạch NVL')
  + `<div class="sf-body">
-   ${hl({crumb:'Cảnh báo tồn kho + hàng đi đường',ico:'🌐',color:'#0b827c',title:'Tồn kho khả dụng NVL chính — báo cáo theo tuần',sub:'Tồn đầu kỳ + Hàng về (theo ETA từng tuần, đồng bộ từ Rosy) − SL sử dụng dự kiến → Tồn cuối kỳ cuốn chiếu sang tuần sau',
-     fields:(()=>{ const T=invTotals(); return [['Kỳ hiện tại',INV_CUR_WEEK.label+' ('+INV_CUR_WEEK.month+')'],['Loại NVL theo dõi','16'],['Tồn hiện tại (tổng NVL)',T.sumDauKy.toLocaleString('vi-VN')+' tấn'],['Đang về (tuần hiện tại)',T.sumHangVe0.toLocaleString('vi-VN')+' tấn'],['Tồn khả dụng (tuần hiện tại)',T.sumKhaDung0.toLocaleString('vi-VN')+' tấn']]; })(),
+   ${hl({crumb:'Cảnh báo tồn kho + hàng đi đường',ico:'🌐',color:'#0b827c',title:'Tồn kho khả dụng NVL chính — báo cáo theo tuần',sub:'Tồn đầu kỳ + ETA (SL hàng có ETA về trong tuần, đồng bộ từ Rosy) − SL sử dụng dự kiến → Tồn cuối kỳ cuốn chiếu sang tuần sau',
+     fields:(()=>{ const T=invTotals(); return [['Kỳ hiện tại',INV_CUR_WEEK.label+' ('+INV_CUR_WEEK.month+')'],['Loại NVL theo dõi','16'],['Tồn hiện tại (tổng NVL)',T.sumDauKy.toLocaleString('vi-VN')+' tấn'],['ETA (tuần hiện tại)',T.sumHangVe0.toLocaleString('vi-VN')+' tấn'],['Tồn khả dụng (tuần hiện tại)',T.sumKhaDung0.toLocaleString('vi-VN')+' tấn']]; })(),
      actions:[{t:'Ký hợp đồng nhập khẩu',pri:true,fn:"go('imcontract_list')"},'Xuất báo cáo']})}
    ${banner('warn','PLYB tồn khả dụng dự kiến <b>âm từ Tuần 2/T9/2026</b> nếu không có lô hàng mới về — BGĐ cân nhắc đặt hàng bổ sung. Các loại NVL khác hiện ổn định.')}
    ${card('Tồn kho khả dụng theo tuần — theo loại NVL',
@@ -2514,7 +2514,7 @@ S.matinv = ()=> appnav('Mua nhập khẩu','Cảnh báo tồn kho',TAB_IM,'Kế 
           <tr><th rowspan="2">Loại NVL</th><th rowspan="2" class="num" style="text-align:center">Sản lượng SD dự kiến<br>(tấn/tuần)</th>
             <th colspan="3" style="text-align:center">${INV_CUR_WEEK.label}<br><span class="wf-muted" style="font-weight:400;font-size:10px">(${INV_CUR_WEEK.month})</span></th>
             ${INV_NEXT_WEEKS.map(w=>`<th rowspan="2" class="num">${w.label}<br><span class="wf-muted" style="font-weight:400;font-size:10px">(${w.month})</span></th>`).join('')}</tr>
-          <tr><th class="num">Tồn đầu kỳ</th><th class="num">Hàng đang về</th><th class="num">Tồn khả dụng</th></tr>
+          <tr><th class="num">Tồn đầu kỳ</th><th class="num">ETA</th><th class="num">Tồn khả dụng</th></tr>
         </thead>
         <tbody>${invMatrixRows()}</tbody></table></div>`)}
  </div>`;
