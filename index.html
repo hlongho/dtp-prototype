@@ -2097,7 +2097,7 @@ const NCC_LOGIS_MASTER={
 let LOGIS_DETAILS=[];
 function ldNum(id){ const el=document.getElementById(id); return el?(+el.value||0):0; }
 function ldCurSel(id,cls,extraOn){ return `<select id="${id}" class="mass-sel ${cls||''}" onchange="${extraOn||'recalcLogisDetail()'}"><option value="USD">USD</option><option value="VNĐ">VNĐ</option></select>`; }
-function ldUnitSel(id,sel){ return `<select id="${id}" class="mass-sel"><option value="Cont"${sel==='Cont'?' selected':''}>Cont</option><option value="Lô hàng"${sel==='Lô hàng'?' selected':''}>Lô hàng</option></select>`; }
+function ldUnitSel(id,sel){ return `<select id="${id}" class="mass-sel" onchange="recalcLogisDetail()"><option value="Cont"${sel==='Cont'?' selected':''}>Cont</option><option value="Lô hàng"${sel==='Lô hàng'?' selected':''}>Lô hàng</option></select>`; }
 function ldExRate(){ return ldNum('ld-exrate')||LOGIS_EXRATE_DEFAULT; }
 function ldContQty(){ return ldNum('ld-contqty')||1; }
 function ldValUSD(amtId,curId,unitId){
