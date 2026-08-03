@@ -2423,15 +2423,27 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
    </div>
  </div>`;
 
-/* ===== Cảnh báo tồn kho + hàng đi đường (1 bảng: OCC theo hàng dọc, tháng theo hàng ngang) ===== */
+/* ===== Cảnh báo tồn kho + hàng đi đường (1 bảng: NVL theo hàng dọc, tháng theo hàng ngang) ===== */
 const INV_CUR_MONTH='T7/2026';
 const INV_NEXT_MONTHS=['T8/2026','T9/2026','T10/2026','T11/2026'];
-// mỗi loại OCC: usage = sản lượng sử dụng dự kiến/tháng (tấn) · cur = [tồn đầu kỳ, hàng đang về] tháng hiện tại
+// mỗi loại NVL: usage = sản lượng sử dụng dự kiến/tháng (tấn) · cur = [tồn đầu kỳ, hàng đang về] tháng hiện tại
 const OCC_TYPES=[
-  {name:'Giấy OCC (US)',      usage:900, cur:[1240,800]},
-  {name:'Giấy OCC (EU)',      usage:500, cur:[1550,400]},
-  {name:'Giấy OCC (Japan)',   usage:300, cur:[980,200]},
-  {name:'Giấy OCC nội địa',   usage:400, cur:[1420,0]},
+  {name:'OCC',         usage:900, cur:[1240,800]},
+  {name:'JOCC',        usage:300, cur:[980,200]},
+  {name:'TETRAPAKBD',  usage:150, cur:[420,80]},
+  {name:'TETRAPAK',    usage:120, cur:[380,60]},
+  {name:'GIAYLE',      usage:200, cur:[560,0]},
+  {name:'OCCNOI',      usage:400, cur:[1420,0]},
+  {name:'SUACUON',     usage:90,  cur:[260,40]},
+  {name:'HWS',         usage:110, cur:[300,50]},
+  {name:'PLYA',        usage:70,  cur:[210,0]},
+  {name:'PLYB',        usage:60,  cur:[180,0]},
+  {name:'PULP',        usage:250, cur:[700,150]},
+  {name:'SWL',         usage:80,  cur:[240,30]},
+  {name:'PC',          usage:60,  cur:[190,0]},
+  {name:'WWT',         usage:100, cur:[320,20]},
+  {name:'PPMC',        usage:130, cur:[400,60]},
+  {name:'WBPT',        usage:90,  cur:[270,30]},
 ];
 function invMatrixRows(){
   let h=OCC_TYPES.map(t=>{
@@ -2446,21 +2458,21 @@ function invMatrixRows(){
   const sumOnsea=OCC_TYPES.reduce((s,t)=>s+t.cur[1],0);
   const sumAvail=sumTon+sumOnsea;
   const sumFuture=[1,2,3,4].map(x=>sumAvail-x*sumUsage);
-  h+=`<tr style="font-weight:700;background:var(--bg)"><td>Tổng OCC</td><td class="num" style="text-align:center">${sumUsage.toLocaleString('vi-VN')}</td>
+  h+=`<tr style="font-weight:700;background:var(--bg)"><td>Tổng NVL</td><td class="num" style="text-align:center">${sumUsage.toLocaleString('vi-VN')}</td>
     <td class="num">${sumTon.toLocaleString('vi-VN')}</td><td class="num">${sumOnsea.toLocaleString('vi-VN')}</td><td class="num">${sumAvail.toLocaleString('vi-VN')}</td>
     ${sumFuture.map(v=>`<td class="num"${v<0?' style="color:var(--err);font-weight:700"':''}>${v.toLocaleString('vi-VN')}</td>`).join('')}</tr>`;
   return h;
 }
 S.matinv = ()=> appnav('Mua nhập khẩu','Cảnh báo tồn kho',TAB_IM,'Kế hoạch NVL')
  + `<div class="sf-body">
-   ${hl({crumb:'Cảnh báo tồn kho + hàng đi đường',ico:'🌐',color:'#0b827c',title:'Tồn kho khả dụng NVL chính (Giấy OCC) — báo cáo theo tháng',sub:'Tồn kho + hàng đang về (Rosy) → Tồn khả dụng · cơ sở để BGĐ quyết định thời điểm ký hợp đồng nhập khẩu',
-     fields:[['Kỳ hiện tại',INV_CUR_MONTH],['Loại OCC theo dõi','4'],['Tồn hiện tại (tổng OCC)','5.190 tấn'],['Đang về','1.400 tấn'],['Tồn khả dụng','6.590 tấn']],
+   ${hl({crumb:'Cảnh báo tồn kho + hàng đi đường',ico:'🌐',color:'#0b827c',title:'Tồn kho khả dụng NVL chính — báo cáo theo tháng',sub:'Tồn kho + hàng đang về (Rosy) → Tồn khả dụng · cơ sở để BGĐ quyết định thời điểm ký hợp đồng nhập khẩu',
+     fields:[['Kỳ hiện tại',INV_CUR_MONTH],['Loại NVL theo dõi','16'],['Tồn hiện tại (tổng NVL)','8.070 tấn'],['Đang về','1.520 tấn'],['Tồn khả dụng','9.590 tấn']],
      actions:[{t:'Ký hợp đồng nhập khẩu',pri:true,fn:"go('imcontract_list')"},'Xuất báo cáo']})}
-   ${banner('warn','Giấy OCC (US) tồn khả dụng dự kiến <b>âm từ T10/2026</b> nếu không nhập thêm — BGĐ cân nhắc thời điểm chốt lô nhập OCC (US). Các loại OCC khác (EU, Japan, nội địa) hiện ổn định.')}
-   ${card('Tồn kho khả dụng theo tháng — theo loại giấy OCC',
+   ${banner('warn','OCC tồn khả dụng dự kiến <b>âm từ T10/2026</b> nếu không nhập thêm — BGĐ cân nhắc thời điểm chốt lô nhập OCC. Các loại NVL khác hiện ổn định.')}
+   ${card('Tồn kho khả dụng theo tháng — theo loại NVL',
      `<div class="tbl-wrap"><table class="tbl">
         <thead>
-          <tr><th rowspan="2">Loại giấy OCC</th><th rowspan="2" class="num" style="text-align:center">Sản lượng SD dự kiến<br>(tấn/tháng)</th>
+          <tr><th rowspan="2">Loại NVL</th><th rowspan="2" class="num" style="text-align:center">Sản lượng SD dự kiến<br>(tấn/tháng)</th>
             <th colspan="3" style="text-align:center">Tháng hiện tại (${INV_CUR_MONTH})</th>
             ${INV_NEXT_MONTHS.map(m=>`<th rowspan="2" class="num">${m}</th>`).join('')}</tr>
           <tr><th class="num">Tồn đầu kỳ</th><th class="num">Hàng đang về</th><th class="num">Tồn khả dụng</th></tr>
