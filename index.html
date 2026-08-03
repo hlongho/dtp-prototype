@@ -2128,25 +2128,25 @@ function logisDetailFormHTML(){
   const noidiaRows=LOGIS_FEE_NOIDIA.map(([name,unit],i)=>`<tr><td>${name}</td><td class="num"><input type="number" id="ld-noidia-${i}" class="mass-sel" placeholder="Giá" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel('ld-noidia-unit-'+i,unit)}</td></tr>`).join('');
   const dichvuRows=LOGIS_FEE_DICHVU.map(([name,unit],i)=>`<tr><td>${name}</td><td class="num"><input type="number" id="ld-dichvu-${i}" class="mass-sel" placeholder="Giá" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel('ld-dichvu-unit-'+i,unit)}</td></tr>`).join('');
   const hangtauRows=LOGIS_FEE_HANGTAU.map(([name,unit],i)=>`<tr><td>${name}</td><td class="num" id="ld-ht-base-${i}">—</td><td class="num"><input type="number" id="ld-ht-final-${i}" class="mass-sel" placeholder="Giá" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel('ld-ht-unit-'+i,unit)}</td></tr>`).join('');
-  return `<div class="ptf-item">
+  return `<div style="margin-bottom:14px">
        <div class="ptf-row" style="align-items:baseline">
          <div class="ptf-f" style="flex:1"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Số lượng Cont / lô hàng *</label><input type="number" id="ld-contqty" class="mass-sel" value="1" min="1" oninput="recalcLogisDetail()"></div>
          <div class="ptf-f" style="flex:1"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Tỷ giá quy đổi (1 USD = ? VNĐ)</label><input type="number" id="ld-exrate" class="mass-sel" value="${LOGIS_EXRATE_DEFAULT}" oninput="recalcLogisDetail()"></div>
        </div>
      </div>
-     <div class="ptf-item">
+     <div style="margin-bottom:14px">
        ${ldSectionHead('Phí nội địa','ld-noidia-cur')}
        <table class="tbl sm"><thead><tr><th>Tên phí</th><th class="num">Giá</th><th>Đơn vị tính</th></tr></thead><tbody>${noidiaRows}</tbody></table>
      </div>
-     <div class="ptf-item">
+     <div style="margin-bottom:14px">
        ${ldSectionHead('Phí Dịch vụ','ld-dichvu-cur')}
        <table class="tbl sm"><thead><tr><th>Tên phí</th><th class="num">Giá</th><th>Đơn vị tính</th></tr></thead><tbody>${dichvuRows}</tbody></table>
      </div>
-     <div class="ptf-item">
+     <div style="margin-bottom:14px">
        ${ldSectionHead('Phí Hãng tàu','ld-ht-cur',`<div style="flex:1.4;margin-right:10px"><label class="wf-muted" style="font-size:11px;display:block">Chọn NCC *</label><select id="ld-ncc" class="mass-sel" onchange="ldApplyNccPrices()">${nccNames.map(n=>`<option>${n}</option>`).join('')}</select></div>`)}
        <table class="tbl sm"><thead><tr><th>Tên phí</th><th class="num">Giá gốc (theo NCC)</th><th class="num">Final giá</th><th>Đơn vị tính</th></tr></thead><tbody>${hangtauRows}</tbody></table>
      </div>
-     <div class="ptf-item">
+     <div style="margin-bottom:14px">
        <div class="ptf-row" style="align-items:baseline">
          <div class="ptf-f" style="flex:2"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Dịch vụ thêm (nếu có)</label><input type="number" id="ld-extra" class="mass-sel" value="0" oninput="recalcLogisDetail()"></div>
          <div class="ptf-f" style="flex:.7"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Đơn vị tiền tệ</label>${ldCurSel('ld-extra-cur')}</div>
