@@ -2089,18 +2089,32 @@ const LOGIS_FEE_NOIDIA=['TRUCKING','HẠ CONT + CƠ SỞ HẠ TẦNG'];
 const LOGIS_FEE_DICHVU=['TTHQ','CHI PHÍ C/O','CHI PHÍ BẢO HIỂM'];
 const LOGIS_FEE_HANGTAU=['O/F','O/F Ocean Surcharges (Note 2)','Outbound Documentation Fee','TELEX','High Security Seal Charge','CIC','ISOCC/LSS','RR','BAF','AMS','PSS','Terminal Handling Charge at Origin'];
 const LOGIS_EXRATE=26000;
+const NCC_LOGIS_MASTER={
+  'ONE Line': {'O/F':850,'O/F Ocean Surcharges (Note 2)':50,'Outbound Documentation Fee':35,'TELEX':30,'High Security Seal Charge':15,'CIC':80,'ISOCC/LSS':40,'RR':20,'BAF':60,'AMS':25,'PSS':10,'Terminal Handling Charge at Origin':120},
+  'Maersk': {'O/F':880,'O/F Ocean Surcharges (Note 2)':55,'Outbound Documentation Fee':40,'TELEX':30,'High Security Seal Charge':15,'CIC':85,'ISOCC/LSS':45,'RR':20,'BAF':65,'AMS':25,'PSS':10,'Terminal Handling Charge at Origin':125},
+  'Evergreen': {'O/F':835,'O/F Ocean Surcharges (Note 2)':45,'Outbound Documentation Fee':35,'TELEX':30,'High Security Seal Charge':15,'CIC':75,'ISOCC/LSS':35,'RR':20,'BAF':55,'AMS':25,'PSS':10,'Terminal Handling Charge at Origin':115},
+};
 let LOGIS_DETAILS=[];
 function ldNum(id){ const el=document.getElementById(id); return el?(+el.value||0):0; }
-function ldSyncFinal(i){ const nccInp=document.getElementById('ld-ht-ncc-'+i), finalInp=document.getElementById('ld-ht-final-'+i); if(finalInp && finalInp.dataset.touched!=='1') finalInp.value=nccInp.value; }
+function ldApplyNccPrices(){
+  const ncc=document.getElementById('ld-ncc').value; const master=NCC_LOGIS_MASTER[ncc]||{};
+  LOGIS_FEE_HANGTAU.forEach((name,i)=>{
+    const base=master[name]||0;
+    const baseEl=document.getElementById('ld-ht-base-'+i); if(baseEl) baseEl.textContent=base?('$'+base.toLocaleString('en-US')):'—';
+    const finalEl=document.getElementById('ld-ht-final-'+i); if(finalEl) finalEl.value=base;
+  });
+  recalcLogisDetail();
+}
 function logisDetailFormHTML(){
+  const nccNames=Object.keys(NCC_LOGIS_MASTER);
   const noidiaRows=LOGIS_FEE_NOIDIA.map((name,i)=>`<div class="ptf-row" style="margin-bottom:6px"><div class="ptf-f" style="flex:2">${name}</div><div class="ptf-f" style="flex:1"><input type="number" id="ld-noidia-${i}" class="mass-sel" placeholder="USD/CONT" value="0" oninput="recalcLogisDetail()"></div></div>`).join('');
   const dichvuRows=LOGIS_FEE_DICHVU.map((name,i)=>`<div class="ptf-row" style="margin-bottom:6px"><div class="ptf-f" style="flex:2">${name}</div><div class="ptf-f" style="flex:1"><input type="number" id="ld-dichvu-${i}" class="mass-sel" placeholder="USD/CONT" value="0" oninput="recalcLogisDetail()"></div></div>`).join('');
-  const hangtauRows=`<div class="ptf-row" style="font-weight:600;font-size:11px;color:var(--txt-mut)"><div class="ptf-f" style="flex:2"></div><div class="ptf-f" style="flex:1">Chọn NCC</div><div class="ptf-f" style="flex:1">Final giá</div></div>`
+  const hangtauRows=`<div class="ptf-row" style="font-weight:600;font-size:11px;color:var(--txt-mut)"><div class="ptf-f" style="flex:2"></div><div class="ptf-f" style="flex:1">Giá gốc (theo NCC)</div><div class="ptf-f" style="flex:1">Final giá</div></div>`
     + LOGIS_FEE_HANGTAU.map((name,i)=>`<div class="ptf-row" style="margin-bottom:6px"><div class="ptf-f" style="flex:2">${name}</div>
-      <div class="ptf-f" style="flex:1"><input type="number" id="ld-ht-ncc-${i}" class="mass-sel" placeholder="USD" value="0" oninput="ldSyncFinal(${i});recalcLogisDetail()"></div>
-      <div class="ptf-f" style="flex:1"><input type="number" id="ld-ht-final-${i}" class="mass-sel" placeholder="USD" value="0" oninput="this.dataset.touched='1';recalcLogisDetail()"></div></div>`).join('');
-  return `<p class="po-hint">Xác định giá từng khoản phí thuộc 3 nhóm: Phí nội địa, Phí Dịch vụ, Phí Hãng tàu. Riêng Phí Hãng tàu: "Chọn NCC" là giá NCC báo, "Final giá" là giá sau khi deal lại (mặc định lấy theo giá NCC, có thể sửa).</p>
-     <div style="margin-bottom:10px"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Nhà cung cấp Logistics (NCC / Hãng tàu / FWD) *</label><input id="ld-ncc" class="mass-sel" placeholder="VD: ONE Line / Forwarder ABC"></div>
+      <div class="ptf-f" style="flex:1"><div class="ptf-dotlbl" id="ld-ht-base-${i}">—</div></div>
+      <div class="ptf-f" style="flex:1"><input type="number" id="ld-ht-final-${i}" class="mass-sel" placeholder="USD" value="0" oninput="recalcLogisDetail()"></div></div>`).join('');
+  return `<p class="po-hint">Xác định giá từng khoản phí thuộc 3 nhóm: Phí nội địa, Phí Dịch vụ, Phí Hãng tàu. Riêng Phí Hãng tàu: chọn NCC để lấy "Giá gốc" theo bảng giá của NCC đó; "Final giá" mặc định giống giá gốc và có thể điều chỉnh lại (deal riêng).</p>
+     <div style="margin-bottom:10px"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Chọn NCC (Hãng tàu / FWD) *</label><select id="ld-ncc" class="mass-sel" onchange="ldApplyNccPrices()">${nccNames.map(n=>`<option>${n}</option>`).join('')}</select></div>
      <div class="ptf-item"><div style="font-weight:600;margin-bottom:6px">Phí nội địa</div>${noidiaRows}</div>
      <div class="ptf-item"><div style="font-weight:600;margin-bottom:6px">Phí Dịch vụ</div>${dichvuRows}</div>
      <div class="ptf-item"><div style="font-weight:600;margin-bottom:6px">Phí Hãng tàu</div>${hangtauRows}</div>
@@ -2137,15 +2151,15 @@ function openLogisDetailModal(){
   document.getElementById('ld-body').innerHTML=logisDetailFormHTML();
   document.getElementById('ldback').classList.add('show');
   document.getElementById('ldmodal').classList.add('show');
-  recalcLogisDetail();
+  ldApplyNccPrices();
 }
 function closeLogisDetailModal(){ const b=document.getElementById('ldback'),m=document.getElementById('ldmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
 function confirmLogisDetail(){
-  const ncc=(document.getElementById('ld-ncc').value||'').trim();
-  if(!ncc){ toast('Nhập Nhà cung cấp Logistics'); document.getElementById('ld-ncc').focus(); return; }
+  const ncc=document.getElementById('ld-ncc').value;
+  const master=NCC_LOGIS_MASTER[ncc]||{};
   const noidia=LOGIS_FEE_NOIDIA.map((name,i)=>({name,value:ldNum('ld-noidia-'+i)}));
   const dichvu=LOGIS_FEE_DICHVU.map((name,i)=>({name,value:ldNum('ld-dichvu-'+i)}));
-  const hangtau=LOGIS_FEE_HANGTAU.map((name,i)=>({name,ncc:ldNum('ld-ht-ncc-'+i),final:ldNum('ld-ht-final-'+i)}));
+  const hangtau=LOGIS_FEE_HANGTAU.map((name,i)=>({name,base:master[name]||0,final:ldNum('ld-ht-final-'+i)}));
   const extra=ldNum('ld-extra');
   const noidiaTotal=noidia.reduce((s,x)=>s+x.value,0);
   const tthq=dichvu[0].value, co=dichvu[1].value, baohiem=dichvu[2].value;
