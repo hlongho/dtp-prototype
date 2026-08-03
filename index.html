@@ -2143,7 +2143,7 @@ function logisDetailFormHTML(){
        <table class="tbl sm"><thead><tr><th>Tên phí</th><th class="num">Giá</th><th>Đơn vị tính</th></tr></thead><tbody>${dichvuRows}</tbody></table>
      </div>
      <div style="margin-bottom:14px">
-       ${ldSectionHead('Phí Hãng tàu','ld-ht-cur',`<div style="flex:1.4;margin-right:10px"><label class="wf-muted" style="font-size:11px;display:block">Chọn NCC *</label><select id="ld-ncc" class="mass-sel" onchange="ldApplyNccPrices()">${nccNames.map(n=>`<option>${n}</option>`).join('')}</select></div>`)}
+       ${ldSectionHead('Phí Hãng tàu','ld-ht-cur',`<div style="width:160px;margin-right:10px"><select id="ld-ncc" class="mass-sel" onchange="ldApplyNccPrices()">${nccNames.map(n=>`<option>${n}</option>`).join('')}</select></div>`)}
        <table class="tbl sm"><thead><tr><th>Tên phí</th><th class="num">Giá gốc (theo NCC)</th><th class="num">Final giá</th><th>Đơn vị tính</th></tr></thead><tbody>${hangtauRows}</tbody></table>
      </div>
      <div class="ptf-item" style="background:var(--bg)">
