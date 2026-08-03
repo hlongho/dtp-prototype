@@ -1962,7 +1962,11 @@ function confirmClaimFee(){
   closeClaimFeeModal(); renderClaimFees();
   toast('Đã cập nhật '+CLAIM_FEES.size+' khoản phí khiếu nại');
 }
-function claimFeeRows(){ return SHIPFEES.filter(f=>CLAIM_FEES.has(f.type)).map(f=>`<tr><td>${f.type}</td><td>${f.stage}</td><td class="num">${feeAmt(f)}</td><td>${f.reason||'—'}</td></tr>`).join(''); }
+function claimFeeRows(){ return SHIPFEES.filter(f=>CLAIM_FEES.has(f.type)).map(f=>`<tr><td>${f.type}</td><td>${f.stage}</td>
+  <td class="num">${feeAmt(f)}</td><td class="num">${feeAmtUSD(f)}</td>
+  <td>${f.reason||'—'}</td>
+  <td>${f.compReason||'—'}</td><td>${f.compParty||'—'}</td>
+  <td class="num">${moneyOrDash(f.compAmount)}</td><td class="num">${usdOrDash(f.compAmount)}</td></tr>`).join(''); }
 function claimFeeTotal(){ return SHIPFEES.filter(f=>CLAIM_FEES.has(f.type)&&f.cur==='VNĐ').reduce((a,f)=>a+f.amount,0); }
 function renderClaimFees(){
   const tb=document.getElementById('claimfee-tbody'); if(tb) tb.innerHTML=claimFeeRows();
@@ -2785,7 +2789,7 @@ S.case_im = ()=> appnav('Chăm sóc KH','Case',['Trang chủ','Case','Khách hà
        ['Loại sự vụ','Phí Local Charge phát sinh ngoài dự kiến'],['Hãng tàu / Cảng','ONE / Cát Lái'],
        ['Mô tả','Phát sinh phí lưu bãi (DEM) và gia hạn lệnh do thủ tục hải quan chậm — làm việc với Hãng tàu để miễn/giảm phí.']]))}
      ${card('Chi phí khiếu nại',
-       `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tên loại phí</th><th>Giai đoạn phí</th><th class="num">Số tiền</th><th>Lý do phát sinh</th></tr></thead>
+       `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tên loại phí</th><th>Giai đoạn phí</th><th class="num">Số tiền (VNĐ)</th><th class="num">Số tiền (USD)</th><th>Lý do phát sinh</th><th>Lý do bồi thường</th><th>Đối tượng bồi thường</th><th class="num">Số tiền bồi thường (VNĐ)</th><th class="num">Số tiền bồi thường (USD)</th></tr></thead>
         <tbody id="claimfee-tbody">${claimFeeRows()}</tbody></table></div>`,
        {n:String(CLAIM_FEES.size)})}
      </div>
