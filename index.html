@@ -678,13 +678,6 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     <div class="pm-body" id="claimfee-body"></div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeClaimFeeModal()">Hủy</button><button class="btn pri" onclick="confirmClaimFee()">Lưu</button></div></div>
   </div>
-  <!-- Modal thêm báo giá Logistics (Báo giá XK) -->
-  <div class="modal-back" id="lqback" onclick="closeLogisModal()" style="z-index:135"></div>
-  <div class="po-modal" id="lqmodal" style="z-index:140;width:min(640px,94vw)">
-    <div class="pm-head"><h3>Thêm báo giá Logistics</h3><button title="Đóng" onclick="closeLogisModal()">✕</button></div>
-    <div class="pm-body" id="lq-body"></div>
-    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeLogisModal()">Hủy</button><button class="btn pri" onclick="confirmLogis()">Lưu báo giá</button></div></div>
-  </div>
   <!-- Modal tạo báo giá Logistics chi tiết (Phí nội địa / Dịch vụ / Hãng tàu) -->
   <div class="modal-back" id="ldback" onclick="closeLogisDetailModal()" style="z-index:135"></div>
   <div class="po-modal" id="ldmodal" style="z-index:140;width:min(860px,96vw);max-height:88vh;overflow:auto">
@@ -1506,7 +1499,7 @@ S.exquote = ()=> appnav('Bán hàng xuất khẩu','Báo giá XK',['Trang chủ'
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="exquote_list">Báo giá xuất khẩu</span> &rsaquo;',ico:'🚢',color:'#1b96ff',title:'QXK-0182 · White Top (WTN) → Macrolite (Philippines)',sub:'USD/MT · POL Cát Lái → POD Cagayan De Oro',
      fields:[['Giá CFR','$680–690/MT'],['Trạng thái',pill('info','Nháp')],['Cảng đến (POD)','Cagayan De Oro'],['Hiệu lực','25/07/2026']],
-     actions:[{t:'Gửi khách',pri:true},'Tính lại giá','Sửa']})}
+     actions:[{t:'Gửi khách',pri:true},{t:'Thêm báo giá Logistics',fn:'openLogisDetailModal()'},'Tính lại giá','Sửa']})}
    <div class="cols-side act-tab">
      <div>
      ${card('Bảng báo giá (USD/MT)', tbl([{t:'Sản phẩm'},{t:'Định lượng (gsm)'},{t:'Khổ (mm)'},{t:'Cảng (POD)'},{t:'EXW',num:true},{t:'FOB',num:true},{t:'CFR',num:true}],[
@@ -1516,8 +1509,7 @@ S.exquote = ()=> appnav('Bán hàng xuất khẩu','Báo giá XK',['Trang chủ'
        ['White Top (WTN)','125–135','1.400–2.350','North Manila','$600','$630','$680'],
        ['White Top (WTN)','140–155','1.400–2.350','North Manila','$595','$625','$675'],
        ['White Top (WTN)','160–175','1.400–2.350','North Manila','$590','$620','$670']]),{n:'6'})}
-     ${card('Báo giá Logistics', `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Hãng tàu / FWD</th><th>Tuyến (POL → POD)</th><th>Loại cont</th><th class="num">Ocean Freight</th><th>Phụ phí</th><th>Hiệu lực</th></tr></thead><tbody id="lq-tbody">${logisRows()}</tbody></table></div>`,{n:String(LOGIS_QUOTES.length),r:'<button class="btn sm" onclick="openLogisModal()">＋ Thêm báo giá logistics</button>'})}
-     ${card('Chi tiết chi phí Logistics', `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>NCC / Hãng tàu</th><th class="num">FOB (USD/cont)</th><th class="num">CIF (USD/cont)</th><th class="num">CIF (VNĐ/cont)</th><th>Ngày tạo</th></tr></thead><tbody id="ld-tbody">${logisDetailRows()}</tbody></table></div>`,{n:String(LOGIS_DETAILS.length),r:'<button class="btn sm" onclick="openLogisDetailModal()">＋ Tạo báo giá Logistics</button>'})}
+     ${card('Báo giá Logistics', `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>NCC / Hãng tàu</th><th class="num">FOB (USD/cont)</th><th class="num">CIF (USD/cont)</th><th class="num">CIF (VNĐ/cont)</th><th>Ngày tạo</th></tr></thead><tbody id="ld-tbody">${logisDetailRows()}</tbody></table></div>`,{n:String(LOGIS_DETAILS.length)})}
      ${card('Điều khoản thương mại (Trading Terms)', fg([['POL (cảng đi)','Cát Lái, Việt Nam'],['POD (cảng đến)','Cagayan De Oro, Philippines'],
        ['Giá CFR bao gồm','CIC included · Free time 14 ngày (combine)'],['Đơn vị / Tiền tệ','USD / MT (tấn)'],
        ['Thời gian giao','Trong 30 ngày kể từ ngày đặt cọc'],['Đóng gói','Tiêu chuẩn xuất khẩu đường biển'],
@@ -2049,41 +2041,6 @@ function confirmFee(){
   renderShipFees(); closeFeeModal(); toast('Đã thêm phí: '+type+' · '+feeAmt({amount,cur}));
 }
 /* --- Báo giá Logistics (trên record Báo giá xuất khẩu) --- */
-let LOGIS_QUOTES=[
-  {fwd:'ONE', route:'Cát Lái → Cagayan De Oro', cont:"40' HC", freight:850, cur:'USD', sur:'inc CIC, LSS', valid:'15/08/2026'},
-  {fwd:'Evergreen', route:'Cát Lái → Cagayan De Oro', cont:"40' HC", freight:835, cur:'USD', sur:'inc LSS', valid:'18/08/2026'},
-  {fwd:'Maersk', route:'Cát Lái → Cagayan De Oro', cont:"40' HC", freight:880, cur:'USD', sur:'inc CIC', valid:'20/08/2026'},
-];
-function logisAmt(f){ return f.cur==='USD' ? ('$'+f.freight.toLocaleString('en-US')) : fmtMoney(f.freight); }
-function logisRows(){
-  return LOGIS_QUOTES.map(f=>`<tr><td>${f.fwd}</td><td>${f.route}</td><td>${f.cont}</td><td class="num">${logisAmt(f)}</td><td>${f.sur||'—'}</td><td>${f.valid||'—'}</td></tr>`).join('');
-}
-function renderLogis(){ const tb=document.getElementById('lq-tbody'); if(tb) tb.innerHTML=logisRows(); const n=document.getElementById('lq-count'); if(n) n.textContent=LOGIS_QUOTES.length; }
-function openLogisModal(){
-  const sel=(id,opts)=>`<select id="${id}" class="mass-sel">${opts.map(o=>`<option>${o}</option>`).join('')}</select>`;
-  const lb=t=>`<label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">${t}</label>`;
-  document.getElementById('lq-body').innerHTML=
-    `<p class="po-hint">Báo giá cước Logistics từ Hãng tàu / Forwarder — dùng để chốt giá FOB/CFR/CIF cho báo giá xuất khẩu. Cước biển thường tính bằng <b>USD/cont</b>.</p>
-     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-       <div>${lb('Hãng tàu / Forwarder *')}${sel('lq-fwd',['ONE','Maersk','Evergreen','JAS','Cosco','Hãng khác'])}</div>
-       <div>${lb('Tuyến (POL → POD) *')}${sel('lq-route',['Cát Lái → Cagayan De Oro','Cát Lái → North Manila','Cát Lái → Nhava Sheva','Cát Lái → Port Klang','Cát Lái → Bangkok'])}</div>
-       <div>${lb('Loại container *')}${sel('lq-cont',["40' HC","20' DC","40' DC"])}</div>
-       <div>${lb('Ocean Freight *')}<input id="lq-freight" class="mass-sel" type="number" placeholder="VD: 850"></div>
-       <div>${lb('Tiền tệ *')}${sel('lq-cur',['USD','VNĐ'])}</div>
-       <div>${lb('Hiệu lực đến')}<input id="lq-valid" class="mass-sel" type="date"></div>
-     </div>
-     <div style="margin-top:10px">${lb('Phụ phí bao gồm (CIC / LSS / THC…)')}<input id="lq-sur" class="mass-sel" placeholder="VD: inc CIC, LSS"></div>`;
-  document.getElementById('lqback').classList.add('show');
-  document.getElementById('lqmodal').classList.add('show');
-}
-function closeLogisModal(){ const b=document.getElementById('lqback'),m=document.getElementById('lqmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
-function confirmLogis(){
-  const freight=parseNum(document.getElementById('lq-freight').value);
-  if(!freight){ toast('Nhập Ocean Freight'); return; }
-  const v=document.getElementById('lq-valid').value; const valid=v?v.split('-').reverse().join('/'):'';
-  LOGIS_QUOTES.push({fwd:document.getElementById('lq-fwd').value,route:document.getElementById('lq-route').value,cont:document.getElementById('lq-cont').value,freight,cur:document.getElementById('lq-cur').value,sur:(document.getElementById('lq-sur').value||'').trim(),valid});
-  renderLogis(); closeLogisModal(); toast('Đã thêm báo giá Logistics: '+document.getElementById('lq-fwd')?.value);
-}
 /* --- Tạo báo giá Logistics chi tiết (Phí nội địa / Phí Dịch vụ / Phí Hãng tàu) --- */
 const LOGIS_FEE_NOIDIA=[['TRUCKING','Cont'],['HẠ CONT + CƠ SỞ HẠ TẦNG','Cont']];
 const LOGIS_FEE_DICHVU=[['TTHQ','Lô hàng'],['CHI PHÍ C/O','Lô hàng'],['CHI PHÍ BẢO HIỂM','Lô hàng']];
