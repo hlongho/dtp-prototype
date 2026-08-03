@@ -1956,24 +1956,12 @@ function claimFeeModalRows(){
       return `<tr>${identity}
         <td><input class="mass-sel compline-reason" data-type="${esc}" data-idx="${idx}" value="${(line.reason||'').replace(/"/g,'&quot;')}" placeholder="Lý do bồi thường" style="width:180px"></td>
         <td><select class="mass-sel compline-party" data-type="${esc}" data-idx="${idx}">${claimLinePartyOpt(line.party)}</select></td>
-        <td class="num"><input type="number" class="compline-amt mass-sel" data-type="${esc}" data-idx="${idx}" value="${line.amount||0}" style="width:100px;text-align:right" oninput="onCompAmtInput(this,'vnd')"></td>
-        <td class="num"><input type="number" class="compline-amt-usd mass-sel" data-type="${esc}" data-idx="${idx}" value="${line.amountUSD||(line.amount?Math.round(line.amount/CLAIM_EXRATE):0)}" style="width:90px;text-align:right" oninput="onCompAmtInput(this,'usd')"></td>
+        <td class="num"><input type="number" class="compline-amt mass-sel" data-type="${esc}" data-idx="${idx}" value="${line.amount||0}" style="width:100px;text-align:right"></td>
+        <td class="num"><input type="number" class="compline-amt-usd mass-sel" data-type="${esc}" data-idx="${idx}" value="${line.amountUSD||(line.amount?Math.round(line.amount/CLAIM_EXRATE):0)}" style="width:90px;text-align:right"></td>
         <td style="white-space:nowrap">${actions}</td>
       </tr>`;
     }).join('');
   }).join('');
-}
-function onCompAmtInput(inp,kind){
-  const tr=inp.closest('tr'); if(!tr) return;
-  const vndInp=tr.querySelector('.compline-amt'), usdInp=tr.querySelector('.compline-amt-usd');
-  const v=+inp.value||0;
-  if(kind==='vnd'){
-    const otherVal=+usdInp.value||0;
-    if(!otherVal) usdInp.value = v ? Math.round(v/CLAIM_EXRATE) : 0;
-  } else {
-    const otherVal=+vndInp.value||0;
-    if(!otherVal) vndInp.value = v ? Math.round(v*CLAIM_EXRATE) : 0;
-  }
 }
 function claimFeeModalBodyHTML(){
   return `<p class="po-hint">Chọn các khoản phí (Shipment Fee) của Shipment SHP-041 để đưa vào hồ sơ khiếu nại này — có thể bỏ chọn hoặc chọn thêm. Dùng "Tách dòng" khi Hãng tàu và NCC có lý do/số tiền bồi thường khác nhau cho cùng 1 khoản phí.</p>
