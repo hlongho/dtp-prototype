@@ -685,6 +685,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     <div class="pm-body" id="lq-body"></div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeLogisModal()">Hủy</button><button class="btn pri" onclick="confirmLogis()">Lưu báo giá</button></div></div>
   </div>
+  <!-- Modal tạo báo giá Logistics chi tiết (Phí nội địa / Dịch vụ / Hãng tàu) -->
+  <div class="modal-back" id="ldback" onclick="closeLogisDetailModal()" style="z-index:135"></div>
+  <div class="po-modal" id="ldmodal" style="z-index:140;width:min(760px,96vw);max-height:88vh;overflow:auto">
+    <div class="pm-head"><h3>Tạo báo giá Logistics</h3><button title="Đóng" onclick="closeLogisDetailModal()">✕</button></div>
+    <div class="pm-body" id="ld-body"></div>
+    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeLogisDetailModal()">Hủy</button><button class="btn pri" onclick="confirmLogisDetail()">Lưu báo giá</button></div></div>
+  </div>
   <!-- Modal form động: tạo Payment Term (từ Sales Contract NK) -->
   <div class="modal-back" id="ptfback" onclick="closePtermForm()" style="z-index:135"></div>
   <div class="po-modal" id="ptfmodal" style="z-index:140;width:min(760px,95vw)">
@@ -1510,6 +1517,7 @@ S.exquote = ()=> appnav('Bán hàng xuất khẩu','Báo giá XK',['Trang chủ'
        ['White Top (WTN)','140–155','1.400–2.350','North Manila','$595','$625','$675'],
        ['White Top (WTN)','160–175','1.400–2.350','North Manila','$590','$620','$670']]),{n:'6'})}
      ${card('Báo giá Logistics', `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Hãng tàu / FWD</th><th>Tuyến (POL → POD)</th><th>Loại cont</th><th class="num">Ocean Freight</th><th>Phụ phí</th><th>Hiệu lực</th></tr></thead><tbody id="lq-tbody">${logisRows()}</tbody></table></div>`,{n:String(LOGIS_QUOTES.length),r:'<button class="btn sm" onclick="openLogisModal()">＋ Thêm báo giá logistics</button>'})}
+     ${card('Chi tiết chi phí Logistics', `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>NCC / Hãng tàu</th><th class="num">FOB (USD/cont)</th><th class="num">CIF (USD/cont)</th><th class="num">CIF (VNĐ/cont)</th><th>Ngày tạo</th></tr></thead><tbody id="ld-tbody">${logisDetailRows()}</tbody></table></div>`,{n:String(LOGIS_DETAILS.length),r:'<button class="btn sm" onclick="openLogisDetailModal()">＋ Tạo báo giá Logistics</button>'})}
      ${card('Điều khoản thương mại (Trading Terms)', fg([['POL (cảng đi)','Cát Lái, Việt Nam'],['POD (cảng đến)','Cagayan De Oro, Philippines'],
        ['Giá CFR bao gồm','CIC included · Free time 14 ngày (combine)'],['Đơn vị / Tiền tệ','USD / MT (tấn)'],
        ['Thời gian giao','Trong 30 ngày kể từ ngày đặt cọc'],['Đóng gói','Tiêu chuẩn xuất khẩu đường biển'],
@@ -2076,6 +2084,83 @@ function confirmLogis(){
   LOGIS_QUOTES.push({fwd:document.getElementById('lq-fwd').value,route:document.getElementById('lq-route').value,cont:document.getElementById('lq-cont').value,freight,cur:document.getElementById('lq-cur').value,sur:(document.getElementById('lq-sur').value||'').trim(),valid});
   renderLogis(); closeLogisModal(); toast('Đã thêm báo giá Logistics: '+document.getElementById('lq-fwd')?.value);
 }
+/* --- Tạo báo giá Logistics chi tiết (Phí nội địa / Phí Dịch vụ / Phí Hãng tàu) --- */
+const LOGIS_FEE_NOIDIA=['TRUCKING','HẠ CONT + CƠ SỞ HẠ TẦNG'];
+const LOGIS_FEE_DICHVU=['TTHQ','CHI PHÍ C/O','CHI PHÍ BẢO HIỂM'];
+const LOGIS_FEE_HANGTAU=['O/F','O/F Ocean Surcharges (Note 2)','Outbound Documentation Fee','TELEX','High Security Seal Charge','CIC','ISOCC/LSS','RR','BAF','AMS','PSS','Terminal Handling Charge at Origin'];
+const LOGIS_EXRATE=26000;
+let LOGIS_DETAILS=[];
+function ldNum(id){ const el=document.getElementById(id); return el?(+el.value||0):0; }
+function ldSyncFinal(i){ const nccInp=document.getElementById('ld-ht-ncc-'+i), finalInp=document.getElementById('ld-ht-final-'+i); if(finalInp && finalInp.dataset.touched!=='1') finalInp.value=nccInp.value; }
+function logisDetailFormHTML(){
+  const noidiaRows=LOGIS_FEE_NOIDIA.map((name,i)=>`<div class="ptf-row" style="margin-bottom:6px"><div class="ptf-f" style="flex:2">${name}</div><div class="ptf-f" style="flex:1"><input type="number" id="ld-noidia-${i}" class="mass-sel" placeholder="USD/CONT" value="0" oninput="recalcLogisDetail()"></div></div>`).join('');
+  const dichvuRows=LOGIS_FEE_DICHVU.map((name,i)=>`<div class="ptf-row" style="margin-bottom:6px"><div class="ptf-f" style="flex:2">${name}</div><div class="ptf-f" style="flex:1"><input type="number" id="ld-dichvu-${i}" class="mass-sel" placeholder="USD/CONT" value="0" oninput="recalcLogisDetail()"></div></div>`).join('');
+  const hangtauRows=`<div class="ptf-row" style="font-weight:600;font-size:11px;color:var(--txt-mut)"><div class="ptf-f" style="flex:2"></div><div class="ptf-f" style="flex:1">Chọn NCC</div><div class="ptf-f" style="flex:1">Final giá</div></div>`
+    + LOGIS_FEE_HANGTAU.map((name,i)=>`<div class="ptf-row" style="margin-bottom:6px"><div class="ptf-f" style="flex:2">${name}</div>
+      <div class="ptf-f" style="flex:1"><input type="number" id="ld-ht-ncc-${i}" class="mass-sel" placeholder="USD" value="0" oninput="ldSyncFinal(${i});recalcLogisDetail()"></div>
+      <div class="ptf-f" style="flex:1"><input type="number" id="ld-ht-final-${i}" class="mass-sel" placeholder="USD" value="0" oninput="this.dataset.touched='1';recalcLogisDetail()"></div></div>`).join('');
+  return `<p class="po-hint">Xác định giá từng khoản phí thuộc 3 nhóm: Phí nội địa, Phí Dịch vụ, Phí Hãng tàu. Riêng Phí Hãng tàu: "Chọn NCC" là giá NCC báo, "Final giá" là giá sau khi deal lại (mặc định lấy theo giá NCC, có thể sửa).</p>
+     <div style="margin-bottom:10px"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Nhà cung cấp Logistics (NCC / Hãng tàu / FWD) *</label><input id="ld-ncc" class="mass-sel" placeholder="VD: ONE Line / Forwarder ABC"></div>
+     <div class="ptf-item"><div style="font-weight:600;margin-bottom:6px">Phí nội địa</div>${noidiaRows}</div>
+     <div class="ptf-item"><div style="font-weight:600;margin-bottom:6px">Phí Dịch vụ</div>${dichvuRows}</div>
+     <div class="ptf-item"><div style="font-weight:600;margin-bottom:6px">Phí Hãng tàu</div>${hangtauRows}</div>
+     <div style="margin:10px 0"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Dịch vụ thêm (nếu có, USD/CONT)</label><input type="number" id="ld-extra" class="mass-sel" value="0" oninput="recalcLogisDetail()"></div>
+     <div class="ptf-item" style="background:var(--bg)">
+       <div style="font-weight:600;margin-bottom:6px">Tổng chi phí</div>
+       <table class="tbl sm"><tbody>
+         <tr><td>Tổng chi phí EWS (USD/CONT)</td><td class="num" id="ld-tot-ews">0</td><td class="wf-muted" style="font-size:11px">(Thêm dịch vụ gì thì tính thêm phí)</td></tr>
+         <tr><td>VND/CONT</td><td class="num" id="ld-tot-ews-vnd">0 ₫</td><td></td></tr>
+         <tr><td>Tổng chi phí FOB (USD/CONT)</td><td class="num" id="ld-tot-fob">0</td><td class="wf-muted" style="font-size:11px">(Có C/O)</td></tr>
+         <tr><td>VND/CONT</td><td class="num" id="ld-tot-fob-vnd">0 ₫</td><td></td></tr>
+         <tr><td>Tổng chi phí CIF (USD/CONT)</td><td class="num" id="ld-tot-cif">0</td><td></td></tr>
+         <tr><td>VND/CONT</td><td class="num" id="ld-tot-cif-vnd">0 ₫</td><td></td></tr>
+       </tbody></table>
+     </div>`;
+}
+function recalcLogisDetail(){
+  const noidiaTotal=LOGIS_FEE_NOIDIA.reduce((s,_,i)=>s+ldNum('ld-noidia-'+i),0);
+  const tthq=ldNum('ld-dichvu-0'), co=ldNum('ld-dichvu-1'), baohiem=ldNum('ld-dichvu-2');
+  const hangtauTotal=LOGIS_FEE_HANGTAU.reduce((s,_,i)=>s+ldNum('ld-ht-final-'+i),0);
+  const extra=ldNum('ld-extra');
+  const ews=extra;
+  const fob=noidiaTotal+tthq+co;
+  const cif=fob+baohiem+hangtauTotal;
+  const setText=(id,txt)=>{const e=document.getElementById(id); if(e) e.textContent=txt;};
+  setText('ld-tot-ews', ews.toLocaleString('en-US'));
+  setText('ld-tot-ews-vnd', fmtMoney(Math.round(ews*LOGIS_EXRATE)));
+  setText('ld-tot-fob', fob.toLocaleString('en-US'));
+  setText('ld-tot-fob-vnd', fmtMoney(Math.round(fob*LOGIS_EXRATE)));
+  setText('ld-tot-cif', cif.toLocaleString('en-US'));
+  setText('ld-tot-cif-vnd', fmtMoney(Math.round(cif*LOGIS_EXRATE)));
+}
+function openLogisDetailModal(){
+  document.getElementById('ld-body').innerHTML=logisDetailFormHTML();
+  document.getElementById('ldback').classList.add('show');
+  document.getElementById('ldmodal').classList.add('show');
+  recalcLogisDetail();
+}
+function closeLogisDetailModal(){ const b=document.getElementById('ldback'),m=document.getElementById('ldmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
+function confirmLogisDetail(){
+  const ncc=(document.getElementById('ld-ncc').value||'').trim();
+  if(!ncc){ toast('Nhập Nhà cung cấp Logistics'); document.getElementById('ld-ncc').focus(); return; }
+  const noidia=LOGIS_FEE_NOIDIA.map((name,i)=>({name,value:ldNum('ld-noidia-'+i)}));
+  const dichvu=LOGIS_FEE_DICHVU.map((name,i)=>({name,value:ldNum('ld-dichvu-'+i)}));
+  const hangtau=LOGIS_FEE_HANGTAU.map((name,i)=>({name,ncc:ldNum('ld-ht-ncc-'+i),final:ldNum('ld-ht-final-'+i)}));
+  const extra=ldNum('ld-extra');
+  const noidiaTotal=noidia.reduce((s,x)=>s+x.value,0);
+  const tthq=dichvu[0].value, co=dichvu[1].value, baohiem=dichvu[2].value;
+  const hangtauTotal=hangtau.reduce((s,x)=>s+x.final,0);
+  const fob=noidiaTotal+tthq+co;
+  const cif=fob+baohiem+hangtauTotal;
+  const ews=extra;
+  LOGIS_DETAILS.unshift({ncc,noidia,dichvu,hangtau,extra,fob,cif,ews,createdAt:'Hôm nay'});
+  closeLogisDetailModal(); renderLogisDetails();
+  toast('✓ Đã lưu báo giá Logistics chi tiết · NCC '+ncc+' · FOB $'+fob.toLocaleString('en-US')+'/cont · CIF $'+cif.toLocaleString('en-US')+'/cont');
+}
+function logisDetailRows(){
+  return LOGIS_DETAILS.map(q=>`<tr><td>${q.ncc}</td><td class="num">$${q.fob.toLocaleString('en-US')}</td><td class="num">$${q.cif.toLocaleString('en-US')}</td><td class="num">${fmtMoney(Math.round(q.cif*LOGIS_EXRATE))}</td><td>${q.createdAt}</td></tr>`).join('');
+}
+function renderLogisDetails(){ const tb=document.getElementById('ld-tbody'); if(tb) tb.innerHTML=logisDetailRows(); const n=document.getElementById('ld-count'); if(n) n.textContent=LOGIS_DETAILS.length; }
 /* --- Form động: tạo Payment Term từ Sales Contract NK --- */
 const PTF_MOC=['Ngày ký hợp đồng','Ngày cần hàng','Ngày hóa đơn','Ngày giao hàng','Ngày hàng SX xong','Ngày nghiệm thu'];
 const PTF_SC_VALUE=4280000000; // giá trị Sales Contract IC-2026-041 (VND) — dùng tính số tiền từ %
