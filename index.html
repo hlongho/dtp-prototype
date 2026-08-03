@@ -1951,8 +1951,7 @@ function claimFeeModalRows(){
       const identity = idx===0 ? `
         <td rowspan="${n}"><input type="checkbox" class="claimfee-cb" data-type="${esc}" onchange="onClaimCbChange()" ${CLAIM_FEES.has(f.type)?'checked':''}></td>
         <td rowspan="${n}">${f.type}</td><td rowspan="${n}">${f.stage}</td>
-        <td rowspan="${n}" class="num">${feeAmt(f)}</td><td rowspan="${n}" class="num">${feeAmtUSD(f)}</td>
-        <td rowspan="${n}">${f.reason||'—'}</td>` : '';
+        <td rowspan="${n}" class="num">${feeAmt(f)}</td><td rowspan="${n}" class="num">${feeAmtUSD(f)}</td>` : '';
       const actions=(idx===n-1&&CLAIM_FEES.has(f.type))?`<button class="btn sm" onclick="addCompLine('${esc}')">＋ Tách dòng</button>`:'';
       return `<tr>${identity}
         <td><input class="mass-sel compline-reason" data-type="${esc}" data-idx="${idx}" value="${(line.reason||'').replace(/"/g,'&quot;')}" placeholder="Lý do bồi thường" style="width:180px"></td>
@@ -1967,7 +1966,7 @@ function claimFeeModalRows(){
 function updateCompLineUSD(inp){ const tr=inp.closest('tr'); const usdCell=tr&&tr.querySelector('.compline-usd'); if(usdCell) usdCell.textContent=usdOrDash(+inp.value||0); }
 function claimFeeModalBodyHTML(){
   return `<p class="po-hint">Chọn các khoản phí (Shipment Fee) của Shipment SHP-041 để đưa vào hồ sơ khiếu nại này — có thể bỏ chọn hoặc chọn thêm. Dùng "Tách dòng" khi Hãng tàu và NCC có lý do/số tiền bồi thường khác nhau cho cùng 1 khoản phí.</p>
-     <div class="tbl-wrap"><table class="tbl sm"><thead><tr><th style="width:2rem"></th><th>Tên loại phí</th><th>Giai đoạn phí</th><th class="num">Số tiền (VNĐ)</th><th class="num">Số tiền (USD)</th><th>Lý do phát sinh</th><th>Lý do bồi thường</th><th>Đối tượng bồi thường</th><th class="num">Số tiền bồi thường (VNĐ)</th><th class="num">Số tiền bồi thường (USD)</th><th></th></tr></thead>
+     <div class="tbl-wrap"><table class="tbl sm"><thead><tr><th style="width:2rem"></th><th>Tên loại phí</th><th>Giai đoạn phí</th><th class="num">Số tiền (VNĐ)</th><th class="num">Số tiền (USD)</th><th>Lý do bồi thường</th><th>Đối tượng bồi thường</th><th class="num">Số tiền bồi thường (VNĐ)</th><th class="num">Số tiền bồi thường (USD)</th><th></th></tr></thead>
      <tbody>${claimFeeModalRows()}</tbody></table></div>`;
 }
 function openClaimFeeModal(){
