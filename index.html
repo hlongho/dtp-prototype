@@ -2429,16 +2429,16 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
    Tồn cuối kỳ (tuần N)  = Tồn khả dụng (N) − Sản lượng SD dự kiến (N)
    Tồn đầu kỳ (tuần N+1) = Tồn cuối kỳ (tuần N) */
 // mỗi tuần gắn kèm tháng dương lịch chứa phần lớn số ngày của tuần đó, để người xem đối chiếu tuần ↔ tháng
-const INV_CUR_WEEK={label:'Tuần 32/2026',month:'T8/2026'};
+const INV_CUR_WEEK={label:'Tuần 1',month:'T8/2026'};
 const INV_NEXT_WEEKS=[
-  {label:'Tuần 33/2026',month:'T8/2026'},
-  {label:'Tuần 34/2026',month:'T8/2026'},
-  {label:'Tuần 35/2026',month:'T8/2026'},
-  {label:'Tuần 36/2026',month:'T9/2026'},
-  {label:'Tuần 37/2026',month:'T9/2026'},
-  {label:'Tuần 38/2026',month:'T9/2026'},
-  {label:'Tuần 39/2026',month:'T9/2026'},
-  {label:'Tuần 40/2026',month:'T10/2026'},
+  {label:'Tuần 2',month:'T8/2026'},
+  {label:'Tuần 3',month:'T8/2026'},
+  {label:'Tuần 4',month:'T8/2026'},
+  {label:'Tuần 1',month:'T9/2026'},
+  {label:'Tuần 2',month:'T9/2026'},
+  {label:'Tuần 3',month:'T9/2026'},
+  {label:'Tuần 4',month:'T9/2026'},
+  {label:'Tuần 1',month:'T10/2026'},
 ];
 // usage = sản lượng sử dụng dự kiến/THÁNG (tấn, số gốc) — quy đổi ra tuần = usage/4.33
 // tonDauKy = tồn đầu kỳ tuần hiện tại · incoming[i] = SL có ETA về đúng tuần thứ i (0 = tuần hiện tại, 1..8 = 8 tuần tới)
@@ -2507,7 +2507,7 @@ S.matinv = ()=> appnav('Mua nhập khẩu','Cảnh báo tồn kho',TAB_IM,'Kế 
    ${hl({crumb:'Cảnh báo tồn kho + hàng đi đường',ico:'🌐',color:'#0b827c',title:'Tồn kho khả dụng NVL chính — báo cáo theo tuần',sub:'Tồn đầu kỳ + Hàng về (theo ETA từng tuần, đồng bộ từ Rosy) − SL sử dụng dự kiến → Tồn cuối kỳ cuốn chiếu sang tuần sau',
      fields:(()=>{ const T=invTotals(); return [['Kỳ hiện tại',INV_CUR_WEEK.label+' ('+INV_CUR_WEEK.month+')'],['Loại NVL theo dõi','16'],['Tồn hiện tại (tổng NVL)',T.sumDauKy.toLocaleString('vi-VN')+' tấn'],['Đang về (tuần hiện tại)',T.sumHangVe0.toLocaleString('vi-VN')+' tấn'],['Tồn khả dụng (tuần hiện tại)',T.sumKhaDung0.toLocaleString('vi-VN')+' tấn']]; })(),
      actions:[{t:'Ký hợp đồng nhập khẩu',pri:true,fn:"go('imcontract_list')"},'Xuất báo cáo']})}
-   ${banner('warn','PLYB tồn khả dụng dự kiến <b>âm từ Tuần 37/2026</b> nếu không có lô hàng mới về — BGĐ cân nhắc đặt hàng bổ sung. Các loại NVL khác hiện ổn định.')}
+   ${banner('warn','PLYB tồn khả dụng dự kiến <b>âm từ Tuần 2/T9/2026</b> nếu không có lô hàng mới về — BGĐ cân nhắc đặt hàng bổ sung. Các loại NVL khác hiện ổn định.')}
    ${card('Tồn kho khả dụng theo tuần — theo loại NVL',
      `<div class="tbl-wrap"><table class="tbl">
         <thead>
