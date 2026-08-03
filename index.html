@@ -1885,7 +1885,7 @@ let SHIPFEES=[
     {party:'NCC',reason:'NCC chậm bổ sung chứng từ xuất xứ',amount:1920000}]},
 ];
 const FEE_PENALTY=['DEM (lưu bãi)','DET (lưu vỏ)','Phí lưu bãi','Gia hạn lệnh'];
-const CLAIM_EXRATE=25480;
+const CLAIM_EXRATE=26000;
 function fmtMoney(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,'.')+' ₫'; }
 function feeAmt(f){ return f.cur==='USD' ? ('$'+f.amount.toLocaleString('en-US')) : fmtMoney(f.amount); }
 function feeAmtUSD(f){ return f.cur==='USD' ? ('$'+f.amount.toLocaleString('en-US')) : ('$'+Math.round(f.amount/CLAIM_EXRATE).toLocaleString('en-US')); }
@@ -1949,11 +1949,11 @@ function claimFeeModalRows(){
     const n=lines.length;
     return lines.map((line,idx)=>{
       const identity = idx===0 ? `
-        <td rowspan="${n}"><input type="checkbox" class="claimfee-cb" data-type="${esc}" ${CLAIM_FEES.has(f.type)?'checked':''}></td>
+        <td rowspan="${n}"><input type="checkbox" class="claimfee-cb" data-type="${esc}" onchange="onClaimCbChange()" ${CLAIM_FEES.has(f.type)?'checked':''}></td>
         <td rowspan="${n}">${f.type}</td><td rowspan="${n}">${f.stage}</td>
         <td rowspan="${n}" class="num">${feeAmt(f)}</td><td rowspan="${n}" class="num">${feeAmtUSD(f)}</td>
         <td rowspan="${n}">${f.reason||'—'}</td>` : '';
-      const actions=`${n>1?`<button class="btn sm" title="Xoá dòng" onclick="removeCompLine('${esc}',${idx})">✕</button> `:''}${idx===n-1?`<button class="btn sm" onclick="addCompLine('${esc}')">＋ Tách dòng</button>`:''}`;
+      const actions=(idx===n-1&&CLAIM_FEES.has(f.type))?`<button class="btn sm" onclick="addCompLine('${esc}')">＋ Tách dòng</button>`:'';
       return `<tr>${identity}
         <td><input class="mass-sel compline-reason" data-type="${esc}" data-idx="${idx}" value="${(line.reason||'').replace(/"/g,'&quot;')}" placeholder="Lý do bồi thường" style="width:180px"></td>
         <td><select class="mass-sel compline-party" data-type="${esc}" data-idx="${idx}">${claimLinePartyOpt(line.party)}</select></td>
@@ -1985,7 +1985,7 @@ function syncClaimFeeModalPending(){
   document.querySelectorAll('.compline-amt').forEach(el=>{ const f=SHIPFEES.find(x=>x.type===el.dataset.type); if(f&&f.compLines&&f.compLines[+el.dataset.idx]) f.compLines[+el.dataset.idx].amount=+el.value||0; });
 }
 function addCompLine(type){ syncClaimFeeModalPending(); const f=SHIPFEES.find(x=>x.type===type); if(!f) return; if(!f.compLines) f.compLines=[]; f.compLines.push({party:'',reason:'',amount:0}); rerenderClaimFeeModal(); }
-function removeCompLine(type,idx){ syncClaimFeeModalPending(); const f=SHIPFEES.find(x=>x.type===type); if(!f||!f.compLines||f.compLines.length<=1) return; f.compLines.splice(idx,1); rerenderClaimFeeModal(); }
+function onClaimCbChange(){ syncClaimFeeModalPending(); rerenderClaimFeeModal(); }
 function confirmClaimFee(){
   syncClaimFeeModalPending();
   closeClaimFeeModal(); renderClaimFees();
