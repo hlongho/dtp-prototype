@@ -2104,24 +2104,24 @@ function ldApplyNccPrices(){
     const base=master[name]||0;
     const baseEl=document.getElementById('ld-ht-base-'+i); if(baseEl) baseEl.textContent=base?('$'+base.toLocaleString('en-US')):'—';
     const finalEl=document.getElementById('ld-ht-final-'+i); if(finalEl) finalEl.value=base;
-    const curEl=document.getElementById('ld-ht-cur-'+i); if(curEl) curEl.value='USD';
   });
+  const curEl=document.getElementById('ld-ht-cur'); if(curEl) curEl.value='USD';
   recalcLogisDetail();
 }
 function logisDetailFormHTML(){
   const nccNames=Object.keys(NCC_LOGIS_MASTER);
-  const noidiaRows=LOGIS_FEE_NOIDIA.map((name,i)=>`<div class="ptf-row" style="margin-bottom:6px"><div class="ptf-f" style="flex:2">${name}</div><div class="ptf-f" style="flex:1"><input type="number" id="ld-noidia-${i}" class="mass-sel" placeholder="Giá" value="0" oninput="recalcLogisDetail()"></div><div class="ptf-f" style="flex:.7">${ldCurSel('ld-noidia-cur-'+i)}</div></div>`).join('');
-  const dichvuRows=LOGIS_FEE_DICHVU.map((name,i)=>`<div class="ptf-row" style="margin-bottom:6px"><div class="ptf-f" style="flex:2">${name}</div><div class="ptf-f" style="flex:1"><input type="number" id="ld-dichvu-${i}" class="mass-sel" placeholder="Giá" value="0" oninput="recalcLogisDetail()"></div><div class="ptf-f" style="flex:.7">${ldCurSel('ld-dichvu-cur-'+i)}</div></div>`).join('');
-  const hangtauRows=`<div class="ptf-row" style="font-weight:600;font-size:11px;color:var(--txt-mut)"><div class="ptf-f" style="flex:2"></div><div class="ptf-f" style="flex:1">Giá gốc (theo NCC)</div><div class="ptf-f" style="flex:1">Final giá</div><div class="ptf-f" style="flex:.7">Đơn vị</div></div>`
+  const noidiaRows=LOGIS_FEE_NOIDIA.map((name,i)=>`<div class="ptf-row" style="margin-bottom:6px"><div class="ptf-f" style="flex:2">${name}</div><div class="ptf-f" style="flex:1"><input type="number" id="ld-noidia-${i}" class="mass-sel" placeholder="Giá" value="0" oninput="recalcLogisDetail()"></div></div>`).join('');
+  const dichvuRows=LOGIS_FEE_DICHVU.map((name,i)=>`<div class="ptf-row" style="margin-bottom:6px"><div class="ptf-f" style="flex:2">${name}</div><div class="ptf-f" style="flex:1"><input type="number" id="ld-dichvu-${i}" class="mass-sel" placeholder="Giá" value="0" oninput="recalcLogisDetail()"></div></div>`).join('');
+  const hangtauRows=`<div class="ptf-row" style="font-weight:600;font-size:11px;color:var(--txt-mut)"><div class="ptf-f" style="flex:2"></div><div class="ptf-f" style="flex:1">Giá gốc (theo NCC)</div><div class="ptf-f" style="flex:1">Final giá</div></div>`
     + LOGIS_FEE_HANGTAU.map((name,i)=>`<div class="ptf-row" style="margin-bottom:6px"><div class="ptf-f" style="flex:2">${name}</div>
       <div class="ptf-f" style="flex:1"><div class="ptf-dotlbl" id="ld-ht-base-${i}">—</div></div>
-      <div class="ptf-f" style="flex:1"><input type="number" id="ld-ht-final-${i}" class="mass-sel" placeholder="Giá" value="0" oninput="recalcLogisDetail()"></div>
-      <div class="ptf-f" style="flex:.7">${ldCurSel('ld-ht-cur-'+i)}</div></div>`).join('');
-  return `<p class="po-hint">Xác định giá từng khoản phí thuộc 3 nhóm: Phí nội địa, Phí Dịch vụ, Phí Hãng tàu — mỗi khoản phí có thể chọn đơn vị tiền tệ riêng (USD hoặc VNĐ). Riêng Phí Hãng tàu: chọn NCC để lấy "Giá gốc" theo bảng giá của NCC đó; "Final giá" mặc định giống giá gốc và có thể điều chỉnh lại (deal riêng).</p>
-     <div style="margin-bottom:10px"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Chọn NCC (Hãng tàu / FWD) *</label><select id="ld-ncc" class="mass-sel" onchange="ldApplyNccPrices()">${nccNames.map(n=>`<option>${n}</option>`).join('')}</select></div>
-     <div class="ptf-item"><div style="font-weight:600;margin-bottom:6px">Phí nội địa</div>${noidiaRows}</div>
-     <div class="ptf-item"><div style="font-weight:600;margin-bottom:6px">Phí Dịch vụ</div>${dichvuRows}</div>
-     <div class="ptf-item"><div style="font-weight:600;margin-bottom:6px">Phí Hãng tàu</div>${hangtauRows}</div>
+      <div class="ptf-f" style="flex:1"><input type="number" id="ld-ht-final-${i}" class="mass-sel" placeholder="Giá" value="0" oninput="recalcLogisDetail()"></div></div>`).join('');
+  return `<p class="po-hint">Xác định giá từng khoản phí thuộc 3 nhóm: Phí nội địa, Phí Dịch vụ, Phí Hãng tàu — mỗi nhóm chọn 1 đơn vị tiền tệ chung (USD hoặc VNĐ). Riêng Phí Hãng tàu: chọn NCC để lấy "Giá gốc" theo bảng giá của NCC đó; "Final giá" mặc định giống giá gốc và có thể điều chỉnh lại (deal riêng).</p>
+     <div class="ptf-item"><div class="ptf-row" style="margin-bottom:6px;align-items:baseline"><div style="font-weight:600;flex:1">Phí nội địa</div><div style="width:110px"><label class="wf-muted" style="font-size:11px;display:block">Đơn vị</label>${ldCurSel('ld-noidia-cur')}</div></div>${noidiaRows}</div>
+     <div class="ptf-item"><div class="ptf-row" style="margin-bottom:6px;align-items:baseline"><div style="font-weight:600;flex:1">Phí Dịch vụ</div><div style="width:110px"><label class="wf-muted" style="font-size:11px;display:block">Đơn vị</label>${ldCurSel('ld-dichvu-cur')}</div></div>${dichvuRows}</div>
+     <div class="ptf-item"><div class="ptf-row" style="margin-bottom:6px;align-items:baseline"><div style="font-weight:600;flex:1">Phí Hãng tàu</div><div style="width:110px"><label class="wf-muted" style="font-size:11px;display:block">Đơn vị</label>${ldCurSel('ld-ht-cur')}</div></div>
+       <div style="margin-bottom:10px"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Chọn NCC (Hãng tàu / FWD) *</label><select id="ld-ncc" class="mass-sel" onchange="ldApplyNccPrices()">${nccNames.map(n=>`<option>${n}</option>`).join('')}</select></div>
+       ${hangtauRows}</div>
      <div class="ptf-row" style="margin:10px 0">
        <div class="ptf-f" style="flex:2"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Dịch vụ thêm (nếu có)</label><input type="number" id="ld-extra" class="mass-sel" value="0" oninput="recalcLogisDetail()"></div>
        <div class="ptf-f" style="flex:.7"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Đơn vị</label>${ldCurSel('ld-extra-cur')}</div>
@@ -2139,9 +2139,9 @@ function logisDetailFormHTML(){
      </div>`;
 }
 function recalcLogisDetail(){
-  const noidiaTotal=LOGIS_FEE_NOIDIA.reduce((s,_,i)=>s+ldValUSD('ld-noidia-'+i,'ld-noidia-cur-'+i),0);
-  const tthq=ldValUSD('ld-dichvu-0','ld-dichvu-cur-0'), co=ldValUSD('ld-dichvu-1','ld-dichvu-cur-1'), baohiem=ldValUSD('ld-dichvu-2','ld-dichvu-cur-2');
-  const hangtauTotal=LOGIS_FEE_HANGTAU.reduce((s,_,i)=>s+ldValUSD('ld-ht-final-'+i,'ld-ht-cur-'+i),0);
+  const noidiaTotal=LOGIS_FEE_NOIDIA.reduce((s,_,i)=>s+ldValUSD('ld-noidia-'+i,'ld-noidia-cur'),0);
+  const tthq=ldValUSD('ld-dichvu-0','ld-dichvu-cur'), co=ldValUSD('ld-dichvu-1','ld-dichvu-cur'), baohiem=ldValUSD('ld-dichvu-2','ld-dichvu-cur');
+  const hangtauTotal=LOGIS_FEE_HANGTAU.reduce((s,_,i)=>s+ldValUSD('ld-ht-final-'+i,'ld-ht-cur'),0);
   const extra=ldValUSD('ld-extra','ld-extra-cur');
   const ews=extra;
   const fob=noidiaTotal+tthq+co;
@@ -2164,9 +2164,10 @@ function closeLogisDetailModal(){ const b=document.getElementById('ldback'),m=do
 function confirmLogisDetail(){
   const ncc=document.getElementById('ld-ncc').value;
   const master=NCC_LOGIS_MASTER[ncc]||{};
-  const noidia=LOGIS_FEE_NOIDIA.map((name,i)=>({name,value:ldNum('ld-noidia-'+i),cur:document.getElementById('ld-noidia-cur-'+i).value,usd:ldValUSD('ld-noidia-'+i,'ld-noidia-cur-'+i)}));
-  const dichvu=LOGIS_FEE_DICHVU.map((name,i)=>({name,value:ldNum('ld-dichvu-'+i),cur:document.getElementById('ld-dichvu-cur-'+i).value,usd:ldValUSD('ld-dichvu-'+i,'ld-dichvu-cur-'+i)}));
-  const hangtau=LOGIS_FEE_HANGTAU.map((name,i)=>({name,base:master[name]||0,final:ldNum('ld-ht-final-'+i),cur:document.getElementById('ld-ht-cur-'+i).value,usd:ldValUSD('ld-ht-final-'+i,'ld-ht-cur-'+i)}));
+  const noidiaCur=document.getElementById('ld-noidia-cur').value, dichvuCur=document.getElementById('ld-dichvu-cur').value, hangtauCur=document.getElementById('ld-ht-cur').value;
+  const noidia=LOGIS_FEE_NOIDIA.map((name,i)=>({name,value:ldNum('ld-noidia-'+i),cur:noidiaCur,usd:ldValUSD('ld-noidia-'+i,'ld-noidia-cur')}));
+  const dichvu=LOGIS_FEE_DICHVU.map((name,i)=>({name,value:ldNum('ld-dichvu-'+i),cur:dichvuCur,usd:ldValUSD('ld-dichvu-'+i,'ld-dichvu-cur')}));
+  const hangtau=LOGIS_FEE_HANGTAU.map((name,i)=>({name,base:master[name]||0,final:ldNum('ld-ht-final-'+i),cur:hangtauCur,usd:ldValUSD('ld-ht-final-'+i,'ld-ht-cur')}));
   const extra=ldValUSD('ld-extra','ld-extra-cur');
   const noidiaTotal=noidia.reduce((s,x)=>s+x.usd,0);
   const tthq=dichvu[0].usd, co=dichvu[1].usd, baohiem=dichvu[2].usd;
