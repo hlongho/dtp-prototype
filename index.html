@@ -2116,14 +2116,17 @@ function ldHtFinalTotal(){
   LD_EXTRA_IDS.hangtau.forEach(rowId=>{ total+=ldValUSD(rowId+'-final','ld-ht-cur',rowId+'-unit'); });
   return total;
 }
-function ldHtUpdateFinalDefault(baseId){
-  const finalEl=document.getElementById(baseId+'-final'); if(!finalEl || finalEl.dataset.touched==='1') return;
-  const vals=LD_HT_SELECTED.map(ncc=>ldNum(baseId+'-'+ldSlug(ncc)));
-  finalEl.value=vals.length?Math.min(...vals):0;
-}
-function ldHtRefreshFinalDefaults(){
-  LOGIS_FEE_HANGTAU.forEach((_,i)=>ldHtUpdateFinalDefault('ld-ht-'+i));
-  LD_EXTRA_IDS.hangtau.forEach(rowId=>ldHtUpdateFinalDefault(rowId));
+function ldHtCopyToFinal(ncc){
+  const slug=ldSlug(ncc);
+  LOGIS_FEE_HANGTAU.forEach((_,i)=>{
+    const src=document.getElementById('ld-ht-'+i+'-'+slug), dst=document.getElementById('ld-ht-'+i+'-final');
+    if(src&&dst) dst.value=src.value;
+  });
+  LD_EXTRA_IDS.hangtau.forEach(rowId=>{
+    const src=document.getElementById(rowId+'-'+slug), dst=document.getElementById(rowId+'-final');
+    if(src&&dst) dst.value=src.value;
+  });
+  recalcLogisDetail();
 }
 function ldHangtauTableHTML(){
   const finalCol=`<th class="num">Final giá</th>`;
@@ -2132,22 +2135,23 @@ function ldHangtauTableHTML(){
   const rows=LOGIS_FEE_HANGTAU.map(([name,unit],i)=>{
     const cells=LD_HT_SELECTED.map(ncc=>{
       const base=(NCC_LOGIS_MASTER[ncc]||{})[name]||0;
-      return `<td class="num"><input type="number" id="ld-ht-${i}-${ldSlug(ncc)}" class="mass-sel" value="${base}" oninput="ldHtUpdateFinalDefault('ld-ht-${i}');recalcLogisDetail()" style="text-align:right"></td>`;
+      return `<td class="num"><input type="number" id="ld-ht-${i}-${ldSlug(ncc)}" class="mass-sel" value="${base}" oninput="recalcLogisDetail()" style="text-align:right"></td>`;
     }).join('');
-    return `<tr><td>${name}</td>${cells}<td class="num"><input type="number" id="ld-ht-${i}-final" class="mass-sel" value="0" oninput="this.dataset.touched='1';recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel('ld-ht-unit-'+i,unit)}</td></tr>`;
+    return `<tr><td>${name}</td>${cells}<td class="num"><input type="number" id="ld-ht-${i}-final" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel('ld-ht-unit-'+i,unit)}</td></tr>`;
   }).join('');
   const extraRows=LD_EXTRA_IDS.hangtau.map(rowId=>{
-    const cells=LD_HT_SELECTED.map(ncc=>`<td class="num"><input type="number" id="${rowId}-${ldSlug(ncc)}" class="mass-sel" value="0" oninput="ldHtUpdateFinalDefault('${rowId}');recalcLogisDetail()" style="text-align:right"></td>`).join('');
-    return `<tr><td><input class="mass-sel" id="${rowId}-name" placeholder="Nhập tên phí"></td>${cells}<td class="num"><input type="number" id="${rowId}-final" class="mass-sel" value="0" oninput="this.dataset.touched='1';recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel(rowId+'-unit','Cont')}</td></tr>`;
+    const cells=LD_HT_SELECTED.map(ncc=>`<td class="num"><input type="number" id="${rowId}-${ldSlug(ncc)}" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td>`).join('');
+    return `<tr><td><input class="mass-sel" id="${rowId}-name" placeholder="Nhập tên phí"></td>${cells}<td class="num"><input type="number" id="${rowId}-final" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel(rowId+'-unit','Cont')}</td></tr>`;
   }).join('');
+  const copyRow=`<tr><td class="wf-muted" style="font-size:11px">Chọn hãng tàu làm gốc → Final giá</td>${LD_HT_SELECTED.map(n=>`<td class="num"><input type="radio" name="ld-ht-base-radio" onchange="ldHtCopyToFinal('${n.replace(/'/g,"\\'")}')"></td>`).join('')}<td></td><td></td></tr>`;
   const footUsd=LD_HT_SELECTED.map(n=>`<td class="num" id="ld-ht-sub-usd-${ldSlug(n)}">0</td>`).join('');
   const footVnd=LD_HT_SELECTED.map(n=>`<td class="num" id="ld-ht-sub-vnd-${ldSlug(n)}">0 ₫</td>`).join('');
-  return `<div class="tbl-wrap"><table class="tbl sm"><thead>${header}</thead><tbody>${rows}${extraRows}</tbody>
+  return `<div class="tbl-wrap"><table class="tbl sm"><thead>${header}</thead><tbody>${rows}${extraRows}${copyRow}</tbody>
     <tfoot>
       <tr style="font-weight:700"><td>Tổng (USD/CONT)</td>${footUsd}<td class="num" id="ld-ht-sub-usd-final">0</td><td></td></tr>
       <tr style="font-weight:700"><td>Tổng (VND/CONT)</td>${footVnd}<td class="num" id="ld-ht-sub-vnd-final">0 ₫</td><td></td></tr>
     </tfoot></table></div>
-    <div class="wf-muted" style="font-size:11px;margin-top:4px">"Final giá" mặc định lấy giá thấp nhất trong các NCC đã chọn — có thể sửa tay theo giá deal thực tế; đây là giá được dùng để tính Tổng chi phí FOB/CIF.</div>`;
+    <div class="wf-muted" style="font-size:11px;margin-top:4px">Chọn 1 hãng tàu ở dòng "Chọn hãng tàu làm gốc" để copy giá của hãng đó sang cột "Final giá" — sau đó vẫn có thể sửa tay theo giá deal thực tế; đây là giá được dùng để tính Tổng chi phí FOB/CIF.</div>`;
 }
 function ldHtSyncValues(){
   const wrap=document.getElementById('ld-ht-table-wrap'); const map={}; if(!wrap) return map;
@@ -2168,7 +2172,6 @@ function ldRenderHangtauTable(){
   const saved=ldHtSyncValues();
   c.innerHTML=ldHangtauTableHTML();
   ldHtApplyValues(saved);
-  ldHtRefreshFinalDefaults();
 }
 function ldSectionHead(title,curId,extra){
   return `<div class="ptf-row" style="margin-bottom:8px;align-items:center">
