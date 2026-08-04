@@ -2093,17 +2093,14 @@ function ldExtraSectionData(section){
     return {name:(document.getElementById(rowId+'-name').value||'').trim()||'(chưa đặt tên)',value:ldNum(rowId+'-val'),cur,unit:document.getElementById(rowId+'-unit').value,usd:ldValUSD(rowId+'-val',curId,rowId+'-unit')};
   });
 }
-/* --- Phí Hãng tàu: so sánh nhiều NCC, mỗi NCC 1 cột --- */
+/* --- Phí Hãng tàu: so sánh nhiều NCC, mỗi NCC 1 cột, cộng cột Final giá để deal lại --- */
 let LD_HT_SELECTED=[];
-let LD_HT_FINAL=null;
 function ldSlug(s){ return s.replace(/[^a-zA-Z0-9]/g,'_'); }
 function ldHtToggleNcc(ncc){
   const i=LD_HT_SELECTED.indexOf(ncc);
   if(i>=0) LD_HT_SELECTED.splice(i,1); else LD_HT_SELECTED.push(ncc);
-  if(!LD_HT_SELECTED.includes(LD_HT_FINAL)) LD_HT_FINAL=LD_HT_SELECTED[0]||null;
   ldRenderHangtauTable(); recalcLogisDetail();
 }
-function ldHtSetFinal(ncc){ LD_HT_FINAL=ncc; recalcLogisDetail(); }
 function ldHtCheckboxesHTML(){
   return Object.keys(NCC_LOGIS_MASTER).map(n=>`<label style="margin-right:14px;font-weight:400"><input type="checkbox" class="ld-ht-ncc-cb" ${LD_HT_SELECTED.includes(n)?'checked':''} onchange="ldHtToggleNcc('${n.replace(/'/g,"\\'")}')"> ${n}</label>`).join('');
 }
@@ -2113,30 +2110,66 @@ function ldHangtauColumnTotal(ncc){
   LD_EXTRA_IDS.hangtau.forEach(rowId=>{ total+=ldValUSD(rowId+'-'+slug,'ld-ht-cur',rowId+'-unit'); });
   return total;
 }
+function ldHtFinalTotal(){
+  let total=0;
+  LOGIS_FEE_HANGTAU.forEach((_,i)=>{ total+=ldValUSD('ld-ht-'+i+'-final','ld-ht-cur','ld-ht-unit-'+i); });
+  LD_EXTRA_IDS.hangtau.forEach(rowId=>{ total+=ldValUSD(rowId+'-final','ld-ht-cur',rowId+'-unit'); });
+  return total;
+}
+function ldHtUpdateFinalDefault(baseId){
+  const finalEl=document.getElementById(baseId+'-final'); if(!finalEl || finalEl.dataset.touched==='1') return;
+  const vals=LD_HT_SELECTED.map(ncc=>ldNum(baseId+'-'+ldSlug(ncc)));
+  finalEl.value=vals.length?Math.min(...vals):0;
+}
+function ldHtRefreshFinalDefaults(){
+  LOGIS_FEE_HANGTAU.forEach((_,i)=>ldHtUpdateFinalDefault('ld-ht-'+i));
+  LD_EXTRA_IDS.hangtau.forEach(rowId=>ldHtUpdateFinalDefault(rowId));
+}
 function ldHangtauTableHTML(){
-  if(!LD_HT_SELECTED.length) return '<p class="wf-muted" style="font-size:12px">Chọn ít nhất 1 NCC ở trên để nhập/so sánh bảng giá.</p>';
-  const header=`<tr><th>Tên phí</th>${LD_HT_SELECTED.map(n=>`<th class="num">${n}</th>`).join('')}<th>Đơn vị tính</th></tr>`;
+  const finalCol=`<th class="num">Final giá</th>`;
+  if(!LD_HT_SELECTED.length) return '<p class="wf-muted" style="font-size:12px">Chọn ít nhất 1 NCC ở trên để nhập/so sánh bảng giá (vẫn có thể tự nhập Final giá bên dưới).</p>';
+  const header=`<tr><th>Tên phí</th>${LD_HT_SELECTED.map(n=>`<th class="num">${n}</th>`).join('')}${finalCol}<th>Đơn vị tính</th></tr>`;
   const rows=LOGIS_FEE_HANGTAU.map(([name,unit],i)=>{
     const cells=LD_HT_SELECTED.map(ncc=>{
       const base=(NCC_LOGIS_MASTER[ncc]||{})[name]||0;
-      return `<td class="num"><input type="number" id="ld-ht-${i}-${ldSlug(ncc)}" class="mass-sel" value="${base}" oninput="recalcLogisDetail()" style="text-align:right"></td>`;
+      return `<td class="num"><input type="number" id="ld-ht-${i}-${ldSlug(ncc)}" class="mass-sel" value="${base}" oninput="ldHtUpdateFinalDefault('ld-ht-${i}');recalcLogisDetail()" style="text-align:right"></td>`;
     }).join('');
-    return `<tr><td>${name}</td>${cells}<td>${ldUnitSel('ld-ht-unit-'+i,unit)}</td></tr>`;
+    return `<tr><td>${name}</td>${cells}<td class="num"><input type="number" id="ld-ht-${i}-final" class="mass-sel" value="0" oninput="this.dataset.touched='1';recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel('ld-ht-unit-'+i,unit)}</td></tr>`;
   }).join('');
   const extraRows=LD_EXTRA_IDS.hangtau.map(rowId=>{
-    const cells=LD_HT_SELECTED.map(ncc=>`<td class="num"><input type="number" id="${rowId}-${ldSlug(ncc)}" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td>`).join('');
-    return `<tr><td><input class="mass-sel" id="${rowId}-name" placeholder="Nhập tên phí"></td>${cells}<td>${ldUnitSel(rowId+'-unit','Cont')}</td></tr>`;
+    const cells=LD_HT_SELECTED.map(ncc=>`<td class="num"><input type="number" id="${rowId}-${ldSlug(ncc)}" class="mass-sel" value="0" oninput="ldHtUpdateFinalDefault('${rowId}');recalcLogisDetail()" style="text-align:right"></td>`).join('');
+    return `<tr><td><input class="mass-sel" id="${rowId}-name" placeholder="Nhập tên phí"></td>${cells}<td class="num"><input type="number" id="${rowId}-final" class="mass-sel" value="0" oninput="this.dataset.touched='1';recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel(rowId+'-unit','Cont')}</td></tr>`;
   }).join('');
-  const radioRow=`<tr><td class="wf-muted" style="font-size:11px">Chọn làm giá chính thức</td>${LD_HT_SELECTED.map(n=>`<td class="num"><input type="radio" name="ld-ht-final-radio" ${LD_HT_FINAL===n?'checked':''} onchange="ldHtSetFinal('${n.replace(/'/g,"\\'")}')"></td>`).join('')}<td></td></tr>`;
   const footUsd=LD_HT_SELECTED.map(n=>`<td class="num" id="ld-ht-sub-usd-${ldSlug(n)}">0</td>`).join('');
   const footVnd=LD_HT_SELECTED.map(n=>`<td class="num" id="ld-ht-sub-vnd-${ldSlug(n)}">0 ₫</td>`).join('');
-  return `<div class="tbl-wrap"><table class="tbl sm"><thead>${header}</thead><tbody>${rows}${extraRows}${radioRow}</tbody>
+  return `<div class="tbl-wrap"><table class="tbl sm"><thead>${header}</thead><tbody>${rows}${extraRows}</tbody>
     <tfoot>
-      <tr style="font-weight:700"><td>Tổng (USD/CONT)</td>${footUsd}<td></td></tr>
-      <tr style="font-weight:700"><td>Tổng (VND/CONT)</td>${footVnd}<td></td></tr>
-    </tfoot></table></div>`;
+      <tr style="font-weight:700"><td>Tổng (USD/CONT)</td>${footUsd}<td class="num" id="ld-ht-sub-usd-final">0</td><td></td></tr>
+      <tr style="font-weight:700"><td>Tổng (VND/CONT)</td>${footVnd}<td class="num" id="ld-ht-sub-vnd-final">0 ₫</td><td></td></tr>
+    </tfoot></table></div>
+    <div class="wf-muted" style="font-size:11px;margin-top:4px">"Final giá" mặc định lấy giá thấp nhất trong các NCC đã chọn — có thể sửa tay theo giá deal thực tế; đây là giá được dùng để tính Tổng chi phí FOB/CIF.</div>`;
 }
-function ldRenderHangtauTable(){ const c=document.getElementById('ld-ht-table-wrap'); if(c) c.innerHTML=ldHangtauTableHTML(); }
+function ldHtSyncValues(){
+  const wrap=document.getElementById('ld-ht-table-wrap'); const map={}; if(!wrap) return map;
+  wrap.querySelectorAll('input,select').forEach(el=>{ if(!el.id) return; map[el.id]=el.type==='checkbox'?el.checked:el.value; if(el.dataset.touched) map[el.id+'__touched']=el.dataset.touched; });
+  return map;
+}
+function ldHtApplyValues(map){
+  const wrap=document.getElementById('ld-ht-table-wrap'); if(!wrap) return;
+  Object.keys(map).forEach(k=>{
+    if(k.endsWith('__touched')) return;
+    const el=document.getElementById(k); if(!el) return;
+    if(el.type==='checkbox') el.checked=map[k]; else el.value=map[k];
+    if(map[k+'__touched']) el.dataset.touched=map[k+'__touched'];
+  });
+}
+function ldRenderHangtauTable(){
+  const c=document.getElementById('ld-ht-table-wrap'); if(!c) return;
+  const saved=ldHtSyncValues();
+  c.innerHTML=ldHangtauTableHTML();
+  ldHtApplyValues(saved);
+  ldHtRefreshFinalDefaults();
+}
 function ldSectionHead(title,curId,extra){
   return `<div class="ptf-row" style="margin-bottom:8px;align-items:center">
     <div style="font-weight:600;flex:1">${title}</div>${extra||''}
@@ -2188,7 +2221,9 @@ function recalcLogisDetail(){
     setText('ld-ht-sub-usd-'+slug, tot.toLocaleString('en-US'));
     setText('ld-ht-sub-vnd-'+slug, fmtMoney(Math.round(tot*rate)));
   });
-  const hangtauTotal=LD_HT_FINAL ? ldHangtauColumnTotal(LD_HT_FINAL) : 0;
+  const hangtauTotal=ldHtFinalTotal();
+  setText('ld-ht-sub-usd-final', hangtauTotal.toLocaleString('en-US'));
+  setText('ld-ht-sub-vnd-final', fmtMoney(Math.round(hangtauTotal*rate)));
   const ews=0;
   const fob=noidiaTotal+tthq+co+dichvuExtraTotal;
   const cif=fob+baohiem+hangtauTotal;
@@ -2201,7 +2236,7 @@ function recalcLogisDetail(){
 }
 function openLogisDetailModal(){
   LD_EXTRA_IDS={noidia:[],dichvu:[],hangtau:[]};
-  LD_HT_SELECTED=[]; LD_HT_FINAL=null;
+  LD_HT_SELECTED=[];
   document.getElementById('ld-body').innerHTML=logisDetailFormHTML();
   document.getElementById('ldback').classList.add('show');
   document.getElementById('ldmodal').classList.add('show');
@@ -2209,7 +2244,6 @@ function openLogisDetailModal(){
 }
 function closeLogisDetailModal(){ const b=document.getElementById('ldback'),m=document.getElementById('ldmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
 function confirmLogisDetail(){
-  if(!LD_HT_FINAL){ toast('Chọn ít nhất 1 NCC và đánh dấu giá chính thức ở Phí Hãng tàu'); return; }
   const noidiaCur=document.getElementById('ld-noidia-cur').value, dichvuCur=document.getElementById('ld-dichvu-cur').value;
   const contQty=ldContQty(), exrate=ldExRate();
   const noidia=LOGIS_FEE_NOIDIA.map(([name],i)=>({name,value:ldNum('ld-noidia-'+i),cur:noidiaCur,unit:document.getElementById('ld-noidia-unit-'+i).value,usd:ldValUSD('ld-noidia-'+i,'ld-noidia-cur','ld-noidia-unit-'+i)}));
@@ -2219,13 +2253,14 @@ function confirmLogisDetail(){
   const tthq=dichvu[0].usd, co=dichvu[1].usd, baohiem=dichvu[2].usd;
   const dichvuExtraTotal=dichvuExtra.reduce((s,x)=>s+x.usd,0);
   const nccOptions=LD_HT_SELECTED.map(n=>({ncc:n,total:ldHangtauColumnTotal(n)}));
-  const hangtauTotal=ldHangtauColumnTotal(LD_HT_FINAL);
+  const hangtauTotal=ldHtFinalTotal();
   const fob=noidiaTotal+tthq+co+dichvuExtraTotal;
   const cif=fob+baohiem+hangtauTotal;
   const ews=0;
-  LOGIS_DETAILS.unshift({ncc:LD_HT_FINAL,nccOptions,noidia:noidia.concat(noidiaExtra),dichvu:dichvu.concat(dichvuExtra),contQty,exrate,fob,cif,ews,createdAt:'Hôm nay'});
+  const nccLabel=LD_HT_SELECTED.length?LD_HT_SELECTED.join(', '):'—';
+  LOGIS_DETAILS.unshift({ncc:nccLabel,nccOptions,noidia:noidia.concat(noidiaExtra),dichvu:dichvu.concat(dichvuExtra),contQty,exrate,fob,cif,ews,createdAt:'Hôm nay'});
   closeLogisDetailModal(); renderLogisDetails();
-  toast('✓ Đã lưu báo giá Logistics chi tiết · NCC '+LD_HT_FINAL+' · FOB $'+fob.toLocaleString('en-US')+'/cont · CIF $'+cif.toLocaleString('en-US')+'/cont');
+  toast('✓ Đã lưu báo giá Logistics chi tiết · NCC '+nccLabel+' · FOB $'+fob.toLocaleString('en-US')+'/cont · CIF $'+cif.toLocaleString('en-US')+'/cont');
 }
 function logisDetailRows(){
   return LOGIS_DETAILS.map(q=>`<tr><td>${q.ncc}</td><td class="num">$${q.fob.toLocaleString('en-US')}</td><td class="num">$${q.cif.toLocaleString('en-US')}</td><td class="num">${fmtMoney(Math.round(q.cif*q.exrate))}</td><td>${q.createdAt}</td></tr>`).join('');
