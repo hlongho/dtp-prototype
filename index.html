@@ -1959,14 +1959,14 @@ let NCE_CONTEXT={vendorFixed:null};
 function nceCritFieldHTML(c){
   if(c.bonus){
     const boxes=c.levels.map((lv,i)=>`<label style="display:block;font-weight:400;font-size:12px;margin-bottom:2px"><input type="checkbox" class="nce-bonus" data-key="${c.key}" value="${i}" onchange="recalcNccEval()"> ${lv.label} (+${lv.pt})</label>`).join('');
-    return `<div class="ptf-item"><div style="font-weight:600">${c.name} <span class="wf-muted" style="font-weight:400;font-size:11px">(${c.dept} · tối đa ${c.max}đ, cộng điểm)</span></div>${boxes}</div>`;
+    return `<div style="margin-bottom:12px"><div style="font-weight:600">${c.name} <span class="wf-muted" style="font-weight:400;font-size:11px">(${c.dept} · tối đa ${c.max}đ, cộng điểm)</span></div>${boxes}</div>`;
   }
   const opts=c.levels.map((lv,i)=>`<option value="${i}">${lv.label} (${lv.pt>=0?'+':''}${lv.pt})</option>`).join('');
-  return `<div class="ptf-item"><div style="font-weight:600;margin-bottom:4px">${c.name} <span class="wf-muted" style="font-weight:400;font-size:11px">(${c.dept} · tối đa ${c.max}đ)</span></div>
+  return `<div style="margin-bottom:12px"><div style="font-weight:600;margin-bottom:4px">${c.name} <span class="wf-muted" style="font-weight:400;font-size:11px">(${c.dept} · tối đa ${c.max}đ)</span></div>
     <select id="nce-crit-${c.key}" class="mass-sel" onchange="recalcNccEval()">${opts}</select></div>`;
 }
 function nceExcludeHTML(){
-  return `<div class="ptf-item"><div style="font-weight:600;margin-bottom:4px">Điều kiện loại trừ đặc biệt <span class="wf-muted" style="font-weight:400;font-size:11px">(có 1 điều kiện là đề xuất loại/tạm ngừng, bất kể tổng điểm)</span></div>`
+  return `<div style="margin-bottom:12px"><div style="font-weight:600;margin-bottom:4px">Điều kiện loại trừ đặc biệt <span class="wf-muted" style="font-weight:400;font-size:11px">(có 1 điều kiện là đề xuất loại/tạm ngừng, bất kể tổng điểm)</span></div>`
     + NCC_EXCLUDE_CONDITIONS.map((c,i)=>`<label style="display:block;font-weight:400;font-size:12px;margin-bottom:2px"><input type="checkbox" class="nce-excl" value="${i}" onchange="recalcNccEval()"> ${c}</label>`).join('')+`</div>`;
 }
 function nceEvalFormHTML(vendorFixed){
