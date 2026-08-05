@@ -1903,24 +1903,60 @@ function nccGrade(t){ return t>=90?'A':t>=80?'B':t>=70?'C':t>=60?'D':'E'; }
 function nccGradeLabel(g){ return {A:'Xuất sắc',B:'Tốt',C:'Đạt',D:'Cần cải thiện',E:'Không đạt'}[g]; }
 function nccGradeAction(g){ return {A:'Ưu tiên đặt hàng; xem xét hợp tác chiến lược',B:'Tiếp tục duy trì và phát triển',C:'Tiếp tục giao dịch; yêu cầu cải tiến nếu cần',D:'Theo dõi đặc biệt; yêu cầu CAPA và đánh giá lại',E:'Tạm ngừng hoặc xem xét loại khỏi danh sách'}[g]; }
 function nccGradePill(g){ return pill(g==='A'||g==='B'?'ok':(g==='C'?'info':'err'), g+' — '+nccGradeLabel(g)); }
+/* Ghi chú cấu hình (sheet "Quy tắc trừ điểm"):
+   - Chất lượng: Mức 1/2 tái phạm trừ gấp đôi; Mức 1 loại khi vi phạm lần 3; Mức 2 loại khi tái phạm; Mức 3 loại ngay; Gian lận đưa về 0 + loại ngay.
+   - Giá bán / Thanh toán / Dịch vụ sau bán / Ổn định nguồn cung: trừ điểm "mỗi lần" — nhân theo số lần vi phạm trong kỳ.
+   - Giao hàng đúng hạn: chỉ trừ điểm khi có Case sự vụ liên quan (theo trường quản lý PO); không có Case thì không trừ điểm.
+   - Môi trường & Hỗ trợ nổi trội: không có ghi chú cấu hình đặc biệt (chấm 1 lần theo trạng thái/bằng chứng). */
+function pickLevel(p){ return typeof p==='number' ? p : (p&&p.level)||0; }
+function pickCount(p){ return (typeof p==='object' && p && p.count) || 1; }
+function pickHasCase(p){ return typeof p==='number' ? true : !!(p&&p.hasCase); }
 function nccEvalScores(picks){
-  const per={}; let total=0;
+  const per={}; let total=0; const autoExclude=[];
   NCC_CRITERIA.forEach(c=>{
-    let pt;
-    if(c.bonus){ const idxs=picks[c.key]||[]; pt=Math.min(c.max, idxs.reduce((s,i)=>s+(c.levels[i]?c.levels[i].pt:0),0)); }
-    else { const idx=picks[c.key]||0; const lvl=c.levels[idx]||c.levels[0]; pt=Math.max(0, Math.min(c.max, c.max+lvl.pt)); }
-    per[c.key]=pt; total+=pt;
+    const p=picks[c.key];
+    if(c.bonus){
+      const idxs=Array.isArray(p)?p:[];
+      per[c.key]=Math.min(c.max, idxs.reduce((s,i)=>s+(c.levels[i]?c.levels[i].pt:0),0));
+    } else if(c.key==='chatluong'){
+      const lvl=pickLevel(p), count=pickCount(p); const base=c.levels[lvl]||c.levels[0];
+      let ded=base.pt;
+      if((lvl===1||lvl===2) && count>=2) ded=ded*2;
+      per[c.key]=Math.max(0, Math.min(c.max, c.max+ded));
+      if(lvl===1 && count>=3) autoExclude.push('Chất lượng Mức 1 tái phạm từ lần thứ 3 trong kỳ — đề xuất loại (cấu hình Mức 1)');
+      if(lvl===2 && count>=2) autoExclude.push('Chất lượng Mức 2 tái phạm — đề xuất loại (cấu hình Mức 2)');
+      if(lvl===3) autoExclude.push('Chất lượng Mức 3 nghiêm trọng — loại ngay khi vi phạm (cấu hình Mức 3)');
+      if(lvl===4) autoExclude.push('Gian lận chất lượng — điểm về 0, xem xét loại ngay (cấu hình Gian lận)');
+    } else if(c.key==='giaohang'){
+      const lvl=pickLevel(p), hasCase=pickHasCase(p); const base=c.levels[lvl]||c.levels[0];
+      const ded=(lvl>0 && !hasCase) ? 0 : base.pt;
+      per[c.key]=Math.max(0, Math.min(c.max, c.max+ded));
+    } else if(c.key==='giaban' || c.key==='thanhtoan' || c.key==='dichvu' || c.key==='oncung'){
+      const lvl=pickLevel(p), count=pickCount(p); const base=c.levels[lvl]||c.levels[0];
+      const ded=lvl===0?0:base.pt*count;
+      per[c.key]=Math.max(0, Math.min(c.max, c.max+ded));
+    } else { const lvl=pickLevel(p); const base=c.levels[lvl]||c.levels[0]; per[c.key]=Math.max(0, Math.min(c.max, c.max+base.pt)); }
+    total+=per[c.key];
   });
-  return {per,total};
+  return {per,total,autoExclude};
+}
+function nccPickLabel(c,p){
+  if(c.bonus){ const idxs=Array.isArray(p)?p:[]; return idxs.map(i=>c.levels[i]?c.levels[i].label:'').filter(Boolean).join('; ')||'Không có'; }
+  const lvl=pickLevel(p); const label=(c.levels[lvl]||c.levels[0]).label;
+  if(c.key==='chatluong' && lvl>0){ const count=pickCount(p); return label+(count>1?' · Số lần: '+count:''); }
+  if((c.key==='giaban'||c.key==='thanhtoan'||c.key==='dichvu'||c.key==='oncung') && lvl>0){ const count=pickCount(p); return label+(count>1?' · x'+count+' lần':''); }
+  if(c.key==='giaohang' && lvl>0){ return label+(pickHasCase(p)?' · Có Case sự vụ':' · Không có Case → không trừ điểm'); }
+  return label;
 }
 function nccCriteriaRowsHTML(picks){
-  const {per,total}=nccEvalScores(picks); const g=nccGrade(total);
+  const {per,total,autoExclude}=nccEvalScores(picks); const g=nccGrade(total);
   let rows=NCC_CRITERIA.map(c=>{
-    const val=c.bonus ? ((picks[c.key]||[]).map(i=>c.levels[i]?c.levels[i].label:'').filter(Boolean).join('; ')||'Không có') : (c.levels[picks[c.key]||0]||c.levels[0]).label;
+    const val=nccPickLabel(c,picks[c.key]);
     return `<tr><td><b>${c.name}</b><div class="wf-muted" style="font-size:10px">${c.dept}</div></td><td class="num">${c.max}</td><td class="num"><b>${per[c.key]}</b></td><td>${val}</td></tr>`;
   }).join('');
   rows+=`<tr style="font-weight:700;background:var(--bg)"><td>TỔNG ĐIỂM</td><td class="num">100</td><td class="num">${total}</td><td>Xếp loại ${g} — ${nccGradeLabel(g)}</td></tr>`;
-  return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm tối đa</th><th class="num">Điểm đạt</th><th>Mức đã chọn</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm tối đa</th><th class="num">Điểm đạt</th><th>Mức đã chọn</th></tr></thead><tbody>${rows}</tbody></table></div>`
+    + (autoExclude.length?`<div class="po-hint" style="color:var(--err)">⚠ Cảnh báo tự động: ${autoExclude.join('; ')}</div>`:'');
 }
 let NCC_EVALS=[
   {vendor:'Cty Hóa chất Tân Tiến', period:'Kỳ 05/2026', date:'06/05/2026', by:'P. Mua hàng', picks:{chatluong:0,giaban:1,thanhtoan:0,giaohang:1,dichvu:0,oncung:0,moitruong:1,hotro:[1]}, exclude:[], note:''},
@@ -1939,9 +1975,11 @@ let NCC_EVALS=[
   {vendor:'Đại Đồng Tiến Phát', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Mua hàng', picks:{chatluong:3,giaban:0,thanhtoan:0,giaohang:0,dichvu:0,oncung:0,moitruong:0,hotro:[]}, exclude:['Điểm chất lượng dưới 20/40'], note:'Lô hàng lỗi nặng gây dừng máy PM4 — không sử dụng được'},
 ];
 function nccLatestEval(vendor){ const list=NCC_EVALS.filter(e=>e.vendor===vendor); return list[list.length-1]||null; }
+function nccCombinedExclude(e){ const {autoExclude}=nccEvalScores(e.picks); return [...new Set([...(e.exclude||[]),...autoExclude])]; }
 function nccEvalsListRows(vendor){
   return NCC_EVALS.filter(e=>e.vendor===vendor).map(e=>{ const {total}=nccEvalScores(e.picks); const g=nccGrade(total);
-    const ket=e.exclude&&e.exclude.length?'Xem xét loại khỏi danh sách (vi phạm điều kiện loại trừ)':nccGradeAction(g);
+    const excl=nccCombinedExclude(e);
+    const ket=excl.length?'Xem xét loại khỏi danh sách ('+excl.join('; ')+')':nccGradeAction(g);
     return [`<a style="cursor:pointer" onclick="openEvalModal('${e.vendor.replace(/'/g,"\\'")}','${e.period}')">${e.period}</a>`, e.date, total+'/100', nccGradePill(g), e.by, ket];
   });
 }
@@ -1958,12 +1996,24 @@ function closeEvalModal(){ const b=document.getElementById('evalback'),m=documen
 let NCE_CONTEXT={vendorFixed:null};
 function nceCritFieldHTML(c){
   if(c.bonus){
-    const boxes=c.levels.map((lv,i)=>`<label style="display:block;font-weight:400;font-size:12px;margin-bottom:2px"><input type="checkbox" class="nce-bonus" data-key="${c.key}" value="${i}" onchange="recalcNccEval()"> ${lv.label} (+${lv.pt})</label>`).join('');
+    const boxes=c.levels.map((lv,i)=>`<label style="display:block;font-weight:400;font-size:12px;margin-bottom:2px"><input type="checkbox" class="nce-bonus" data-key="${c.key}" value="${i}" onchange="recalcNccEval()"> ${lv.label} (+${lv.pt}, tối đa 1 lần/kỳ)</label>`).join('');
     return `<div style="margin-bottom:12px"><div style="font-weight:600">${c.name} <span class="wf-muted" style="font-weight:400;font-size:11px">(${c.dept} · tối đa ${c.max}đ, cộng điểm)</span></div>${boxes}</div>`;
   }
   const opts=c.levels.map((lv,i)=>`<option value="${i}">${lv.label} (${lv.pt>=0?'+':''}${lv.pt})</option>`).join('');
+  let extra='', hint='';
+  if(c.key==='chatluong'){
+    extra=`<div class="ptf-f" style="flex:.7"><label class="wf-muted" style="font-size:11px;display:block">Số lần trong kỳ</label><input type="number" id="nce-count-${c.key}" class="mass-sel" value="1" min="1" onchange="recalcNccEval()"></div>`;
+    hint='Mức 1/2 tái phạm (≥2 lần) trừ gấp đôi · Mức 1 tái phạm từ lần 3, Mức 2 tái phạm, Mức 3, hoặc Gian lận → tự động đề xuất loại.';
+  } else if(c.key==='giaban'||c.key==='thanhtoan'||c.key==='dichvu'||c.key==='oncung'){
+    extra=`<div class="ptf-f" style="flex:.7"><label class="wf-muted" style="font-size:11px;display:block">Số lần trong kỳ</label><input type="number" id="nce-count-${c.key}" class="mass-sel" value="1" min="1" onchange="recalcNccEval()"></div>`;
+    hint='Áp dụng trừ điểm theo mỗi lần vi phạm phát sinh trong kỳ.';
+  } else if(c.key==='giaohang'){
+    extra=`<div class="ptf-f" style="flex:1"><label class="wf-muted" style="font-size:11px;display:block">&nbsp;</label><label style="font-weight:400;font-size:12px"><input type="checkbox" id="nce-case-${c.key}" onchange="recalcNccEval()"> Có Case sự vụ liên quan</label></div>`;
+    hint='Chỉ trừ điểm khi có Case sự vụ ghi nhận trong PO; không tạo Case thì không trừ điểm dù chọn mức vi phạm.';
+  }
   return `<div style="margin-bottom:12px"><div style="font-weight:600;margin-bottom:4px">${c.name} <span class="wf-muted" style="font-weight:400;font-size:11px">(${c.dept} · tối đa ${c.max}đ)</span></div>
-    <select id="nce-crit-${c.key}" class="mass-sel" onchange="recalcNccEval()">${opts}</select></div>`;
+    <div class="ptf-row" style="align-items:flex-end"><div class="ptf-f" style="flex:2.5"><select id="nce-crit-${c.key}" class="mass-sel" onchange="recalcNccEval()">${opts}</select></div>${extra}</div>
+    ${hint?`<div class="wf-muted" style="font-size:10.5px;margin-top:2px">${hint}</div>`:''}</div>`;
 }
 function nceExcludeHTML(){
   return `<div style="margin-bottom:12px"><div style="font-weight:600;margin-bottom:4px">Điều kiện loại trừ đặc biệt <span class="wf-muted" style="font-weight:400;font-size:11px">(có 1 điều kiện là đề xuất loại/tạm ngừng, bất kể tổng điểm)</span></div>`
@@ -1989,14 +2039,20 @@ function nceEvalFormHTML(vendorFixed){
 function recalcNccEval(){
   const picks={};
   NCC_CRITERIA.forEach(c=>{
-    if(c.bonus) picks[c.key]=[...document.querySelectorAll('.nce-bonus[data-key="'+c.key+'"]:checked')].map(el=>+el.value);
-    else { const el=document.getElementById('nce-crit-'+c.key); picks[c.key]=el?+el.value:0; }
+    if(c.bonus){ picks[c.key]=[...document.querySelectorAll('.nce-bonus[data-key="'+c.key+'"]:checked')].map(el=>+el.value); return; }
+    const el=document.getElementById('nce-crit-'+c.key); const level=el?+el.value:0;
+    if(c.key==='chatluong' || c.key==='giaban' || c.key==='thanhtoan' || c.key==='dichvu' || c.key==='oncung'){
+      const countEl=document.getElementById('nce-count-'+c.key); picks[c.key]={level,count:countEl?(+countEl.value||1):1};
+    } else if(c.key==='giaohang'){
+      const caseEl=document.getElementById('nce-case-'+c.key); picks[c.key]={level,hasCase:caseEl?caseEl.checked:false};
+    } else { picks[c.key]=level; }
   });
-  const exclude=[...document.querySelectorAll('.nce-excl:checked')].map(el=>NCC_EXCLUDE_CONDITIONS[+el.value]);
-  const {total}=nccEvalScores(picks); const g=nccGrade(total);
+  const manualExclude=[...document.querySelectorAll('.nce-excl:checked')].map(el=>NCC_EXCLUDE_CONDITIONS[+el.value]);
+  const {total,autoExclude}=nccEvalScores(picks); const g=nccGrade(total);
+  const exclude=[...new Set([...manualExclude,...autoExclude])];
   document.getElementById('nce-total').textContent=total;
   document.getElementById('nce-grade').textContent=g+' — '+nccGradeLabel(g);
-  document.getElementById('nce-action').textContent=exclude.length?'⚠ Vi phạm điều kiện loại trừ → Đề xuất loại khỏi danh sách / tạm ngừng hợp tác':nccGradeAction(g);
+  document.getElementById('nce-action').textContent=exclude.length?'⚠ '+exclude.join('; ')+' → Đề xuất loại khỏi danh sách / tạm ngừng hợp tác':nccGradeAction(g);
   return {picks,exclude,total,g};
 }
 function openNccEvalModal(vendorFixed){
@@ -3958,7 +4014,8 @@ const NCC_EVAL=[
 function nccEvalRows(){
   return NCC_EVAL.map(d=>{ const e=nccLatestEval(d[0]); if(!e) return '';
     const {total}=nccEvalScores(e.picks); const g=nccGrade(total);
-    const ket=e.exclude&&e.exclude.length?'⚠ '+e.exclude.join('; '):(e.note?e.note:'—');
+    const excl=nccCombinedExclude(e);
+    const ket=excl.length?'⚠ '+excl.join('; '):(e.note?e.note:'—');
     return `<tr><td><a style="cursor:pointer" onclick="openEvalModal('${d[0].replace(/'/g,"\\'")}','${e.period}')"><b>${d[0]}</b></a></td><td>${d[1]}</td><td class="num">${d[2].toLocaleString('vi-VN')}</td><td class="num"><b>${total}</b></td><td>${nccGradePill(g)}</td><td>${ket.startsWith('⚠')?'<span style="color:var(--err)">'+ket+'</span>':ket}</td></tr>`;
   }).join('');
 }
