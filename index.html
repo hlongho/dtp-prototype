@@ -2003,11 +2003,11 @@ function nceCritFieldHTML(c){
   let extra='', hint='';
   if(c.key==='chatluong'){
     const show=nceCountApplies(c.key,0);
-    extra=`<div class="ptf-f" style="flex:.7"><label class="wf-muted" style="font-size:11px;display:block">&nbsp;</label><div id="nce-countwrap-${c.key}" style="display:${show?'block':'none'}"><input type="number" id="nce-count-${c.key}" class="mass-sel" value="1" min="1" placeholder="Số lần" onchange="recalcNccEval()"></div></div>`;
+    extra=`<div class="ptf-f" id="nce-countwrap-${c.key}" style="flex:.7;display:${show?'flex':'none'}"><label class="wf-muted" style="font-size:11px;display:block">Số lần</label><input type="number" id="nce-count-${c.key}" class="mass-sel" value="1" min="1" onchange="recalcNccEval()"></div>`;
     hint='Mức 1/2 tái phạm (≥2 lần) trừ gấp đôi · Mức 1 tái phạm từ lần 3, Mức 2 tái phạm, Mức 3, hoặc Gian lận → tự động đề xuất loại.';
   } else if(c.key==='giaban'||c.key==='thanhtoan'||c.key==='dichvu'||c.key==='oncung'){
     const show=nceCountApplies(c.key,0);
-    extra=`<div class="ptf-f" style="flex:.7"><label class="wf-muted" style="font-size:11px;display:block">&nbsp;</label><div id="nce-countwrap-${c.key}" style="display:${show?'block':'none'}"><input type="number" id="nce-count-${c.key}" class="mass-sel" value="1" min="1" placeholder="Số lần" onchange="recalcNccEval()"></div></div>`;
+    extra=`<div class="ptf-f" id="nce-countwrap-${c.key}" style="flex:.7;display:${show?'flex':'none'}"><label class="wf-muted" style="font-size:11px;display:block">Số lần</label><input type="number" id="nce-count-${c.key}" class="mass-sel" value="1" min="1" onchange="recalcNccEval()"></div>`;
     hint='Áp dụng trừ điểm theo mỗi lần vi phạm phát sinh trong kỳ (chỉ hiện khi có vi phạm).';
   } else if(c.key==='giaohang'){
     extra=`<div class="ptf-f" style="flex:1"><label class="wf-muted" style="font-size:11px;display:block">&nbsp;</label><label style="font-weight:400;font-size:12px"><input type="checkbox" id="nce-case-${c.key}" onchange="recalcNccEval()"> Có Case sự vụ liên quan</label></div>`;
@@ -2024,7 +2024,7 @@ function nceCountApplies(key,level){
 }
 function nceCritChanged(key,value){
   const wrap=document.getElementById('nce-countwrap-'+key);
-  if(wrap) wrap.style.display=nceCountApplies(key,+value)?'block':'none';
+  if(wrap) wrap.style.display=nceCountApplies(key,+value)?'flex':'none';
   recalcNccEval();
 }
 function nccExcludeFlags(picks){
