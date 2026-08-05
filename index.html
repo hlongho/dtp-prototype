@@ -657,6 +657,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     <div class="pm-body" id="eval-body"></div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeEvalModal()">Đóng</button></div></div>
   </div>
+  <!-- Modal tạo mới đợt Đánh giá NCC -->
+  <div class="modal-back" id="nceback" onclick="closeNccEvalModal()" style="z-index:135"></div>
+  <div class="po-modal" id="ncemodal" style="z-index:140;width:min(720px,96vw);max-height:88vh;overflow:auto">
+    <div class="pm-head"><h3>Đánh giá NCC</h3><button title="Đóng" onclick="closeNccEvalModal()">✕</button></div>
+    <div class="pm-body" id="nce-body"></div>
+    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeNccEvalModal()">Hủy</button><button class="btn pri" onclick="confirmNccEval()">Lưu đánh giá</button></div></div>
+  </div>
   <!-- Modal thêm phí phát sinh (Shipment Fee) -->
   <div class="modal-back" id="feeback" onclick="closeFeeModal()" style="z-index:135"></div>
   <div class="po-modal" id="feemodal" style="z-index:140;width:min(620px,94vw)">
@@ -1835,43 +1842,183 @@ function openSlipModal(no){
 }
 function closeSlipModal(){ const b=document.getElementById('slipback'),m=document.getElementById('slipmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
 
-/* ===== Đánh giá NCC: bộ tiêu chí + các đợt đánh giá ===== */
-const CRIT_DEF=[
-  {cat:'1. Chất lượng sản phẩm', min:'28/40', std:40, subs:[['Phù hợp tiêu chuẩn kỹ thuật',15],['Độ ổn định chất lượng qua các lô',15],['Đáp ứng yêu cầu đặc biệt / cải tiến',10]]},
-  {cat:'2. Giá bán & Phương thức thanh toán', min:'18/30', std:30, subs:[['Tính cạnh tranh của giá bán',15],['Điều khoản & PTTT linh hoạt',10],['Tổng chi phí sở hữu (TCO)',5]]},
-  {cat:'3. Dịch vụ khách hàng', min:'12/20', std:20, subs:[['Giao hàng đúng hẹn / linh hoạt',10],['Hỗ trợ kỹ thuật & hậu mãi',5],['Ổn định nguồn cung',5]]},
-  {cat:'4. Cam kết môi trường & Uy tín', min:'3/6', std:6, subs:[['Chứng nhận môi trường (ISO 14001, FSC/ESG)',3],['Chính sách giảm tác động môi trường',3]]},
-  {cat:'5. Điểm tuyên dương', min:'', std:4, subs:[['Hỗ trợ nổi trội',4]]},
+/* ===== Đánh giá NCC — theo "BỘ TIÊU CHÍ ĐÁNH GIÁ NHÀ CUNG CẤP NỘI" (8 tiêu chí, thang 100, xếp loại A-E) ===== */
+const NCC_CRITERIA=[
+  {key:'chatluong', name:'Chất lượng hàng hóa/dịch vụ', max:40, dept:'QA', bonus:false, levels:[
+    {label:'Không phát sinh — đạt đầy đủ tiêu chuẩn/quy cách',pt:0},
+    {label:'Mức 1 – Nhẹ: lỗi nhẹ, vẫn dùng được sau phân loại/điều chỉnh',pt:-10},
+    {label:'Mức 2 – Nặng: không đạt chuẩn, dùng được sau xử lý/khắc phục',pt:-20},
+    {label:'Mức 3 – Nghiêm trọng: không dùng được / ảnh hưởng SX-an toàn-môi trường',pt:-40},
+    {label:'Gian lận: giả mạo COA/chứng nhận, che giấu lỗi',pt:-40}]},
+  {key:'giaban', name:'Giá bán, kèm phương thức giao nhận', max:15, dept:'Mua hàng', bonus:false, levels:[
+    {label:'≤ giá tham chiếu',pt:0},
+    {label:'Cao hơn tham chiếu ≤5%',pt:-5},
+    {label:'Cao hơn tham chiếu >5%–10%',pt:-10},
+    {label:'Cao hơn tham chiếu >10%',pt:-15},
+    {label:'Thông báo tăng giá muộn, không đúng cam kết',pt:-5},
+    {label:'Phụ phí không minh bạch / phát sinh chưa thống nhất',pt:-10}]},
+  {key:'thanhtoan', name:'Phương thức thanh toán', max:10, dept:'Mua hàng', bonus:false, levels:[
+    {label:'Công nợ ≥30 ngày',pt:0},
+    {label:'Công nợ <30 ngày',pt:-2},
+    {label:'Đặt cọc / trả trước một phần',pt:-5},
+    {label:'Chứng từ thanh toán sai/chậm',pt:-2},
+    {label:'Tự ý đổi điều kiện thanh toán bất lợi',pt:-4}]},
+  {key:'giaohang', name:'Giao hàng đúng hạn, linh hoạt theo yêu cầu', max:10, dept:'Mua hàng', bonus:false, levels:[
+    {label:'Đúng cam kết',pt:0},
+    {label:'Trễ hạn <5 ngày',pt:-2},
+    {label:'Trễ hạn 5–<10 ngày',pt:-4},
+    {label:'Trễ hạn >10 ngày',pt:-5},
+    {label:'Trễ hạn nghiêm trọng, gây gián đoạn SX',pt:-10},
+    {label:'Giao sai/thiếu (SL, quy cách, địa điểm)',pt:-5}]},
+  {key:'dichvu', name:'Dịch vụ sau bán hàng (hỗ trợ KT, xử lý sự cố, chuyển giao CN)', max:10, dept:'QA', bonus:false, levels:[
+    {label:'Đúng cam kết',pt:0},
+    {label:'Hỗ trợ KT chậm, không ảnh hưởng lớn',pt:-5},
+    {label:'Hỗ trợ KT chậm, ảnh hưởng lớn',pt:-10},
+    {label:'Chuyển giao CN không đạt, không ảnh hưởng lớn',pt:-5},
+    {label:'Chuyển giao CN không đạt, ảnh hưởng lớn',pt:-10}]},
+  {key:'oncung', name:'Ổn định nguồn cung, đáp ứng nhanh, kịp thời', max:5, dept:'Mua hàng', bonus:false, levels:[
+    {label:'Ổn định, kịp thời',pt:0},
+    {label:'Có hàng nhưng giao trễ, vẫn đáp ứng',pt:-1},
+    {label:'Không đảm bảo nguồn cung, ảnh hưởng SX/KD',pt:-5}]},
+  {key:'moitruong', name:'Chứng nhận môi trường, hoạt động ESG và uy tín NCC', max:5, dept:'Mua hàng', bonus:false, levels:[
+    {label:'Đầy đủ chứng nhận (ISO/FSC/Kiểm kê khí nhà kính) + báo cáo ESG',pt:0},
+    {label:'Thiếu 1 chứng nhận còn hiệu lực',pt:-1},
+    {label:'Chưa chứng nhận, có chính sách/mục tiêu + bằng chứng',pt:-3},
+    {label:'Chưa có chính sách/mục tiêu hoặc có vi phạm môi trường',pt:-5}]},
+  {key:'hotro', name:'Hỗ trợ nổi trội', max:5, dept:'Mua hàng / QA', bonus:true, levels:[
+    {label:'Giao gấp/ngoài giờ (2–4h, lễ/CN)',pt:1},
+    {label:'Ưu đãi thương mại (chủ động giảm/giữ giá có lợi)',pt:1},
+    {label:'Giải pháp tiết giảm chi phí/tiêu hao',pt:1},
+    {label:'Kỹ thuật có mặt/hỗ trợ từ xa 2–4h, hiệu quả',pt:1},
+    {label:'Ghi nhận khác (được TGĐ phê duyệt)',pt:1}]},
 ];
-const EVALS=[
-  {period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Mua hàng', scores:[13,13,8,13,8,5,8,5,4,3,0,2]},
-  {period:'Kỳ 06/2026', date:'05/06/2026', by:'P. Mua hàng', scores:[12,11,7,12,8,5,7,4,3,3,0,3]},
-  {period:'Kỳ 05/2026', date:'06/05/2026', by:'P. Mua hàng', scores:[14,13,9,14,9,5,9,5,4,3,3,0]},
+const NCC_EXCLUDE_CONDITIONS=[
+  'Điểm chất lượng dưới 20/40',
+  'Chất lượng phạm lỗi Mức 3 ảnh hưởng nghiêm trọng an toàn/môi trường/khách hàng, hoặc tái phạm lỗi 2 lần',
+  'Hàng giả, nguồn gốc không rõ, hồ sơ gian lận',
+  'Không đổi trả, bồi thường hoặc thực hiện CAPA đã cam kết',
+  'Vi phạm pháp luật nghiêm trọng / ảnh hưởng uy tín Công ty',
 ];
-function evalGrade(t){ return t>=85?'A':t>=70?'B':t>=63?'C':'—'; }
-function critTableHTML(scores){
-  let rows='', k=0, total=0;
-  CRIT_DEF.forEach(c=>{
-    let catSum=0;
-    const subRows=c.subs.map(s=>{ const v=scores[k++]; catSum+=v; return `<tr><td>↳ ${s[0]}</td><td class="num">${s[1]}</td><td class="num">${v}</td></tr>`; }).join('');
-    total+=catSum;
-    rows+=`<tr><td><b>${c.cat}${c.min?` (tối thiểu ${c.min})`:''}</b></td><td class="num"><b>${c.std}</b></td><td class="num"><b>${catSum}</b></td></tr>`+subRows;
+function nccGrade(t){ return t>=90?'A':t>=80?'B':t>=70?'C':t>=60?'D':'E'; }
+function nccGradeLabel(g){ return {A:'Xuất sắc',B:'Tốt',C:'Đạt',D:'Cần cải thiện',E:'Không đạt'}[g]; }
+function nccGradeAction(g){ return {A:'Ưu tiên đặt hàng; xem xét hợp tác chiến lược',B:'Tiếp tục duy trì và phát triển',C:'Tiếp tục giao dịch; yêu cầu cải tiến nếu cần',D:'Theo dõi đặc biệt; yêu cầu CAPA và đánh giá lại',E:'Tạm ngừng hoặc xem xét loại khỏi danh sách'}[g]; }
+function nccGradePill(g){ return pill(g==='A'||g==='B'?'ok':(g==='C'?'info':'err'), g+' — '+nccGradeLabel(g)); }
+function nccEvalScores(picks){
+  const per={}; let total=0;
+  NCC_CRITERIA.forEach(c=>{
+    let pt;
+    if(c.bonus){ const idxs=picks[c.key]||[]; pt=Math.min(c.max, idxs.reduce((s,i)=>s+(c.levels[i]?c.levels[i].pt:0),0)); }
+    else { const idx=picks[c.key]||0; const lvl=c.levels[idx]||c.levels[0]; pt=Math.max(0, Math.min(c.max, c.max+lvl.pt)); }
+    per[c.key]=pt; total+=pt;
   });
-  rows+=`<tr><td><b>TỔNG CỘNG — ngưỡng chọn ≥ 63</b></td><td class="num"><b>100</b></td><td class="num"><b>${total} · Xếp loại ${evalGrade(total)}</b></td></tr>`;
-  return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm chuẩn</th><th class="num">Điểm đạt</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return {per,total};
 }
-function evalsListRows(){
-  return EVALS.map((e,i)=>{ const t=e.scores.reduce((a,b)=>a+b,0); const g=evalGrade(t);
-    return [`<a style="cursor:pointer" onclick="openEvalModal(${i})">${e.period}</a>`, e.date, t+'/100', pill(t>=63?'ok':'err', g+(t>=63?' — Đạt':' — Không đạt')), e.by]; });
+function nccCriteriaRowsHTML(picks){
+  const {per,total}=nccEvalScores(picks); const g=nccGrade(total);
+  let rows=NCC_CRITERIA.map(c=>{
+    const val=c.bonus ? ((picks[c.key]||[]).map(i=>c.levels[i]?c.levels[i].label:'').filter(Boolean).join('; ')||'Không có') : (c.levels[picks[c.key]||0]||c.levels[0]).label;
+    return `<tr><td><b>${c.name}</b><div class="wf-muted" style="font-size:10px">${c.dept}</div></td><td class="num">${c.max}</td><td class="num"><b>${per[c.key]}</b></td><td>${val}</td></tr>`;
+  }).join('');
+  rows+=`<tr style="font-weight:700;background:var(--bg)"><td>TỔNG ĐIỂM</td><td class="num">100</td><td class="num">${total}</td><td>Xếp loại ${g} — ${nccGradeLabel(g)}</td></tr>`;
+  return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm tối đa</th><th class="num">Điểm đạt</th><th>Mức đã chọn</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
-function openEvalModal(i){
-  const e=EVALS[i]; if(!e) return; const t=e.scores.reduce((a,b)=>a+b,0);
-  document.getElementById('eval-title').textContent=e.period+' · '+t+'/100 · Xếp loại '+evalGrade(t);
-  document.getElementById('eval-body').innerHTML=`<p class="po-hint">Ngày đánh giá <b>${e.date}</b> · Người đánh giá <b>${e.by}</b></p>`+critTableHTML(e.scores);
+let NCC_EVALS=[
+  {vendor:'Cty Hóa chất Tân Tiến', period:'Kỳ 05/2026', date:'06/05/2026', by:'P. Mua hàng', picks:{chatluong:0,giaban:1,thanhtoan:0,giaohang:1,dichvu:0,oncung:0,moitruong:1,hotro:[1]}, exclude:[], note:''},
+  {vendor:'Cty Hóa chất Tân Tiến', period:'Kỳ 06/2026', date:'05/06/2026', by:'P. Mua hàng', picks:{chatluong:1,giaban:0,thanhtoan:1,giaohang:2,dichvu:0,oncung:0,moitruong:1,hotro:[]}, exclude:[], note:'Chậm bổ sung chứng từ thanh toán'},
+  {vendor:'Cty Hóa chất Tân Tiến', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Mua hàng', picks:{chatluong:1,giaban:0,thanhtoan:0,giaohang:1,dichvu:0,oncung:0,moitruong:1,hotro:[]}, exclude:[], note:'Giao trễ lô keo dán T7 (1.5 ngày) — đã xử lý, không ảnh hưởng SX'},
+  {vendor:'Neo Nam Việt', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Mua hàng', picks:{chatluong:0,giaban:0,thanhtoan:0,giaohang:0,dichvu:0,oncung:0,moitruong:0,hotro:[]}, exclude:[], note:''},
+  {vendor:'Bình Phước', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Mua hàng', picks:{chatluong:0,giaban:0,thanhtoan:0,giaohang:1,dichvu:0,oncung:0,moitruong:0,hotro:[]}, exclude:[], note:'Giao trễ 1 lô (2 ngày) · đã bổ sung C/O'},
+  {vendor:'Andritz', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Mua hàng', picks:{chatluong:0,giaban:0,thanhtoan:0,giaohang:0,dichvu:0,oncung:0,moitruong:0,hotro:[]}, exclude:[], note:''},
+  {vendor:'Gia Định', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Mua hàng', picks:{chatluong:0,giaban:0,thanhtoan:0,giaohang:0,dichvu:0,oncung:0,moitruong:0,hotro:[]}, exclude:[], note:''},
+  {vendor:'A-CET', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Mua hàng', picks:{chatluong:2,giaban:0,thanhtoan:0,giaohang:0,dichvu:0,oncung:0,moitruong:0,hotro:[]}, exclude:[], note:'Lô bột màu không đạt tông — phải pha lại (QA duyệt dùng)'},
+  {vendor:'Tân Đại Phú Sỹ', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Mua hàng', picks:{chatluong:0,giaban:0,thanhtoan:0,giaohang:0,dichvu:0,oncung:0,moitruong:0,hotro:[]}, exclude:[], note:''},
+  {vendor:'Hiệp Phát', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Mua hàng', picks:{chatluong:0,giaban:0,thanhtoan:0,giaohang:0,dichvu:1,oncung:0,moitruong:0,hotro:[]}, exclude:[], note:'Hồ sơ nghiệm thu chậm 3 ngày'},
+  {vendor:'Nguyễn Đức Thịnh', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Mua hàng', picks:{chatluong:0,giaban:0,thanhtoan:0,giaohang:0,dichvu:0,oncung:0,moitruong:0,hotro:[]}, exclude:[], note:''},
+  {vendor:'Quang Minh Kiều', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Mua hàng', picks:{chatluong:0,giaban:3,thanhtoan:0,giaohang:0,dichvu:0,oncung:0,moitruong:0,hotro:[]}, exclude:[], note:'Báo giá cao hơn tham chiếu >10%'},
+  {vendor:'KTC Vina', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Mua hàng', picks:{chatluong:0,giaban:0,thanhtoan:0,giaohang:1,dichvu:0,oncung:0,moitruong:0,hotro:[]}, exclude:[], note:'Giao sai ngày hẹn 1 lần'},
+  {vendor:'Đại Đồng Tiến Phát', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Mua hàng', picks:{chatluong:3,giaban:0,thanhtoan:0,giaohang:0,dichvu:0,oncung:0,moitruong:0,hotro:[]}, exclude:['Điểm chất lượng dưới 20/40'], note:'Lô hàng lỗi nặng gây dừng máy PM4 — không sử dụng được'},
+];
+function nccLatestEval(vendor){ const list=NCC_EVALS.filter(e=>e.vendor===vendor); return list[list.length-1]||null; }
+function nccEvalsListRows(vendor){
+  return NCC_EVALS.filter(e=>e.vendor===vendor).map(e=>{ const {total}=nccEvalScores(e.picks); const g=nccGrade(total);
+    const ket=e.exclude&&e.exclude.length?'Xem xét loại khỏi danh sách (vi phạm điều kiện loại trừ)':nccGradeAction(g);
+    return [`<a style="cursor:pointer" onclick="openEvalModal('${e.vendor.replace(/'/g,"\\'")}','${e.period}')">${e.period}</a>`, e.date, total+'/100', nccGradePill(g), e.by, ket];
+  });
+}
+function openEvalModal(vendor,period){
+  const e=NCC_EVALS.find(x=>x.vendor===vendor && x.period===period); if(!e) return;
+  const {total}=nccEvalScores(e.picks); const g=nccGrade(total);
+  document.getElementById('eval-title').textContent=e.period+' · '+total+'/100 · Xếp loại '+g;
+  document.getElementById('eval-body').innerHTML=`<p class="po-hint">NCC <b>${e.vendor}</b> · Ngày đánh giá <b>${e.date}</b> · Người đánh giá <b>${e.by}</b>${e.note?' · Ghi chú: '+e.note:''}${e.exclude&&e.exclude.length?'<br><span style="color:var(--err)">⚠ Vi phạm điều kiện loại trừ: '+e.exclude.join('; ')+'</span>':''}</p>`+nccCriteriaRowsHTML(e.picks);
   document.getElementById('evalback').classList.add('show');
   document.getElementById('evalmodal').classList.add('show');
 }
 function closeEvalModal(){ const b=document.getElementById('evalback'),m=document.getElementById('evalmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
+/* --- Modal tạo mới đợt Đánh giá NCC --- */
+let NCE_CONTEXT={vendorFixed:null};
+function nceCritFieldHTML(c){
+  if(c.bonus){
+    const boxes=c.levels.map((lv,i)=>`<label style="display:block;font-weight:400;font-size:12px;margin-bottom:2px"><input type="checkbox" class="nce-bonus" data-key="${c.key}" value="${i}" onchange="recalcNccEval()"> ${lv.label} (+${lv.pt})</label>`).join('');
+    return `<div class="ptf-item"><div style="font-weight:600">${c.name} <span class="wf-muted" style="font-weight:400;font-size:11px">(${c.dept} · tối đa ${c.max}đ, cộng điểm)</span></div>${boxes}</div>`;
+  }
+  const opts=c.levels.map((lv,i)=>`<option value="${i}">${lv.label} (${lv.pt>=0?'+':''}${lv.pt})</option>`).join('');
+  return `<div class="ptf-item"><div style="font-weight:600;margin-bottom:4px">${c.name} <span class="wf-muted" style="font-weight:400;font-size:11px">(${c.dept} · tối đa ${c.max}đ)</span></div>
+    <select id="nce-crit-${c.key}" class="mass-sel" onchange="recalcNccEval()">${opts}</select></div>`;
+}
+function nceExcludeHTML(){
+  return `<div class="ptf-item"><div style="font-weight:600;margin-bottom:4px">Điều kiện loại trừ đặc biệt <span class="wf-muted" style="font-weight:400;font-size:11px">(có 1 điều kiện là đề xuất loại/tạm ngừng, bất kể tổng điểm)</span></div>`
+    + NCC_EXCLUDE_CONDITIONS.map((c,i)=>`<label style="display:block;font-weight:400;font-size:12px;margin-bottom:2px"><input type="checkbox" class="nce-excl" value="${i}" onchange="recalcNccEval()"> ${c}</label>`).join('')+`</div>`;
+}
+function nceEvalFormHTML(vendorFixed){
+  const vendorField = vendorFixed
+    ? `<div class="ptf-f" style="flex:2"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Nhà cung cấp</label><input class="mass-sel" value="${vendorFixed}" disabled></div>`
+    : `<div class="ptf-f" style="flex:2"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Nhà cung cấp *</label><select id="nce-vendor" class="mass-sel">${[...new Set(NCC_EVALS.map(e=>e.vendor))].map(v=>`<option>${v}</option>`).join('')}</select></div>`;
+  return `<div class="ptf-row" style="align-items:baseline">
+      ${vendorField}
+      <div class="ptf-f" style="flex:1"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Kỳ đánh giá *</label><input id="nce-period" class="mass-sel" placeholder="VD: Kỳ 08/2026"></div>
+    </div>
+    ${NCC_CRITERIA.map(nceCritFieldHTML).join('')}
+    ${nceExcludeHTML()}
+    <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Ghi chú / bằng chứng</label><input id="nce-note" class="mass-sel" placeholder="VD: Giao trễ 2 ngày, đã bổ sung C/O..."></div>
+    <div class="ptf-item" style="background:var(--bg)">
+      <div style="font-weight:600">Kết quả</div>
+      <div style="margin-top:4px">Tổng điểm: <b id="nce-total">0</b>/100 · Xếp loại <b id="nce-grade">—</b></div>
+      <div class="wf-muted" style="font-size:12px" id="nce-action">—</div>
+    </div>`;
+}
+function recalcNccEval(){
+  const picks={};
+  NCC_CRITERIA.forEach(c=>{
+    if(c.bonus) picks[c.key]=[...document.querySelectorAll('.nce-bonus[data-key="'+c.key+'"]:checked')].map(el=>+el.value);
+    else { const el=document.getElementById('nce-crit-'+c.key); picks[c.key]=el?+el.value:0; }
+  });
+  const exclude=[...document.querySelectorAll('.nce-excl:checked')].map(el=>NCC_EXCLUDE_CONDITIONS[+el.value]);
+  const {total}=nccEvalScores(picks); const g=nccGrade(total);
+  document.getElementById('nce-total').textContent=total;
+  document.getElementById('nce-grade').textContent=g+' — '+nccGradeLabel(g);
+  document.getElementById('nce-action').textContent=exclude.length?'⚠ Vi phạm điều kiện loại trừ → Đề xuất loại khỏi danh sách / tạm ngừng hợp tác':nccGradeAction(g);
+  return {picks,exclude,total,g};
+}
+function openNccEvalModal(vendorFixed){
+  NCE_CONTEXT={vendorFixed:vendorFixed||null};
+  document.getElementById('nce-body').innerHTML=nceEvalFormHTML(vendorFixed);
+  document.getElementById('nce-period').value='Kỳ 08/2026';
+  document.getElementById('nceback').classList.add('show');
+  document.getElementById('ncemodal').classList.add('show');
+  recalcNccEval();
+}
+function closeNccEvalModal(){ const b=document.getElementById('nceback'),m=document.getElementById('ncemodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
+function confirmNccEval(){
+  const vendor=NCE_CONTEXT.vendorFixed || document.getElementById('nce-vendor').value;
+  const period=(document.getElementById('nce-period').value||'').trim();
+  if(!period){ toast('Nhập Kỳ đánh giá'); return; }
+  const {picks,exclude,total,g}=recalcNccEval();
+  const note=(document.getElementById('nce-note').value||'').trim();
+  NCC_EVALS.push({vendor,period,date:'Hôm nay',by:'Bạn',picks,exclude,note});
+  closeNccEvalModal();
+  toast('✓ Đã lưu đánh giá NCC "'+vendor+'" · '+period+' · '+total+'/100 · Xếp loại '+g);
+  if(NCE_CONTEXT.vendorFixed) go('vendor'); else go('rpt_ncceval');
+}
 
 /* ===== Shipment Fees (Quản lý chi phí) ===== */
 let IC_INCLUDED_FEES='Include DTHC · Include Phí vệ sinh · Include CIC · Include Phí chứng từ (Documentation)';
@@ -2632,34 +2779,23 @@ S.impo = ()=> appnav('Mua hàng nhập khẩu','Đơn mua (PO)',TAB_IM,'Đơn mu
  </div>`;
 
 S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'],'NCC')
- + `<div class="sf-body narrow">
-   ${hl({crumb:'<span data-go="vendor_list">Đánh giá Nhà cung cấp</span> &rsaquo;',ico:'⭐',color:'#2e844a',title:'Cty Hóa chất Tân Tiến',sub:'Điểm đánh giá tổng: 82/100 · Xếp loại B',
-     fields:[['Điểm','82/100'],['Xếp loại',pill('ok','B — Đạt')],['Ngưỡng chọn','≥ 63/100'],['Kỳ đánh giá','07/2026']],
-     actions:[{t:'Ghi nhận sự cố',pri:true},'Sửa']})}
+ + (()=>{ const vendorName='Cty Hóa chất Tân Tiến'; const e=nccLatestEval(vendorName); const {total}=nccEvalScores(e.picks); const g=nccGrade(total);
+   return `<div class="sf-body narrow">
+   ${hl({crumb:'<span data-go="vendor_list">Đánh giá Nhà cung cấp</span> &rsaquo;',ico:'⭐',color:'#2e844a',title:vendorName,sub:'Điểm đánh giá tổng: '+total+'/100 · Xếp loại '+g+' — '+nccGradeLabel(g),
+     fields:[['Điểm',total+'/100'],['Xếp loại',nccGradePill(g)],['Hành động',nccGradeAction(g)],['Kỳ đánh giá',e.period]],
+     actions:[{t:'Đánh giá NCC',pri:true,fn:`openNccEvalModal('${vendorName}')`},{t:'Ghi nhận sự cố'},'Sửa']})}
    <div class="cols-side act-tab">
      <div>
-     ${card('Thông tin nhà cung cấp', fg([['Tên NCC','Cty Hóa chất Tân Tiến'],['Mã số thuế','0388445511'],
+     ${card('Thông tin nhà cung cấp', fg([['Tên NCC',vendorName],['Mã số thuế','0388445511'],
        ['Nhóm hàng cung cấp','Hóa chất, keo công nghiệp'],['Người liên hệ','Ông Phạm Văn K'],['Điện thoại','028 xxx xxxx'],
        ['Email','muahang@tantien.vn'],['Địa chỉ','KCN Sóng Thần, Bình Dương'],['Điều khoản TT','Net 30'],
-       ['Đánh giá tổng','82/100 · Xếp loại B'],['Trạng thái',pill('ok','Đang hợp tác')]]))}
-     ${card('Tiêu chí đánh giá NCC (kỳ hiện tại)', critTableHTML(EVALS[0].scores), {n:'5'})}
-     ${card('Chi tiết điểm trừ theo tiêu chí', tbl([{t:'Tiêu chí'},{t:'Quy tắc cộng / trừ điểm'}],[
-       ['Phù hợp tiêu chuẩn KT','−2đ mỗi lỗi: độ ẩm · lẫn loại · tạp chất · pH · độ nhớt · độ trắng · tỷ trọng · móp méo/cận date. Sai lệch vẫn dùng (QA duyệt) −5 · phải phân loại/sửa −4'],
-       ['Độ ổn định chất lượng','Không lỗi +15 (mặc định) · 1 lần lỗi −3 · 2 lần −5 · ≥3 lần hoặc nghiêm trọng −15'],
-       ['Cải tiến / độc đáo','Đầy đủ +10 · chậm/chưa tối ưu +7 · một phần +4 · không có 0'],
-       ['Cạnh tranh giá','Cao hơn NCC khác ≥15% −15 · ≥10% −10 · ≥5% −5'],
-       ['Điều khoản & PTTT','TT trước +8 · TT ngay +6 · nợ <30n +5 · <60n +3 · <90n +2 · >90n +10'],
-       ['Tổng chi phí sở hữu (TCO)','Chi phí rủi ro −5 · hậu cần −3 · trực tiếp −2'],
-       ['Giao hàng đúng hẹn','Thừa/thiếu SL −4 · giao sai hàng −3 · hàng lỗi −2 · thiếu/sai chứng từ −1 · trộn lẫn không nhãn −1 · sai lịch −1 · thái độ −1 · sai giờ −1 · thiếu điều kiện giao −1'],
-       ['Hỗ trợ KT & hậu mãi','Không hỗ trợ −5 · lỗi chứng từ −2 · sai lỗi lặp lại −2'],
-       ['Ổn định nguồn cung','Không ổn định −5 · đáp ứng 75% −1 · 50% −2,5'],
-       ['Môi trường & Uy tín','Có chứng nhận môi trường +3 · có chính sách giảm tác động +3'],
-       ['Điểm tuyên dương','Giao gấp 2–4h/lễ/CN +1 · chủ động giảm giá +1 · giải pháp tiết giảm CP +1 · hỗ trợ KT có mặt 2–4h +1']]),{n:'11'})}
-     ${card('Lịch sử đánh giá', tbl([{t:'Kỳ đánh giá'},{t:'Ngày'},{t:'Điểm'},{t:'Xếp loại'},{t:'Người đánh giá'}], evalsListRows()),{n:String(EVALS.length)})}
+       ['Đánh giá tổng',total+'/100 · Xếp loại '+g],['Trạng thái',pill('ok','Đang hợp tác')]]))}
+     ${card('Tiêu chí đánh giá NCC (kỳ '+e.period+')', nccCriteriaRowsHTML(e.picks), {n:'8'})}
+     ${card('Lịch sử đánh giá', tbl([{t:'Kỳ đánh giá'},{t:'Ngày'},{t:'Điểm'},{t:'Xếp loại'},{t:'Người đánh giá'},{t:'Kết luận'}], nccEvalsListRows(vendorName)),{n:String(NCC_EVALS.filter(x=>x.vendor===vendorName).length),r:`<button class="btn sm" onclick="openNccEvalModal('${vendorName}')">＋ Đánh giá NCC</button>`})}
      </div>
      ${activity([['⚠','QA ghi nhận lô keo lỗi','QA · 06/2026'],['📦','17 đơn mua hoàn tất','—']])}
    </div>
- </div>`;
+ </div>`; })();
 
 /* ===== Cảnh báo tồn kho + hàng đi đường (1 bảng: NVL theo hàng dọc, tuần theo hàng ngang) =====
    Công thức cuốn chiếu theo ETA (chốt với Helen Phan / Trinh Phạm):
@@ -3807,21 +3943,23 @@ function nccTopRows(){
 /* --- Đánh giá NCC trong tháng (chấm điểm 5 tiêu chí có trọng số) --- */
 // [tên, mặt hàng, tổng cộng (đồng), Chất lượng(x3), Giá&PTTT(x2), Giao hàng(x1), Ổn định(x1), Hỗ trợ(x1), ghi chú]
 const NCC_EVAL=[
-  ['Neo Nam Việt','Tinh bột mì',3051918000,9,6,3,3,3,''],
-  ['Bình Phước','Tinh bột mì',2995272000,9,6,3,3,3,'Giao trễ 1 lô (2 ngày) · đã bổ sung C/O'],
-  ['Andritz','Máy ép bùn trục vít, phụ tùng bơm',1910822565,9,6,3,3,3,''],
-  ['Gia Định','Tinh bột Cation, APS, phèn lỏng; bột mì',1209686400,9,6,3,3,3,''],
-  ['A-CET','Bột màu (vàng cam, đỏ)',1024623136,9,6,3,3,3,''],
-  ['Tân Đại Phú Sỹ','Máy nén khí',850963320,9,6,3,3,3,''],
-  ['Hiệp Phát','Gia công VTCK các loại',818862750,9,6,3,3,3,'Hồ sơ nghiệm thu chậm 3 ngày'],
-  ['Nguyễn Đức Thịnh','Hệ điều khiển cấp DC và hãm cho máy cắt cuộn',601225432,9,6,3,3,3,''],
-  ['Quang Minh Kiều','Mền bạt lưới, hộp giảm tốc',547361064,9,6,3,3,3,''],
-  ['KTC Vina','Bạc đạn: FAG',444611160,9,6,3,3,3,'Giao sai ngày hẹn 1 lần'],
-  ['Đại Đồng Tiến Phát','Máy ép bùn, dao cạo, băng tải',437400000,9,6,3,3,3,''],
+  ['Neo Nam Việt','Tinh bột mì',3051918000],
+  ['Bình Phước','Tinh bột mì',2995272000],
+  ['Andritz','Máy ép bùn trục vít, phụ tùng bơm',1910822565],
+  ['Gia Định','Tinh bột Cation, APS, phèn lỏng; bột mì',1209686400],
+  ['A-CET','Bột màu (vàng cam, đỏ)',1024623136],
+  ['Tân Đại Phú Sỹ','Máy nén khí',850963320],
+  ['Hiệp Phát','Gia công VTCK các loại',818862750],
+  ['Nguyễn Đức Thịnh','Hệ điều khiển cấp DC và hãm cho máy cắt cuộn',601225432],
+  ['Quang Minh Kiều','Mền bạt lưới, hộp giảm tốc',547361064],
+  ['KTC Vina','Bạc đạn: FAG',444611160],
+  ['Đại Đồng Tiến Phát','Máy ép bùn, dao cạo, băng tải',437400000],
 ];
 function nccEvalRows(){
-  return NCC_EVAL.map(d=>{ const tot=d[3]+d[4]+d[5]+d[6]+d[7];
-    return `<tr><td><b>${d[0]}</b></td><td>${d[1]}</td><td class="num">${d[2].toLocaleString('vi-VN')}</td><td class="num">${d[3]}</td><td class="num">${d[4]}</td><td class="num">${d[5]}</td><td class="num">${d[6]}</td><td class="num">${d[7]}</td><td class="num"><b>${tot}</b></td><td>${d[8]?'<span style="color:var(--warn)">⚠ '+d[8]+'</span>':'—'}</td></tr>`;
+  return NCC_EVAL.map(d=>{ const e=nccLatestEval(d[0]); if(!e) return '';
+    const {total}=nccEvalScores(e.picks); const g=nccGrade(total);
+    const ket=e.exclude&&e.exclude.length?'⚠ '+e.exclude.join('; '):(e.note?e.note:'—');
+    return `<tr><td><a style="cursor:pointer" onclick="openEvalModal('${d[0].replace(/'/g,"\\'")}','${e.period}')"><b>${d[0]}</b></a></td><td>${d[1]}</td><td class="num">${d[2].toLocaleString('vi-VN')}</td><td class="num"><b>${total}</b></td><td>${nccGradePill(g)}</td><td>${ket.startsWith('⚠')?'<span style="color:var(--err)">'+ket+'</span>':ket}</td></tr>`;
   }).join('');
 }
 const TAB_RPT=['Thống kê ĐNMH','Doanh số 3 tháng','Top 10 NCC','Đánh giá NCC'];
@@ -3874,13 +4012,13 @@ S.rpt_ncctop = ()=> appnav('Báo cáo mua hàng','Top 10 NCC doanh số cao',TAB
  </div>`;
 S.rpt_ncceval = ()=> appnav('Báo cáo mua hàng','Đánh giá NCC',TAB_RPT,'Đánh giá NCC')
  + `<div class="sf-body">
-   ${hl({crumb:'Báo cáo mua hàng',ico:'⭐',color:'#2e844a',title:'Đánh giá nhà cung cấp T6/2026',sub:'Chấm điểm hiệu suất NCC theo 5 tiêu chí có trọng số + ghi chú sự vụ trong kỳ',
-     fields:[['Kỳ','Tháng 6/2026'],['Số NCC đánh giá','11'],['Thang điểm','5 tiêu chí có trọng số'],['Cập nhật','Hôm nay']],actions:[{t:'Xuất báo cáo',pri:true},'Đổi kỳ']})}
-   ${card('Đánh giá NCC T6/2026 — chấm điểm 5 tiêu chí có trọng số',
+   ${hl({crumb:'Báo cáo mua hàng',ico:'⭐',color:'#2e844a',title:'Đánh giá nhà cung cấp T7/2026',sub:'Chấm điểm theo Bộ tiêu chí đánh giá NCC — 8 tiêu chí, thang 100 điểm, xếp loại A-E',
+     fields:[['Kỳ','Kỳ 07/2026'],['Số NCC đánh giá','11'],['Thang điểm','8 tiêu chí — 100đ'],['Cập nhật','Hôm nay']],actions:[{t:'Đánh giá NCC',pri:true,fn:'openNccEvalModal()'},{t:'Xuất báo cáo'},'Đổi kỳ']})}
+   ${card('Đánh giá NCC Kỳ 07/2026 — 8 tiêu chí, thang 100 điểm',
      `<div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Tên NCC</th><th>Mặt hàng cung cấp</th><th class="num">Tổng cộng (đồng)</th><th class="num">Chất lượng SP<br><span class="wf-muted" style="font-weight:400;font-size:10px">hệ số x3</span></th><th class="num">Giá bán & PTTT<br><span class="wf-muted" style="font-weight:400;font-size:10px">hệ số x2</span></th><th class="num">Giao hàng<br><span class="wf-muted" style="font-weight:400;font-size:10px">x1</span></th><th class="num">Ổn định<br><span class="wf-muted" style="font-weight:400;font-size:10px">x1</span></th><th class="num">Hỗ trợ<br><span class="wf-muted" style="font-weight:400;font-size:10px">x1</span></th><th class="num">Tổng điểm</th><th>Ghi chú (sự vụ trong kỳ)</th></tr></thead>
+        <thead><tr><th>Tên NCC</th><th>Mặt hàng cung cấp</th><th class="num">Tổng cộng (đồng)</th><th class="num">Điểm đánh giá</th><th>Xếp loại</th><th>Ghi chú / Kết luận</th></tr></thead>
         <tbody>${nccEvalRows()}</tbody></table></div>
-      <div class="po-hint">Điểm tính theo 5 tiêu chí có trọng số: Chất lượng SP (x3) · Giá bán & PTTT (x2) · Giao hàng (x1) · Sự ổn định (x1) · Hỗ trợ (x1). Cột Ghi chú nêu sự vụ phát sinh của NCC trong kỳ (giao trễ, hồ sơ chậm, giao sai ngày…).</div>`)}
+      <div class="po-hint">Điểm theo 8 tiêu chí có trọng số (Chất lượng 40 · Giá bán 15 · Thanh toán 10 · Giao hàng 10 · Dịch vụ sau bán 10 · Ổn định nguồn cung 5 · Môi trường/ESG 5 · Hỗ trợ nổi trội 5) → Xếp loại A (90-100) · B (80-89) · C (70-79) · D (60-69) · E (dưới 60). Bấm tên NCC để xem chi tiết đợt đánh giá.</div>`)}
  </div>`;
 /* ===== Theo dõi Claim / Khiếu nại (BP XNK) ===== */
 // [năm, số Invoice, số B/L, tổng phát sinh VND, đơn vị bị claim, claim USD, claim VND, tình trạng, lý do, đối tượng chịu TN]
@@ -3956,9 +4094,9 @@ S.vendor_list = ()=> appnav('Mua hàng','NCC',TAB_PUR,'NCC')
  + `<div class="sf-body">${lv({crumb:'Nhà cung cấp',ico:'⭐',color:'#2e844a',object:'Nhà cung cấp (Account)',view:'NCC đang hợp tác',views:['NCC đang hợp tác','Đánh giá thấp','Tạm ngưng','Tất cả NCC'],count:'84',newLabel:'NCC mới',
    cols:[{t:'Tên NCC'},{t:'Mã số thuế'},{t:'Nhóm hàng'},{t:'Điểm',num:true},{t:'Xếp loại'}],
    rows:[
-    {go:'vendor',cells:['Cty Hóa chất Tân Tiến','0388445511','Keo/Hóa chất','82',pill('ok','B — Đạt')]},
-    {go:'vendor',cells:['Cty TM Hải Đăng','0311998877','Bao bì/Phụ liệu','74',pill('warn','C — Theo dõi')]},
-    {go:'vendor',cells:['Cty Cơ khí Tân Bình','0356473829','Thiết bị','90',pill('ok','A — Ưu tiên')]}]})}</div>`;
+    {go:'vendor',cells:['Cty Hóa chất Tân Tiến','0388445511','Keo/Hóa chất','82',nccGradePill('B')]},
+    {go:'vendor',cells:['Cty TM Hải Đăng','0311998877','Bao bì/Phụ liệu','74',nccGradePill('C')]},
+    {go:'vendor',cells:['Cty Cơ khí Tân Bình','0356473829','Thiết bị','90',nccGradePill('A')]}]})}</div>`;
 
 S.imcontract_list = ()=> appnav('Mua nhập khẩu','Sales Contract',TAB_IM,'Sales Contract')
  + `<div class="sf-body">${lv({crumb:'<span data-go="imcontract_list">Sales Contract (NK)</span> &rsaquo;',ico:'💱',color:'#0b827c',object:'Sales Contract Nhập khẩu',view:'Đang thực hiện',count:'8',newLabel:'Contract mới',
