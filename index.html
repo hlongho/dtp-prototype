@@ -2027,9 +2027,23 @@ function nceCritChanged(key,value){
   if(wrap) wrap.style.display=nceCountApplies(key,+value)?'block':'none';
   recalcNccEval();
 }
+function nccExcludeFlags(picks){
+  const {per}=nccEvalScores(picks);
+  const lvl=pickLevel(picks.chatluong), count=pickCount(picks.chatluong);
+  return [
+    per.chatluong<20,
+    lvl===3 || (lvl===2&&count>=2) || (lvl===1&&count>=3),
+    lvl===4,
+    false,
+    false,
+  ];
+}
+function nceExcludeListHTML(flags){
+  return NCC_EXCLUDE_CONDITIONS.map((c,i)=>`<div style="font-size:12px;margin-bottom:2px;${flags[i]?'color:var(--err);font-weight:600':'color:var(--txt-mut)'}">${flags[i]?'⚠':'•'} ${c}</div>`).join('');
+}
 function nceExcludeHTML(){
-  return `<div style="margin-bottom:12px"><div style="font-weight:600;margin-bottom:4px">Điều kiện loại trừ đặc biệt <span class="wf-muted" style="font-weight:400;font-size:11px">(có 1 điều kiện là đề xuất loại/tạm ngừng, bất kể tổng điểm)</span></div>`
-    + NCC_EXCLUDE_CONDITIONS.map((c,i)=>`<label style="display:block;font-weight:400;font-size:12px;margin-bottom:2px"><input type="checkbox" class="nce-excl" value="${i}" onchange="recalcNccEval()"> ${c}</label>`).join('')+`</div>`;
+  return `<div style="margin-bottom:12px"><div style="font-weight:600;margin-bottom:4px">Điều kiện loại trừ đặc biệt <span class="wf-muted" style="font-weight:400;font-size:11px">(tự động xác định theo tiêu chí đã chọn ở trên — không chọn tay; danh sách bên dưới chỉ để biết NCC đang phạm lỗi nghiêm trọng đến mức nào)</span></div>
+    <div id="nce-exclude-list">${nceExcludeListHTML(nccExcludeFlags({}))}</div></div>`;
 }
 function nceEvalFormHTML(vendorFixed){
   const vendorField = vendorFixed
@@ -2059,9 +2073,9 @@ function recalcNccEval(){
       const caseEl=document.getElementById('nce-case-'+c.key); picks[c.key]={level,hasCase:caseEl?caseEl.checked:false};
     } else { picks[c.key]=level; }
   });
-  const manualExclude=[...document.querySelectorAll('.nce-excl:checked')].map(el=>NCC_EXCLUDE_CONDITIONS[+el.value]);
   const {total,autoExclude}=nccEvalScores(picks); const g=nccGrade(total);
-  const exclude=[...new Set([...manualExclude,...autoExclude])];
+  const exclude=[...new Set(autoExclude)];
+  const listEl=document.getElementById('nce-exclude-list'); if(listEl) listEl.innerHTML=nceExcludeListHTML(nccExcludeFlags(picks));
   document.getElementById('nce-total').textContent=total;
   document.getElementById('nce-grade').textContent=g+' — '+nccGradeLabel(g);
   document.getElementById('nce-action').textContent=exclude.length?'⚠ '+exclude.join('; ')+' → Đề xuất loại khỏi danh sách / tạm ngừng hợp tác':nccGradeAction(g);
