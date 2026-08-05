@@ -820,7 +820,7 @@ function fg(rows,one){
   return `<div class="slds-form slds-form_stacked wf-form">${rows.map(r=>`
     <div class="slds-form-element slds-border_bottom" style="padding:5px 0">
       <span class="slds-form-element__label wf-muted" style="padding:0">${r[0]}</span>
-      <div class="slds-form-element__control"><div class="slds-form-element__static ${r[2]||''}" ${r[3]?`data-go="${r[3]}"`:''}>${r[1]}</div></div>
+      <div class="slds-form-element__control"><div class="slds-form-element__static ${r[2]||''}" ${r[3]?`data-go="${r[3]}"`:''}${r[3]==='vendor'&&r[4]?` data-vendor="${String(r[1]).replace(/"/g,'&quot;')}" data-vtype="${r[4]}"`:''}>${r[1]}</div></div>
     </div>`).join('')}</div>`;
 }
 function plField(r){
@@ -2016,6 +2016,8 @@ let NCC_EVALS=[
   {vendor:'Quang Minh Kiều', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Mua hàng', picks:{chatluong:0,giaban:3,thanhtoan:0,giaohang:0,dichvu:0,oncung:0,moitruong:0,hotro:[]}, exclude:[], note:'Báo giá cao hơn tham chiếu >10%'},
   {vendor:'KTC Vina', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Mua hàng', picks:{chatluong:0,giaban:0,thanhtoan:0,giaohang:1,dichvu:0,oncung:0,moitruong:0,hotro:[]}, exclude:[], note:'Giao sai ngày hẹn 1 lần'},
   {vendor:'Đại Đồng Tiến Phát', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Mua hàng', picks:{chatluong:3,giaban:0,thanhtoan:0,giaohang:0,dichvu:0,oncung:0,moitruong:0,hotro:[]}, exclude:['Điểm chất lượng dưới 20/40'], note:'Lô hàng lỗi nặng gây dừng máy PM4 — không sử dụng được'},
+  {vendor:'Cty TM Hải Đăng', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Mua hàng', picks:{chatluong:1,giaban:2,thanhtoan:2,giaohang:0,dichvu:0,oncung:0,moitruong:0,hotro:[]}, exclude:[], note:'Báo giá cao hơn tham chiếu 5-10%, đặt cọc trước SX; lô keo có lỗi nhẹ đã phân loại lại'},
+  {vendor:'Cty Cơ khí Tân Bình', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Mua hàng', picks:{chatluong:0,giaban:0,thanhtoan:0,giaohang:0,dichvu:2,oncung:0,moitruong:0,hotro:[]}, exclude:[], note:'Hỗ trợ kỹ thuật lắp đặt chậm, có ảnh hưởng tiến độ bảo trì máy xeo'},
 ];
 function nccLatestEval(vendor){ const list=NCC_EVALS.filter(e=>e.vendor===vendor); return list[list.length-1]||null; }
 function nccCombinedExclude(e){ const {autoExclude}=nccEvalScores(e.picks); return [...new Set([...(e.exclude||[]),...autoExclude])]; }
@@ -2036,6 +2038,7 @@ function openEvalModal(vendor,period){
 }
 function closeEvalModal(){ const b=document.getElementById('evalback'),m=document.getElementById('evalmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
 /* --- Modal tạo mới đợt Đánh giá NCC --- */
+let VENDOR_CTX={name:'Cty Hóa chất Tân Tiến',type:'noidia'};
 let NCE_CONTEXT={vendorFixed:null};
 function nceCritFieldHTML(c){
   if(c.bonus){
@@ -2330,7 +2333,7 @@ function confirmNpfEval(){
   NCC_EVALS_EXT.push({type:NPF_CONTEXT.type,vendor,period,date:'Hôm nay',by:'Bạn',picks,note});
   closeNpfEvalModal();
   toast('✓ Đã lưu đánh giá '+NCC_PROFILES[NPF_CONTEXT.type].label+' "'+vendor+'" · '+period+' · '+total+'/100 · Xếp loại '+g.g);
-  go('rpt_ncceval');
+  if(NPF_CONTEXT.vendorFixed) go('vendor'); else go('rpt_ncceval');
 }
 
 /* ===== Shipment Fees (Quản lý chi phí) ===== */
@@ -3042,7 +3045,7 @@ S.ppo = ()=> appnav('Mua hàng','Đơn mua (PO)',['Trang chủ','Phiếu yêu c�
    ${path(['Đã đặt hàng','Chờ đặt cọc','Chờ sản xuất','Chờ giao hàng','Giao 1 phần','Chờ thanh toán','Hoàn thành'],4)}
    <div class="cols-side act-tab">
      <div>
-     ${card('Thông tin PO', fg([['Số PO','PPO-0915'],['Nhà cung cấp','Cty Hóa chất Tân Tiến','link','vendor'],
+     ${card('Thông tin PO', fg([['Số PO','PPO-0915'],['Nhà cung cấp','Cty Hóa chất Tân Tiến','link','vendor','noidia'],
        ['Sales Contract (NK)','IC-2026-041','link','imcontract'],['Từ PR','PR-3301, PR-3302','link','pr'],
        ['Sản phẩm','Keo dán công nghiệp','link','product'],['Số lượng','3.500 kg'],
        ['Giá trị','182.000.000 ₫'],
@@ -3071,7 +3074,7 @@ S.impo = ()=> appnav('Mua hàng nhập khẩu','Đơn mua (PO)',TAB_IM,'Đơn mu
    ${path(['Đã đặt hàng','Chờ đặt cọc','Chờ sản xuất','Chờ giao hàng','Giao 1 phần','Chờ thanh toán','Hoàn thành'],3)}
    <div class="cols-side act-tab">
      <div>
-     ${card('Thông tin PO', fg([['Số PO','PO-NK-0088'],['Nhà cung cấp','Recycling Corp USA','link','vendor'],
+     ${card('Thông tin PO', fg([['Số PO','PO-NK-0088'],['Nhà cung cấp','Recycling Corp USA','link','vendor','nhapkhau'],
        ['Sales Contract (NK)','IC-2026-041','link','imcontract'],
        ['Sản phẩm','Giấy OCC (từ Mỹ)','link','product'],['Số lượng','800 tấn'],
        ['Giá trị','$168.000'],
@@ -3091,24 +3094,88 @@ S.impo = ()=> appnav('Mua hàng nhập khẩu','Đơn mua (PO)',TAB_IM,'Đơn mu
    </div>
  </div>`;
 
+const VENDOR_INFO={
+ 'Cty Hóa chất Tân Tiến':{mst:'0388445511',nhom:'Hóa chất, keo công nghiệp',contact:'Ông Phạm Văn K',phone:'028 xxx xxxx',email:'muahang@tantien.vn',address:'KCN Sóng Thần, Bình Dương',tt:'Net 30'},
+ 'Cty TM Hải Đăng':{mst:'0311998877',nhom:'Bao bì, phụ liệu đóng gói',contact:'Bà Lê Thị H',phone:'028 xxx xxxx',email:'sales@haidang.vn',address:'Q.Tân Bình, TP.HCM',tt:'Net 30'},
+ 'Cty Cơ khí Tân Bình':{mst:'0356473829',nhom:'Thiết bị, phụ tùng máy xeo',contact:'Ông Nguyễn Văn T',phone:'028 xxx xxxx',email:'cokhi@tanbinh.vn',address:'KCN Tân Bình, Bình Dương',tt:'Net 45'},
+ 'Cty Giấy Phương Đông':{mst:'0345678123',nhom:'Giấy nguyên liệu (OCC nội địa)',contact:'Ông Trần Văn M',phone:'0274 xxx xxxx',email:'phuongdong@paper.vn',address:'Mizu, Bình Dương',tt:'Net 30'},
+ 'Recycling Corp USA':{mst:'—',nhom:'Giấy OCC / Bột giấy tái chế',contact:'Mr. John Smith',phone:'+1 xxx xxx xxxx',email:'sales@recyclingcorp.com',address:'California, USA',tt:'TT 30% cọc / 70% sau B/L'},
+ 'Green Fiber (Thailand)':{mst:'—',nhom:'Giấy Kraft tái chế',contact:'Khun Somchai',phone:'+66 xx xxx xxxx',email:'export@greenfiber.co.th',address:'Bangkok, Thailand',tt:'L/C At Sight'},
+ 'Nippon Pulp Co.':{mst:'—',nhom:'Bột giấy NBKP',contact:'Mr. Tanaka',phone:'+81 xx xxxx xxxx',email:'sales@nipponpulp.jp',address:'Osaka, Japan',tt:'TT 50% cọc / 50% trước giao hàng'},
+ 'ONE Line':{mst:'—',nhom:'Cước tàu biển (Hãng tàu)',contact:'Sales team ONE',phone:'028 xxx xxxx',email:'vn.sales@one-line.com',address:'TP.HCM',tt:'Công nợ 30 ngày'},
+ 'Maersk':{mst:'—',nhom:'Cước tàu biển (Hãng tàu)',contact:'Sales team Maersk',phone:'028 xxx xxxx',email:'vn.sales@maersk.com',address:'TP.HCM',tt:'Công nợ 15 ngày'},
+ 'Evergreen':{mst:'—',nhom:'Cước tàu biển (Hãng tàu)',contact:'Sales team Evergreen',phone:'028 xxx xxxx',email:'vn.sales@evergreen-line.com',address:'TP.HCM',tt:'Công nợ 30 ngày'},
+};
 S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'],'NCC')
- + (()=>{ const vendorName='Cty Hóa chất Tân Tiến'; const e=nccLatestEval(vendorName); const {total}=nccEvalScores(e.picks); const g=nccGrade(total);
+ + (()=>{
+   const type=VENDOR_CTX.type||'noidia';
+   const vendorName=VENDOR_CTX.name||'Cty Hóa chất Tân Tiến';
+   const info=VENDOR_INFO[vendorName]||{mst:'—',nhom:'—',contact:'—',phone:'—',email:'—',address:'—',tt:'—'};
+
+   if(type!=='nhapkhau' && type!=='dichvu'){
+     const e=nccLatestEval(vendorName);
+     if(!e){
+       return `<div class="sf-body narrow">
+       ${hl({crumb:'<span data-go="vendor_list">Đánh giá Nhà cung cấp</span> &rsaquo;',ico:'⭐',color:'#2e844a',title:vendorName,sub:'NCC nội địa · Chưa có đánh giá',
+         actions:[{t:'Đánh giá NCC',pri:true,fn:`openNccEvalModal('${vendorName}')`},'Sửa']})}
+       <div class="cols-side act-tab"><div>
+       ${card('Thông tin nhà cung cấp', fg([['Tên NCC',vendorName],['Mã số thuế',info.mst],['Loại NCC','Nội địa'],
+         ['Nhóm hàng cung cấp',info.nhom],['Người liên hệ',info.contact],['Điện thoại',info.phone],
+         ['Email',info.email],['Địa chỉ',info.address],['Điều khoản TT',info.tt],['Trạng thái',pill('ok','Đang hợp tác')]]))}
+       ${card('Lịch sử đánh giá', '<div class="po-hint">Chưa có kỳ đánh giá nào cho NCC này.</div>', {r:`<button class="btn sm" onclick="openNccEvalModal('${vendorName}')">＋ Đánh giá NCC</button>`})}
+       </div>${activity([])}</div></div>`;
+     }
+     const {total}=nccEvalScores(e.picks); const g=nccGrade(total);
+     return `<div class="sf-body narrow">
+     ${hl({crumb:'<span data-go="vendor_list">Đánh giá Nhà cung cấp</span> &rsaquo;',ico:'⭐',color:'#2e844a',title:vendorName,sub:'NCC nội địa · Điểm đánh giá tổng: '+total+'/100 · Xếp loại '+g+' — '+nccGradeLabel(g),
+       fields:[['Điểm',total+'/100'],['Xếp loại',nccGradePill(g)],['Hành động',nccGradeAction(g)],['Kỳ đánh giá',e.period]],
+       actions:[{t:'Đánh giá NCC',pri:true,fn:`openNccEvalModal('${vendorName}')`},{t:'Ghi nhận sự cố'},'Sửa']})}
+     <div class="cols-side act-tab">
+       <div>
+       ${card('Thông tin nhà cung cấp', fg([['Tên NCC',vendorName],['Mã số thuế',info.mst],['Loại NCC','Nội địa'],
+         ['Nhóm hàng cung cấp',info.nhom],['Người liên hệ',info.contact],['Điện thoại',info.phone],
+         ['Email',info.email],['Địa chỉ',info.address],['Điều khoản TT',info.tt],
+         ['Đánh giá tổng',total+'/100 · Xếp loại '+g],['Trạng thái',pill('ok','Đang hợp tác')]]))}
+       ${card('Tiêu chí đánh giá NCC (kỳ '+e.period+')', nccCriteriaRowsHTML(e.picks), {n:'8'})}
+       ${card('Lịch sử đánh giá', tbl([{t:'Kỳ đánh giá'},{t:'Ngày'},{t:'Điểm'},{t:'Xếp loại'},{t:'Người đánh giá'},{t:'Kết luận'}], nccEvalsListRows(vendorName)),{n:String(NCC_EVALS.filter(x=>x.vendor===vendorName).length),r:`<button class="btn sm" onclick="openNccEvalModal('${vendorName}')">＋ Đánh giá NCC</button>`})}
+       </div>
+       ${activity([['⚠','QA ghi nhận lô keo lỗi','QA · 06/2026'],['📦','17 đơn mua hoàn tất','—']])}
+     </div>
+   </div>`;
+   }
+
+   const profile=NCC_PROFILES[type];
+   const e=npfLatestEval(type,vendorName);
+   const loaiLabel=type==='nhapkhau'?'Nhập khẩu':'Dịch vụ';
+   if(!e){
+     return `<div class="sf-body narrow">
+     ${hl({crumb:'<span data-go="vendor_list">Đánh giá Nhà cung cấp</span> &rsaquo;',ico:profile.ico,color:profile.color,title:vendorName,sub:profile.label+' · Chưa có đánh giá',
+       actions:[{t:'Đánh giá NCC',pri:true,fn:`openNpfEvalModal('${type}','${vendorName.replace(/'/g,"\\'")}')`},'Sửa']})}
+     <div class="cols-side act-tab"><div>
+     ${card('Thông tin nhà cung cấp', fg([['Tên NCC',vendorName],['Mã số thuế',info.mst],['Loại NCC',loaiLabel],
+       ['Nhóm hàng/dịch vụ',info.nhom],['Người liên hệ',info.contact],['Điện thoại',info.phone],
+       ['Email',info.email],['Địa chỉ',info.address],['Điều khoản TT',info.tt],['Trạng thái',pill('ok','Đang hợp tác')]]))}
+     ${card('Lịch sử đánh giá', '<div class="po-hint">Chưa có kỳ đánh giá nào cho NCC này.</div>', {r:`<button class="btn sm" onclick="openNpfEvalModal('${type}','${vendorName.replace(/'/g,"\\'")}')">＋ Đánh giá NCC</button>`})}
+     </div>${activity([])}</div></div>`;
+   }
+   const {total}=npfScore(profile,e.picks); const g=npfGrade(profile,total);
    return `<div class="sf-body narrow">
-   ${hl({crumb:'<span data-go="vendor_list">Đánh giá Nhà cung cấp</span> &rsaquo;',ico:'⭐',color:'#2e844a',title:vendorName,sub:'Điểm đánh giá tổng: '+total+'/100 · Xếp loại '+g+' — '+nccGradeLabel(g),
-     fields:[['Điểm',total+'/100'],['Xếp loại',nccGradePill(g)],['Hành động',nccGradeAction(g)],['Kỳ đánh giá',e.period]],
-     actions:[{t:'Đánh giá NCC',pri:true,fn:`openNccEvalModal('${vendorName}')`},{t:'Ghi nhận sự cố'},'Sửa']})}
+   ${hl({crumb:'<span data-go="vendor_list">Đánh giá Nhà cung cấp</span> &rsaquo;',ico:profile.ico,color:profile.color,title:vendorName,sub:profile.label+' · Điểm đánh giá tổng: '+total+'/100 · Xếp loại '+g.g+' — '+g.label,
+     fields:[['Điểm',total+'/100'],['Xếp loại',npfGradePill(profile,g.g)],['Kỳ đánh giá',e.period]],
+     actions:[{t:'Đánh giá NCC',pri:true,fn:`openNpfEvalModal('${type}','${vendorName.replace(/'/g,"\\'")}')`},{t:'Ghi nhận sự cố'},'Sửa']})}
    <div class="cols-side act-tab">
      <div>
-     ${card('Thông tin nhà cung cấp', fg([['Tên NCC',vendorName],['Mã số thuế','0388445511'],
-       ['Nhóm hàng cung cấp','Hóa chất, keo công nghiệp'],['Người liên hệ','Ông Phạm Văn K'],['Điện thoại','028 xxx xxxx'],
-       ['Email','muahang@tantien.vn'],['Địa chỉ','KCN Sóng Thần, Bình Dương'],['Điều khoản TT','Net 30'],
-       ['Đánh giá tổng',total+'/100 · Xếp loại '+g],['Trạng thái',pill('ok','Đang hợp tác')]]))}
-     ${card('Tiêu chí đánh giá NCC (kỳ '+e.period+')', nccCriteriaRowsHTML(e.picks), {n:'8'})}
-     ${card('Lịch sử đánh giá', tbl([{t:'Kỳ đánh giá'},{t:'Ngày'},{t:'Điểm'},{t:'Xếp loại'},{t:'Người đánh giá'},{t:'Kết luận'}], nccEvalsListRows(vendorName)),{n:String(NCC_EVALS.filter(x=>x.vendor===vendorName).length),r:`<button class="btn sm" onclick="openNccEvalModal('${vendorName}')">＋ Đánh giá NCC</button>`})}
+     ${card('Thông tin nhà cung cấp', fg([['Tên NCC',vendorName],['Mã số thuế',info.mst],['Loại NCC',loaiLabel],
+       ['Nhóm hàng/dịch vụ',info.nhom],['Người liên hệ',info.contact],['Điện thoại',info.phone],
+       ['Email',info.email],['Địa chỉ',info.address],['Điều khoản TT',info.tt],
+       ['Đánh giá tổng',total+'/100 · Xếp loại '+g.g],['Trạng thái',pill('ok','Đang hợp tác')]]))}
+     ${card('Tiêu chí đánh giá NCC (kỳ '+e.period+')', npfCriteriaRowsHTML(type,e.picks), {n:String(profile.criteria.length)})}
+     ${card('Lịch sử đánh giá', tbl([{t:'Kỳ đánh giá'},{t:'Ngày'},{t:'Điểm'},{t:'Xếp loại'},{t:'Người đánh giá'}], npfEvalsListRows(type,vendorName)),{n:String(NCC_EVALS_EXT.filter(x=>x.type===type&&x.vendor===vendorName).length),r:`<button class="btn sm" onclick="openNpfEvalModal('${type}','${vendorName.replace(/'/g,"\\'")}')">＋ Đánh giá NCC</button>`})}
      </div>
-     ${activity([['⚠','QA ghi nhận lô keo lỗi','QA · 06/2026'],['📦','17 đơn mua hoàn tất','—']])}
+     ${activity([['📦','Đơn hàng gần nhất đã hoàn tất','—']])}
    </div>
- </div>`; })();
+ </div>`;
+ })();
 
 /* ===== Cảnh báo tồn kho + hàng đi đường (1 bảng: NVL theo hàng dọc, tuần theo hàng ngang) =====
    Công thức cuốn chiếu theo ETA (chốt với Helen Phan / Trinh Phạm):
@@ -3318,7 +3385,7 @@ S.payment = ()=> appnav('Mua hàng nhập khẩu','Payment',TAB_IM,'Payment')
      ${card('Chi tiết Payment', fg([['Mã Payment',p.id],
        ['Payment Term',tm.id+' · '+tm.ten,'link','pterm'],
        ['Payment Term Item',it.id+' · Đợt '+it.dot+' ('+it.pct+'%)','link','pitem'],
-       ['PO',p.po,'link',p.poObj],['Nhà cung cấp',tm.ncc,'link','vendor'],['Đợt / Tỷ lệ','Đợt '+it.dot+' · '+it.pct+'%'],
+       ['PO',p.po,'link',p.poObj],['Nhà cung cấp',tm.ncc,'link','vendor','noidia'],['Đợt / Tỷ lệ','Đợt '+it.dot+' · '+it.pct+'%'],
        ['Số tiền',payMoney(it.amt)],['Ngày thanh toán',it.due],['Số ngày thanh toán kéo dài',payExt(p.ext)],['Trạng thái',it.st]]))}
      </div>
      ${activity([['💰','Sinh Payment từ Payment Term Item '+it.id,'Kế toán · Hôm nay'],['✅','Đợt '+it.dot+' đã thanh toán',it.due]])}
@@ -3332,7 +3399,7 @@ S.imcontract = ()=> appnav('Mua nhập khẩu','Sales Contract',TAB_IM,'Sales Co
    ${path(['Nháp','Chờ phê duyệt','Gửi Khách hàng','Chấp nhận','Từ chối'],3)}
    <div class="cols-side act-tab">
      <div>
-     ${card('Chi tiết hợp đồng nhập', fg([['Nhà cung cấp','Recycling Corp USA','link','vendor'],['Mặt hàng','Giấy OCC'],
+     ${card('Chi tiết hợp đồng nhập', fg([['Nhà cung cấp','Recycling Corp USA','link','vendor','nhapkhau'],['Mặt hàng','Giấy OCC'],
        ['Số lượng','800 tấn'],['Đơn giá','$210/tấn'],['Incoterm','CIF Cát Lái'],['Tiền tệ','USD'],
        ['Phí bao gồm (áp dụng cho Shipment)','<input class="mass-sel" style="width:100%" value="'+IC_INCLUDED_FEES+'" onchange="IC_INCLUDED_FEES=this.value;toast(\'Đã cập nhật Phí bao gồm — Shipment sẽ hiển thị theo\')">']]))}
      ${card('Đơn mua (PO)',
@@ -3699,7 +3766,7 @@ function lv({crumb,ico,color,object,view,count,cols,rows,newLabel,views,bulk,hea
       <thead><tr class="slds-line-height_reset"><th style="width:2rem"><input type="checkbox" class="lv-all" title="Chọn tất cả" onchange="lvAll(this)"></th>
         ${cols.map(c=>`<th class="${c.num?'num':''}" scope="col"><div class="slds-truncate wf-muted">${c.t||c} ▾</div></th>`).join('')}<th style="width:1.5rem"></th></tr></thead>
       <tbody>${rows.map(r=>`<tr><td><input type="checkbox" class="lv-row" onchange="lvSel()"></td>
-        ${r.cells.map((c,i)=>`<td class="${cols[i]&&cols[i].num?'num':''}">${i===0&&r.go?`<a data-go="${r.go}">${c}</a>`:c}</td>`).join('')}
+        ${r.cells.map((c,i)=>`<td class="${cols[i]&&cols[i].num?'num':''}">${i===0&&r.go?`<a data-go="${r.go}"${r.vtype?` data-vendor="${String(c).replace(/"/g,'&quot;')}" data-vtype="${r.vtype}"`:''}>${c}</a>`:c}</td>`).join('')}
         <td>▾</td></tr>`).join('')}</tbody></table></div>
   </div></article>`;
 }
@@ -4419,15 +4486,15 @@ S.vendor_list = ()=> appnav('Mua hàng','NCC',TAB_PUR,'NCC')
  + `<div class="sf-body">${lv({crumb:'Nhà cung cấp',ico:'⭐',color:'#2e844a',object:'Nhà cung cấp (Account)',view:'NCC đang hợp tác',views:['NCC đang hợp tác','Đánh giá thấp','Tạm ngưng','Tất cả NCC'],count:'84',newLabel:'NCC mới',
    cols:[{t:'Tên NCC'},{t:'Mã số thuế'},{t:'Loại NCC'},{t:'Nhóm hàng'},{t:'Điểm',num:true},{t:'Xếp loại'}],
    rows:[
-    {go:'vendor',cells:['Cty Hóa chất Tân Tiến','0388445511','Nội địa','Keo/Hóa chất','82',nccGradePill('B')]},
-    {go:'vendor',cells:['Cty TM Hải Đăng','0311998877','Nội địa','Bao bì/Phụ liệu','74',nccGradePill('C')]},
-    {go:'vendor',cells:['Cty Cơ khí Tân Bình','0356473829','Nội địa','Thiết bị','90',nccGradePill('A')]},
-    {go:'vendor',cells:['Recycling Corp USA','—','Nhập khẩu','Giấy OCC/Bột giấy','93',npfGradePill(NCC_PROFILES.nhapkhau,'A')]},
-    {go:'vendor',cells:['Green Fiber (Thailand)','—','Nhập khẩu','Giấy Kraft tái chế','85',npfGradePill(NCC_PROFILES.nhapkhau,'B')]},
-    {go:'vendor',cells:['Nippon Pulp Co.','—','Nhập khẩu','Bột giấy NBKP','69',npfGradePill(NCC_PROFILES.nhapkhau,'D')]},
-    {go:'vendor',cells:['ONE Line','—','Dịch vụ','Cước tàu biển','95',npfGradePill(NCC_PROFILES.dichvu,'A')]},
-    {go:'vendor',cells:['Maersk','—','Dịch vụ','Cước tàu biển','73',npfGradePill(NCC_PROFILES.dichvu,'C')]},
-    {go:'vendor',cells:['Evergreen','—','Dịch vụ','Cước tàu biển','95',npfGradePill(NCC_PROFILES.dichvu,'A')]}]})}</div>`;
+    {go:'vendor',vtype:'noidia',cells:['Cty Hóa chất Tân Tiến','0388445511','Nội địa','Keo/Hóa chất','82',nccGradePill('B')]},
+    {go:'vendor',vtype:'noidia',cells:['Cty TM Hải Đăng','0311998877','Nội địa','Bao bì/Phụ liệu','70',nccGradePill('C')]},
+    {go:'vendor',vtype:'noidia',cells:['Cty Cơ khí Tân Bình','0356473829','Nội địa','Thiết bị','85',nccGradePill('B')]},
+    {go:'vendor',vtype:'nhapkhau',cells:['Recycling Corp USA','—','Nhập khẩu','Giấy OCC/Bột giấy','93',npfGradePill(NCC_PROFILES.nhapkhau,'A')]},
+    {go:'vendor',vtype:'nhapkhau',cells:['Green Fiber (Thailand)','—','Nhập khẩu','Giấy Kraft tái chế','85',npfGradePill(NCC_PROFILES.nhapkhau,'B')]},
+    {go:'vendor',vtype:'nhapkhau',cells:['Nippon Pulp Co.','—','Nhập khẩu','Bột giấy NBKP','69',npfGradePill(NCC_PROFILES.nhapkhau,'D')]},
+    {go:'vendor',vtype:'dichvu',cells:['ONE Line','—','Dịch vụ','Cước tàu biển','95',npfGradePill(NCC_PROFILES.dichvu,'A')]},
+    {go:'vendor',vtype:'dichvu',cells:['Maersk','—','Dịch vụ','Cước tàu biển','73',npfGradePill(NCC_PROFILES.dichvu,'C')]},
+    {go:'vendor',vtype:'dichvu',cells:['Evergreen','—','Dịch vụ','Cước tàu biển','95',npfGradePill(NCC_PROFILES.dichvu,'A')]}]})}</div>`;
 
 S.imcontract_list = ()=> appnav('Mua nhập khẩu','Sales Contract',TAB_IM,'Sales Contract')
  + `<div class="sf-body">${lv({crumb:'<span data-go="imcontract_list">Sales Contract (NK)</span> &rsaquo;',ico:'💱',color:'#0b827c',object:'Sales Contract Nhập khẩu',view:'Đang thực hiện',count:'8',newLabel:'Contract mới',
@@ -4597,7 +4664,7 @@ function setupClicks(){
   scr.addEventListener('click',e=>{
     // 1) cross-navigation links
     const link=e.target.closest('[data-go]');
-    if(link){ go(link.dataset.go); return; }
+    if(link){ if(link.dataset.vtype) VENDOR_CTX={name:link.dataset.vendor,type:link.dataset.vtype}; go(link.dataset.go); return; }
     // 2) app tabs -> open related screen
     const tab=e.target.closest('.a-tab');
     if(tab){
