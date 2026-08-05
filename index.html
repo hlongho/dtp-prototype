@@ -759,7 +759,7 @@ const APPS=[
  ['Chăm sóc KH','#e07a00','🎧','case_list'],
  ['Dữ liệu nền tảng','#5867e8','🗂','pricebook_list'],
  ['Báo cáo & Dashboard','#ba0517','📊','reports'],
- ['Quản trị hệ thống','#747474','⚙','master']];
+ ['Quản trị hệ thống','#747474','⚙','account_list']];
 const GROUPICON={'Tổng quan':['🏠','#747474'],'Dữ liệu nền tảng':['🗂','#5867e8'],
  'Bán hàng nội địa':['🧾','#0176d3'],'Bán hàng xuất khẩu':['🚢','#1b96ff'],
  'Mua hàng nội địa':['🛒','#2e844a'],'Mua hàng nhập khẩu':['🌐','#0b827c'],
@@ -1199,7 +1199,7 @@ const NAV = [
    ['contract','↳ Chi tiết hợp đồng','','record'],
    ['product_list','Sản phẩm','Admin','list'],
    ['product','↳ Chi tiết sản phẩm','','record'],
-   ['master','Khách hàng & NCC','Admin','list'],
+   ['account_list','Khách hàng (Account)','Admin','list'],
    ['account','↳ Chi tiết Khách hàng (Account)','','record']]},
  {g:'Bán hàng nội địa', items:[
    ['lead_list','Lead','Sales','list'],
@@ -1323,27 +1323,21 @@ S.contract = ()=> appnav('Dữ liệu nền tảng','Hợp đồng',['Bảng gi�
    </div>
  </div>`;
 
-S.master = ()=> appnav('Dữ liệu nền tảng','Khách hàng & NCC',['Bảng giá','Hợp đồng','Sản phẩm','Khách hàng','NCC'],'Khách hàng')
- + `<div class="sf-body">${lv({ico:'🏢',object:'Khách hàng & NCC',view:'Đang hoạt động',
-   views:['Đang hoạt động','Khách hàng','Nhà cung cấp','Ngưng / tạm dừng','Tất cả','Xem gần đây'],count:'1.284',newLabel:'Mới',
-   cols:[{t:'Tên'},{t:'Mã số thuế'},{t:'Loại'},{t:'Loại NCC'},{t:'Nhà máy'},{t:'Trạng thái'}],
+S.account_list = ()=> appnav('Dữ liệu nền tảng','Khách hàng',['Bảng giá','Hợp đồng','Sản phẩm','Khách hàng','NCC'],'Khách hàng')
+ + `<div class="sf-body">${lv({ico:'🏢',object:'Khách hàng (Account)',view:'Đang hoạt động',
+   views:['Đang hoạt động','Khách hàng nội địa','Khách hàng xuất khẩu','Ngưng / tạm dừng','Tất cả','Xem gần đây'],count:'642',newLabel:'Khách hàng mới',
+   cols:[{t:'Tên'},{t:'Mã số thuế'},{t:'Nhà máy / Thị trường'},{t:'Người phụ trách'},{t:'Trạng thái'}],
    rows:[
-    {go:'account',cells:['Cty CP Minh Khang','0312765488','Khách hàng','—','Long An',pill('ok','Hoạt động')]},
-    {go:'account',cells:['Cty Hưng Thịnh Phát','0398112233','Khách hàng','—','Bình Dương',pill('ok','Hoạt động')]},
-    {go:'vendor',cells:['Cty Giấy Phương Đông','0345678123','NCC','Nội địa','Mizu',pill('ok','Hoạt động')]},
-    {go:'vendor',cells:['Cty Hóa chất Tân Tiến','0388445511','NCC','Nội địa','Bình Dương',pill('ok','Hoạt động')]},
-    {go:'account',cells:['Cty Bao Bì Sông Lam','0322114466','Khách hàng','—','Long An',pill('ok','Hoạt động')]},
-    {go:'account',cells:['Cty Đại Lộc','0367221900','Khách hàng','—','Long An',pill('warn','Ngưng đặt 2 tháng')]},
-    {go:'vendor',cells:['Recycling Corp USA','—','NCC','Nhập khẩu','—',pill('ok','Hoạt động')]},
-    {go:'vendor',cells:['Green Fiber (Thailand)','—','NCC','Nhập khẩu','—',pill('ok','Hoạt động')]},
-    {go:'vendor',cells:['Nippon Pulp Co.','—','NCC','Nhập khẩu','—',pill('ok','Hoạt động')]},
-    {go:'vendor',cells:['ONE Line','—','NCC','Dịch vụ','—',pill('ok','Hoạt động')]},
-    {go:'vendor',cells:['Maersk','—','NCC','Dịch vụ','—',pill('ok','Hoạt động')]},
-    {go:'vendor',cells:['Evergreen','—','NCC','Dịch vụ','—',pill('ok','Hoạt động')]}]})}</div>`;
+    {go:'account',cells:['Cty CP Minh Khang','0312765488','Long An','Trần Thị B',pill('ok','Hoạt động')]},
+    {go:'account',cells:['Cty Hưng Thịnh Phát','0398112233','Bình Dương','Trần Thị B',pill('ok','Hoạt động')]},
+    {go:'account',cells:['Cty Bao Bì Sông Lam','0322114466','Long An','Trần Thị B',pill('ok','Hoạt động')]},
+    {go:'account',cells:['Cty Đại Lộc','0367221900','Long An','Trần Thị B',pill('warn','Ngưng đặt 2 tháng')]},
+    {go:'account',cells:['Reliance Paper Ltd','—','Ấn Độ (Xuất khẩu)','Nguyễn Văn A',pill('ok','Hoạt động')]},
+    {go:'account',cells:['Macrolite Corporation','—','Philippines (Xuất khẩu)','Nguyễn Văn A',pill('ok','Hoạt động')]}]})}</div>`;
 
 S.account = ()=> appnav('Dữ liệu nền tảng','Khách hàng',['Bảng giá','Hợp đồng','Sản phẩm','Khách hàng','NCC'],'Khách hàng')
  + `<div class="sf-body narrow">
-   ${hl({crumb:'<span data-go="master">Khách hàng & NCC</span> &rsaquo;',ico:'🏢',title:'Cty CP Minh Khang',sub:'Khách hàng · Nhà máy Long An',
+   ${hl({crumb:'<span data-go="account_list">Khách hàng</span> &rsaquo;',ico:'🏢',title:'Cty CP Minh Khang',sub:'Khách hàng · Nhà máy Long An',
      fields:[['Mã số thuế','0312765488'],['Hạn mức công nợ','2.000.000.000 ₫'],['Dư nợ hiện tại','1.620.000.000 ₫'],['Trạng thái',pill('ok','Hoạt động')]],
      actions:[{t:'Tạo Opportunity PO',pri:true,fn:"go('oppo')"},{t:'Tạo Case',fn:'createCaseQuick()'},'Sửa']})}
    <div class="cols-side act-tab">
@@ -4577,7 +4571,7 @@ function setupSearch(){
 }
 
 /* ---- in-page interactivity ---- */
-const TAB2ID={'Trang chủ':'home','Lead':'lead_list','Cơ hội':'opp_list','Báo giá':'quote_list','Sample Request':'sample_list','Opportunity PO':'oppo_list','Đơn hàng':'order_list','Khách hàng':'master',
+const TAB2ID={'Trang chủ':'home','Lead':'lead_list','Cơ hội':'opp_list','Báo giá':'quote_list','Sample Request':'sample_list','Opportunity PO':'oppo_list','Đơn hàng':'order_list','Khách hàng':'account_list',
  'NCC':'vendor_list','Case':'case_list','Báo cáo':'reports','Dashboard':'reports','Cảnh báo':'reports',
  'Bảng giá':'pricebook_list','Price Book Entry':'pbe_list','Bảng giá custom':'pbec_list','Biến động giá':'pricerpt','Hợp đồng':'contract_list','Sản phẩm':'product_list','Báo giá XK':'exquote_list','SO':'exso_list','Phiếu xuất kho':'issuenote_list','Chứng từ':'excontract_list',
  'Thanh toán':'lc','Cước Logistics':'freight','Thống kê ĐNMH':'rpt_dnmh','Doanh số 3 tháng':'rpt_sales3','Top 10 NCC':'rpt_ncctop','Đánh giá NCC':'rpt_ncceval','Phiếu yêu cầu':'pr_list','Đơn mua (PO)':'ppo_list','Kế hoạch NVL':'matinv',
