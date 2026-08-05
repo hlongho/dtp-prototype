@@ -1326,14 +1326,20 @@ S.contract = ()=> appnav('Dữ liệu nền tảng','Hợp đồng',['Bảng gi�
 S.master = ()=> appnav('Dữ liệu nền tảng','Khách hàng & NCC',['Bảng giá','Hợp đồng','Sản phẩm','Khách hàng','NCC'],'Khách hàng')
  + `<div class="sf-body">${lv({ico:'🏢',object:'Khách hàng & NCC',view:'Đang hoạt động',
    views:['Đang hoạt động','Khách hàng','Nhà cung cấp','Ngưng / tạm dừng','Tất cả','Xem gần đây'],count:'1.284',newLabel:'Mới',
-   cols:[{t:'Tên'},{t:'Mã số thuế'},{t:'Loại'},{t:'Nhà máy'},{t:'Trạng thái'}],
+   cols:[{t:'Tên'},{t:'Mã số thuế'},{t:'Loại'},{t:'Loại NCC'},{t:'Nhà máy'},{t:'Trạng thái'}],
    rows:[
-    {go:'account',cells:['Cty CP Minh Khang','0312765488','Khách hàng','Long An',pill('ok','Hoạt động')]},
-    {go:'account',cells:['Cty Hưng Thịnh Phát','0398112233','Khách hàng','Bình Dương',pill('ok','Hoạt động')]},
-    {go:'vendor',cells:['Cty Giấy Phương Đông','0345678123','NCC','Mizu',pill('ok','Hoạt động')]},
-    {go:'vendor',cells:['Cty Hóa chất Tân Tiến','0388445511','NCC','Bình Dương',pill('ok','Hoạt động')]},
-    {go:'account',cells:['Cty Bao Bì Sông Lam','0322114466','Khách hàng','Long An',pill('ok','Hoạt động')]},
-    {go:'account',cells:['Cty Đại Lộc','0367221900','Khách hàng','Long An',pill('warn','Ngưng đặt 2 tháng')]}]})}</div>`;
+    {go:'account',cells:['Cty CP Minh Khang','0312765488','Khách hàng','—','Long An',pill('ok','Hoạt động')]},
+    {go:'account',cells:['Cty Hưng Thịnh Phát','0398112233','Khách hàng','—','Bình Dương',pill('ok','Hoạt động')]},
+    {go:'vendor',cells:['Cty Giấy Phương Đông','0345678123','NCC','Nội địa','Mizu',pill('ok','Hoạt động')]},
+    {go:'vendor',cells:['Cty Hóa chất Tân Tiến','0388445511','NCC','Nội địa','Bình Dương',pill('ok','Hoạt động')]},
+    {go:'account',cells:['Cty Bao Bì Sông Lam','0322114466','Khách hàng','—','Long An',pill('ok','Hoạt động')]},
+    {go:'account',cells:['Cty Đại Lộc','0367221900','Khách hàng','—','Long An',pill('warn','Ngưng đặt 2 tháng')]},
+    {go:'vendor',cells:['Recycling Corp USA','—','NCC','Nhập khẩu','—',pill('ok','Hoạt động')]},
+    {go:'vendor',cells:['Green Fiber (Thailand)','—','NCC','Nhập khẩu','—',pill('ok','Hoạt động')]},
+    {go:'vendor',cells:['Nippon Pulp Co.','—','NCC','Nhập khẩu','—',pill('ok','Hoạt động')]},
+    {go:'vendor',cells:['ONE Line','—','NCC','Dịch vụ','—',pill('ok','Hoạt động')]},
+    {go:'vendor',cells:['Maersk','—','NCC','Dịch vụ','—',pill('ok','Hoạt động')]},
+    {go:'vendor',cells:['Evergreen','—','NCC','Dịch vụ','—',pill('ok','Hoạt động')]}]})}</div>`;
 
 S.account = ()=> appnav('Dữ liệu nền tảng','Khách hàng',['Bảng giá','Hợp đồng','Sản phẩm','Khách hàng','NCC'],'Khách hàng')
  + `<div class="sf-body narrow">
@@ -4415,11 +4421,17 @@ S.impo_list = ()=> appnav('Mua hàng nhập khẩu','Đơn mua (PO)',TAB_IM,'Đ�
 
 S.vendor_list = ()=> appnav('Mua hàng','NCC',TAB_PUR,'NCC')
  + `<div class="sf-body">${lv({crumb:'Nhà cung cấp',ico:'⭐',color:'#2e844a',object:'Nhà cung cấp (Account)',view:'NCC đang hợp tác',views:['NCC đang hợp tác','Đánh giá thấp','Tạm ngưng','Tất cả NCC'],count:'84',newLabel:'NCC mới',
-   cols:[{t:'Tên NCC'},{t:'Mã số thuế'},{t:'Nhóm hàng'},{t:'Điểm',num:true},{t:'Xếp loại'}],
+   cols:[{t:'Tên NCC'},{t:'Mã số thuế'},{t:'Loại NCC'},{t:'Nhóm hàng'},{t:'Điểm',num:true},{t:'Xếp loại'}],
    rows:[
-    {go:'vendor',cells:['Cty Hóa chất Tân Tiến','0388445511','Keo/Hóa chất','82',nccGradePill('B')]},
-    {go:'vendor',cells:['Cty TM Hải Đăng','0311998877','Bao bì/Phụ liệu','74',nccGradePill('C')]},
-    {go:'vendor',cells:['Cty Cơ khí Tân Bình','0356473829','Thiết bị','90',nccGradePill('A')]}]})}</div>`;
+    {go:'vendor',cells:['Cty Hóa chất Tân Tiến','0388445511','Nội địa','Keo/Hóa chất','82',nccGradePill('B')]},
+    {go:'vendor',cells:['Cty TM Hải Đăng','0311998877','Nội địa','Bao bì/Phụ liệu','74',nccGradePill('C')]},
+    {go:'vendor',cells:['Cty Cơ khí Tân Bình','0356473829','Nội địa','Thiết bị','90',nccGradePill('A')]},
+    {go:'vendor',cells:['Recycling Corp USA','—','Nhập khẩu','Giấy OCC/Bột giấy','93',npfGradePill(NCC_PROFILES.nhapkhau,'A')]},
+    {go:'vendor',cells:['Green Fiber (Thailand)','—','Nhập khẩu','Giấy Kraft tái chế','85',npfGradePill(NCC_PROFILES.nhapkhau,'B')]},
+    {go:'vendor',cells:['Nippon Pulp Co.','—','Nhập khẩu','Bột giấy NBKP','69',npfGradePill(NCC_PROFILES.nhapkhau,'D')]},
+    {go:'vendor',cells:['ONE Line','—','Dịch vụ','Cước tàu biển','95',npfGradePill(NCC_PROFILES.dichvu,'A')]},
+    {go:'vendor',cells:['Maersk','—','Dịch vụ','Cước tàu biển','73',npfGradePill(NCC_PROFILES.dichvu,'C')]},
+    {go:'vendor',cells:['Evergreen','—','Dịch vụ','Cước tàu biển','95',npfGradePill(NCC_PROFILES.dichvu,'A')]}]})}</div>`;
 
 S.imcontract_list = ()=> appnav('Mua nhập khẩu','Sales Contract',TAB_IM,'Sales Contract')
  + `<div class="sf-body">${lv({crumb:'<span data-go="imcontract_list">Sales Contract (NK)</span> &rsaquo;',ico:'💱',color:'#0b827c',object:'Sales Contract Nhập khẩu',view:'Đang thực hiện',count:'8',newLabel:'Contract mới',
