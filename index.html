@@ -1909,14 +1909,13 @@ function nccGradePill(g){ return pill(g==='A'||g==='B'?'ok':(g==='C'?'info':'err
    - Giao hàng đúng hạn: chỉ trừ điểm khi có Case sự vụ liên quan (theo trường quản lý PO); không có Case thì không trừ điểm.
    - Môi trường & Hỗ trợ nổi trội: không có ghi chú cấu hình đặc biệt (chấm 1 lần theo trạng thái/bằng chứng). */
 function pickLevel(p){ return typeof p==='number' ? p : (p&&p.level)||0; }
-function pickCount(p){ return (typeof p==='object' && p && p.count) || 1; }
-function pickHasCase(p){ return typeof p==='number' ? true : !!(p&&p.hasCase); }
-/* Các mục vi phạm trong 1 tiêu chí (trừ Chất lượng & Môi trường) là ĐỘC LẬP với nhau — có thể xảy ra
+/* Các mục vi phạm trong 1 tiêu chí (trừ Môi trường) là ĐỘC LẬP với nhau — có thể xảy ra
    đồng thời trong cùng kỳ (VD: vừa báo giá cao hơn tham chiếu VỪA thông báo tăng giá muộn), nên cho
    chọn nhiều (không giới hạn chọn 1) và cộng dồn điểm trừ của từng mục đã chọn.
-   Riêng Chất lượng: theo "Nguyên tắc áp dụng" #3 — chỉ áp dụng 1 mức ứng với hậu quả nghiêm trọng nhất,
-   không cộng dồn nhiều mức lỗi chất lượng cùng lúc → giữ chọn 1 (dropdown).
-   Môi trường: mô tả 1 trạng thái chứng nhận duy nhất tại thời điểm đánh giá → cũng giữ chọn 1. */
+   Riêng Chất lượng: mỗi SỰ CỐ chỉ tính 1 mức ứng với hậu quả nghiêm trọng nhất (Nguyên tắc áp dụng #3,
+   không cộng dồn nhiều mức cho CÙNG 1 sự cố) — nhưng nhiều sự cố ĐỘC LẬP (khác lô hàng) trong cùng kỳ
+   vẫn được tick riêng từng mức và cộng dồn với nhau, tương tự các tiêu chí khác.
+   Môi trường: mô tả 1 trạng thái chứng nhận duy nhất tại thời điểm đánh giá → giữ chọn 1 (dropdown). */
 function pickMultiItems(p){
   if(Array.isArray(p)) return p;
   if(typeof p==='number') return p>0 ? [{level:p,count:1}] : [];
@@ -1936,18 +1935,23 @@ function nccEvalScores(picks){
       const idxs=Array.isArray(p)?p:[];
       per[c.key]=Math.min(c.max, idxs.reduce((s,i)=>s+(c.levels[i]?c.levels[i].pt:0),0));
     } else if(c.key==='chatluong'){
+      // Mỗi sự cố/lô hàng chỉ tính 1 mức (không cộng dồn NHIỀU MỨC cho CÙNG 1 sự cố — Nguyên tắc áp dụng #3),
+      // nhưng NHIỀU sự cố độc lập (khác lô hàng) trong cùng kỳ vẫn được ghi nhận riêng và cộng dồn với nhau.
       // Mức 1: "tái phạm trừ gấp đôi" — nhân đôi 1 lần khi có tái phạm (không cộng dồn thêm theo số lần).
-      // Mức 2 & 3: "mỗi vụ" — trừ theo từng vụ, nhân trực tiếp theo số lần vi phạm trong kỳ.
-      // Gian lận: "đưa về 0" — luôn trừ hết điểm bất kể số lần.
-      const lvl=pickLevel(p), count=pickCount(p); const base=c.levels[lvl]||c.levels[0];
-      let ded=base.pt;
-      if(lvl===1) ded = count>=2 ? base.pt*2 : base.pt;
-      else if(lvl===2 || lvl===3) ded = base.pt*count;
+      // Mức 2, 3, Gian lận: "mỗi vụ" — trừ theo từng vụ, nhân trực tiếp theo số lần vi phạm trong kỳ.
+      const items=pickMultiItems(p);
+      let ded=0;
+      items.forEach(it=>{
+        const base=c.levels[it.level]; if(!base) return;
+        ded += (it.level===1) ? (it.count>=2 ? base.pt*2 : base.pt) : base.pt*(it.count||1);
+      });
       per[c.key]=Math.max(0, Math.min(c.max, c.max+ded));
-      if(lvl===1 && count>=3) autoExclude.push('Chất lượng Mức 1 tái phạm từ lần thứ 3 trong kỳ — đề xuất loại (cấu hình Mức 1)');
-      if(lvl===2 && count>=2) autoExclude.push('Chất lượng Mức 2 tái phạm — đề xuất loại (cấu hình Mức 2)');
-      if(lvl===3) autoExclude.push('Chất lượng Mức 3 nghiêm trọng — loại ngay khi vi phạm (cấu hình Mức 3)');
-      if(lvl===4) autoExclude.push('Gian lận chất lượng — điểm về 0, xem xét loại ngay (cấu hình Gian lận)');
+      items.forEach(it=>{
+        if(it.level===1 && it.count>=3) autoExclude.push('Chất lượng Mức 1 tái phạm từ lần thứ 3 trong kỳ — đề xuất loại (cấu hình Mức 1)');
+        if(it.level===2 && it.count>=2) autoExclude.push('Chất lượng Mức 2 tái phạm — đề xuất loại (cấu hình Mức 2)');
+        if(it.level===3) autoExclude.push('Chất lượng Mức 3 nghiêm trọng — loại ngay khi vi phạm (cấu hình Mức 3)');
+        if(it.level===4) autoExclude.push('Gian lận chất lượng — điểm về 0, xem xét loại ngay (cấu hình Gian lận)');
+      });
     } else if(c.key==='giaohang'){
       const items=giaohangItems(p), hasCase=giaohangHasCase(p);
       const rawDed=items.reduce((s,it)=>s+(c.levels[it.level]?c.levels[it.level].pt:0)*(it.count||1),0);
@@ -1960,11 +1964,12 @@ function nccEvalScores(picks){
     } else { const lvl=pickLevel(p); const base=c.levels[lvl]||c.levels[0]; per[c.key]=Math.max(0, Math.min(c.max, c.max+base.pt)); }
     total+=per[c.key];
   });
+  if(per.chatluong<20) autoExclude.push('Điểm chất lượng dưới 20/40');
   return {per,total,autoExclude};
 }
 function nccPickLabel(c,p){
   if(c.bonus){ const idxs=Array.isArray(p)?p:[]; return idxs.map(i=>c.levels[i]?c.levels[i].label:'').filter(Boolean).join('; ')||'Không có'; }
-  if(c.key==='giaban'||c.key==='thanhtoan'||c.key==='dichvu'||c.key==='oncung'){
+  if(c.key==='giaban'||c.key==='thanhtoan'||c.key==='dichvu'||c.key==='oncung'||c.key==='chatluong'){
     const items=pickMultiItems(p);
     if(!items.length) return c.levels[0].label;
     return items.map(it=>{ const lv=c.levels[it.level]; return lv ? lv.label+(it.count>1?' x'+it.count+' lần':'') : ''; }).filter(Boolean).join('; ');
@@ -1975,9 +1980,7 @@ function nccPickLabel(c,p){
     const label=items.map(it=>{ const lv=c.levels[it.level]; return lv ? lv.label+(it.count>1?' x'+it.count+' lần':'') : ''; }).filter(Boolean).join('; ');
     return label+(giaohangHasCase(p)?' · Có Case sự vụ':' · Không có Case → không trừ điểm');
   }
-  const lvl=pickLevel(p); const label=(c.levels[lvl]||c.levels[0]).label;
-  if(c.key==='chatluong' && lvl>0){ const count=pickCount(p); return label+(count>1?' · Số lần: '+count:''); }
-  return label;
+  const lvl=pickLevel(p); return (c.levels[lvl]||c.levels[0]).label;
 }
 function nccCriteriaRowsHTML(picks){
   const {per,total,autoExclude}=nccEvalScores(picks); const g=nccGrade(total);
@@ -2030,17 +2033,10 @@ function nceCritFieldHTML(c){
     const boxes=c.levels.map((lv,i)=>`<label style="display:block;font-weight:400;font-size:12px;margin-bottom:2px"><input type="checkbox" class="nce-bonus" data-key="${c.key}" value="${i}" onchange="recalcNccEval()"> ${lv.label} (+${lv.pt}, tối đa 1 lần/kỳ)</label>`).join('');
     return `<div style="margin-bottom:12px"><div style="font-weight:600">${c.name} <span class="wf-muted" style="font-weight:400;font-size:11px">(${c.dept} · tối đa ${c.max}đ, cộng điểm)</span></div>${boxes}</div>`;
   }
-  if(c.key==='giaban'||c.key==='thanhtoan'||c.key==='dichvu'||c.key==='oncung'||c.key==='giaohang') return nceMultiFieldHTML(c);
+  if(c.key==='giaban'||c.key==='thanhtoan'||c.key==='dichvu'||c.key==='oncung'||c.key==='giaohang'||c.key==='chatluong') return nceMultiFieldHTML(c);
   const opts=c.levels.map((lv,i)=>`<option value="${i}">${lv.label} (${lv.pt>=0?'+':''}${lv.pt})</option>`).join('');
-  let extra='', hint='';
-  if(c.key==='chatluong'){
-    const show=nceCountApplies(c.key,0);
-    extra=`<div class="ptf-f" id="nce-countwrap-${c.key}" style="flex:.7;display:${show?'flex':'none'}"><label class="wf-muted" style="font-size:11px;display:block">Số lần</label><input type="number" id="nce-count-${c.key}" class="mass-sel" value="1" min="1" onchange="recalcNccEval()"></div>`;
-    hint='Chỉ áp dụng 1 mức tương ứng hậu quả nghiêm trọng nhất (không cộng dồn nhiều mức lỗi chất lượng cùng lúc). Mức 1/2 tái phạm (≥2 lần) trừ gấp đôi · Mức 1 tái phạm từ lần 3, Mức 2 tái phạm, Mức 3, hoặc Gian lận → tự động đề xuất loại.';
-  }
   return `<div style="margin-bottom:12px"><div style="font-weight:600;margin-bottom:4px">${c.name} <span class="wf-muted" style="font-weight:400;font-size:11px">(${c.dept} · tối đa ${c.max}đ)</span></div>
-    <div class="ptf-row" style="align-items:flex-end"><div class="ptf-f" style="flex:2.5"><label class="wf-muted" style="font-size:11px;display:block">&nbsp;</label><select id="nce-crit-${c.key}" class="mass-sel" onchange="nceCritChanged('${c.key}',this.value)">${opts}</select></div>${extra}</div>
-    ${hint?`<div class="wf-muted" style="font-size:10.5px;margin-top:2px">${hint}</div>`:''}</div>`;
+    <select id="nce-crit-${c.key}" class="mass-sel" onchange="recalcNccEval()">${opts}</select></div>`;
 }
 function nceMultiFieldHTML(c){
   const rows=c.levels.map((lv,i)=>{
@@ -2054,6 +2050,8 @@ function nceMultiFieldHTML(c){
   if(c.key==='giaohang'){
     caseRow=`<label style="display:block;font-weight:400;font-size:12px;margin-top:4px"><input type="checkbox" id="nce-case-${c.key}" onchange="recalcNccEval()"> Có Case sự vụ liên quan (bắt buộc để trừ điểm)</label>`;
     hint='Các mục độc lập với nhau — có thể chọn nhiều mục nếu phát sinh nhiều lô hàng vi phạm khác nhau trong kỳ. Chỉ trừ điểm khi có Case sự vụ ghi nhận trong PO; không tạo Case thì không trừ điểm dù chọn mức vi phạm.';
+  } else if(c.key==='chatluong'){
+    hint='Mỗi sự cố/lô hàng chỉ tính 1 mức tương ứng hậu quả nghiêm trọng nhất (không cộng dồn nhiều mức cho CÙNG 1 sự cố) — nhưng có thể tick nhiều mức nếu có nhiều sự cố ĐỘC LẬP (khác lô hàng) trong kỳ. Mức 1 tái phạm (≥2 lần) trừ gấp đôi, loại khi tái phạm từ lần 3 · Mức 2 mỗi vụ trừ theo số lần, loại khi tái phạm (≥2 lần) · Mức 3 loại ngay khi vi phạm · Gian lận loại ngay.';
   }
   return `<div style="margin-bottom:12px"><div style="font-weight:600;margin-bottom:4px">${c.name} <span class="wf-muted" style="font-weight:400;font-size:11px">(${c.dept} · tối đa ${c.max}đ)</span></div>
     ${rows}${caseRow}
@@ -2064,22 +2062,15 @@ function nceMultiToggle(key,level,checked){
   if(wrap) wrap.style.display=checked?'flex':'none';
   recalcNccEval();
 }
-function nceCountApplies(key,level){
-  if(key==='chatluong') return level==1||level==2;
-  return false;
-}
-function nceCritChanged(key,value){
-  const wrap=document.getElementById('nce-countwrap-'+key);
-  if(wrap) wrap.style.display=nceCountApplies(key,+value)?'flex':'none';
-  recalcNccEval();
-}
 function nccExcludeFlags(picks){
-  const {per}=nccEvalScores(picks);
-  const lvl=pickLevel(picks.chatluong), count=pickCount(picks.chatluong);
+  // Bám sát đúng 1 nguồn duy nhất (autoExclude của nccEvalScores) để checklist và phần Kết luận
+  // luôn khớp nhau — tránh trường hợp checklist báo ⚠ nhưng Kết luận lại không nhắc tới lý do đó.
+  const {autoExclude}=nccEvalScores(picks);
+  const has=(sub)=>autoExclude.some(m=>m.includes(sub));
   return [
-    per.chatluong<20,
-    lvl===3 || (lvl===2&&count>=2) || (lvl===1&&count>=3),
-    lvl===4,
+    has('Điểm chất lượng dưới 20/40'),
+    has('Mức 2 tái phạm') || has('Mức 3 nghiêm trọng') || has('Mức 1 tái phạm từ lần thứ 3'),
+    has('Gian lận'),
     false,
     false,
   ];
@@ -2119,7 +2110,7 @@ function recalcNccEval(){
   const picks={};
   NCC_CRITERIA.forEach(c=>{
     if(c.bonus){ picks[c.key]=[...document.querySelectorAll('.nce-bonus[data-key="'+c.key+'"]:checked')].map(el=>+el.value); return; }
-    if(c.key==='giaban' || c.key==='thanhtoan' || c.key==='dichvu' || c.key==='oncung'){
+    if(c.key==='giaban' || c.key==='thanhtoan' || c.key==='dichvu' || c.key==='oncung' || c.key==='chatluong'){
       picks[c.key]=nceReadMultiItems(c.key); return;
     }
     if(c.key==='giaohang'){
@@ -2127,10 +2118,7 @@ function recalcNccEval(){
       picks[c.key]={items:nceReadMultiItems(c.key), hasCase:caseEl?caseEl.checked:false};
       return;
     }
-    const el=document.getElementById('nce-crit-'+c.key); const level=el?+el.value:0;
-    if(c.key==='chatluong'){
-      const countEl=document.getElementById('nce-count-'+c.key); picks[c.key]={level,count:countEl?(+countEl.value||1):1};
-    } else { picks[c.key]=level; }
+    const el=document.getElementById('nce-crit-'+c.key); picks[c.key]=el?+el.value:0;
   });
   const {total,autoExclude}=nccEvalScores(picks); const g=nccGrade(total);
   const exclude=[...new Set(autoExclude)];
