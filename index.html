@@ -1911,6 +1911,23 @@ function nccGradePill(g){ return pill(g==='A'||g==='B'?'ok':(g==='C'?'info':'err
 function pickLevel(p){ return typeof p==='number' ? p : (p&&p.level)||0; }
 function pickCount(p){ return (typeof p==='object' && p && p.count) || 1; }
 function pickHasCase(p){ return typeof p==='number' ? true : !!(p&&p.hasCase); }
+/* Các mục vi phạm trong 1 tiêu chí (trừ Chất lượng & Môi trường) là ĐỘC LẬP với nhau — có thể xảy ra
+   đồng thời trong cùng kỳ (VD: vừa báo giá cao hơn tham chiếu VỪA thông báo tăng giá muộn), nên cho
+   chọn nhiều (không giới hạn chọn 1) và cộng dồn điểm trừ của từng mục đã chọn.
+   Riêng Chất lượng: theo "Nguyên tắc áp dụng" #3 — chỉ áp dụng 1 mức ứng với hậu quả nghiêm trọng nhất,
+   không cộng dồn nhiều mức lỗi chất lượng cùng lúc → giữ chọn 1 (dropdown).
+   Môi trường: mô tả 1 trạng thái chứng nhận duy nhất tại thời điểm đánh giá → cũng giữ chọn 1. */
+function pickMultiItems(p){
+  if(Array.isArray(p)) return p;
+  if(typeof p==='number') return p>0 ? [{level:p,count:1}] : [];
+  if(p && typeof p==='object' && 'level' in p) return p.level>0 ? [{level:p.level,count:p.count||1}] : [];
+  return [];
+}
+function giaohangItems(p){
+  if(p && Array.isArray(p.items)) return p.items;
+  return pickMultiItems(p);
+}
+function giaohangHasCase(p){ if(p && typeof p==='object' && !Array.isArray(p)) return !!p.hasCase; return true; }
 function nccEvalScores(picks){
   const per={}; let total=0; const autoExclude=[];
   NCC_CRITERIA.forEach(c=>{
@@ -1932,12 +1949,13 @@ function nccEvalScores(picks){
       if(lvl===3) autoExclude.push('Chất lượng Mức 3 nghiêm trọng — loại ngay khi vi phạm (cấu hình Mức 3)');
       if(lvl===4) autoExclude.push('Gian lận chất lượng — điểm về 0, xem xét loại ngay (cấu hình Gian lận)');
     } else if(c.key==='giaohang'){
-      const lvl=pickLevel(p), hasCase=pickHasCase(p); const base=c.levels[lvl]||c.levels[0];
-      const ded=(lvl>0 && !hasCase) ? 0 : base.pt;
+      const items=giaohangItems(p), hasCase=giaohangHasCase(p);
+      const rawDed=items.reduce((s,it)=>s+(c.levels[it.level]?c.levels[it.level].pt:0)*(it.count||1),0);
+      const ded=(items.length>0 && !hasCase) ? 0 : rawDed;
       per[c.key]=Math.max(0, Math.min(c.max, c.max+ded));
     } else if(c.key==='giaban' || c.key==='thanhtoan' || c.key==='dichvu' || c.key==='oncung'){
-      const lvl=pickLevel(p), count=pickCount(p); const base=c.levels[lvl]||c.levels[0];
-      const ded=lvl===0?0:base.pt*count;
+      const items=pickMultiItems(p);
+      const ded=items.reduce((s,it)=>s+(c.levels[it.level]?c.levels[it.level].pt:0)*(it.count||1),0);
       per[c.key]=Math.max(0, Math.min(c.max, c.max+ded));
     } else { const lvl=pickLevel(p); const base=c.levels[lvl]||c.levels[0]; per[c.key]=Math.max(0, Math.min(c.max, c.max+base.pt)); }
     total+=per[c.key];
@@ -1946,10 +1964,19 @@ function nccEvalScores(picks){
 }
 function nccPickLabel(c,p){
   if(c.bonus){ const idxs=Array.isArray(p)?p:[]; return idxs.map(i=>c.levels[i]?c.levels[i].label:'').filter(Boolean).join('; ')||'Không có'; }
+  if(c.key==='giaban'||c.key==='thanhtoan'||c.key==='dichvu'||c.key==='oncung'){
+    const items=pickMultiItems(p);
+    if(!items.length) return c.levels[0].label;
+    return items.map(it=>{ const lv=c.levels[it.level]; return lv ? lv.label+(it.count>1?' x'+it.count+' lần':'') : ''; }).filter(Boolean).join('; ');
+  }
+  if(c.key==='giaohang'){
+    const items=giaohangItems(p);
+    if(!items.length) return c.levels[0].label;
+    const label=items.map(it=>{ const lv=c.levels[it.level]; return lv ? lv.label+(it.count>1?' x'+it.count+' lần':'') : ''; }).filter(Boolean).join('; ');
+    return label+(giaohangHasCase(p)?' · Có Case sự vụ':' · Không có Case → không trừ điểm');
+  }
   const lvl=pickLevel(p); const label=(c.levels[lvl]||c.levels[0]).label;
   if(c.key==='chatluong' && lvl>0){ const count=pickCount(p); return label+(count>1?' · Số lần: '+count:''); }
-  if((c.key==='giaban'||c.key==='thanhtoan'||c.key==='dichvu'||c.key==='oncung') && lvl>0){ const count=pickCount(p); return label+(count>1?' · x'+count+' lần':''); }
-  if(c.key==='giaohang' && lvl>0){ return label+(pickHasCase(p)?' · Có Case sự vụ':' · Không có Case → không trừ điểm'); }
   return label;
 }
 function nccCriteriaRowsHTML(picks){
@@ -2003,27 +2030,42 @@ function nceCritFieldHTML(c){
     const boxes=c.levels.map((lv,i)=>`<label style="display:block;font-weight:400;font-size:12px;margin-bottom:2px"><input type="checkbox" class="nce-bonus" data-key="${c.key}" value="${i}" onchange="recalcNccEval()"> ${lv.label} (+${lv.pt}, tối đa 1 lần/kỳ)</label>`).join('');
     return `<div style="margin-bottom:12px"><div style="font-weight:600">${c.name} <span class="wf-muted" style="font-weight:400;font-size:11px">(${c.dept} · tối đa ${c.max}đ, cộng điểm)</span></div>${boxes}</div>`;
   }
+  if(c.key==='giaban'||c.key==='thanhtoan'||c.key==='dichvu'||c.key==='oncung'||c.key==='giaohang') return nceMultiFieldHTML(c);
   const opts=c.levels.map((lv,i)=>`<option value="${i}">${lv.label} (${lv.pt>=0?'+':''}${lv.pt})</option>`).join('');
   let extra='', hint='';
   if(c.key==='chatluong'){
     const show=nceCountApplies(c.key,0);
     extra=`<div class="ptf-f" id="nce-countwrap-${c.key}" style="flex:.7;display:${show?'flex':'none'}"><label class="wf-muted" style="font-size:11px;display:block">Số lần</label><input type="number" id="nce-count-${c.key}" class="mass-sel" value="1" min="1" onchange="recalcNccEval()"></div>`;
-    hint='Mức 1/2 tái phạm (≥2 lần) trừ gấp đôi · Mức 1 tái phạm từ lần 3, Mức 2 tái phạm, Mức 3, hoặc Gian lận → tự động đề xuất loại.';
-  } else if(c.key==='giaban'||c.key==='thanhtoan'||c.key==='dichvu'||c.key==='oncung'){
-    const show=nceCountApplies(c.key,0);
-    extra=`<div class="ptf-f" id="nce-countwrap-${c.key}" style="flex:.7;display:${show?'flex':'none'}"><label class="wf-muted" style="font-size:11px;display:block">Số lần</label><input type="number" id="nce-count-${c.key}" class="mass-sel" value="1" min="1" onchange="recalcNccEval()"></div>`;
-    hint='Áp dụng trừ điểm theo mỗi lần vi phạm phát sinh trong kỳ (chỉ hiện khi có vi phạm).';
-  } else if(c.key==='giaohang'){
-    extra=`<div class="ptf-f" style="flex:1"><label class="wf-muted" style="font-size:11px;display:block">&nbsp;</label><label style="font-weight:400;font-size:12px"><input type="checkbox" id="nce-case-${c.key}" onchange="recalcNccEval()"> Có Case sự vụ liên quan</label></div>`;
-    hint='Chỉ trừ điểm khi có Case sự vụ ghi nhận trong PO; không tạo Case thì không trừ điểm dù chọn mức vi phạm.';
+    hint='Chỉ áp dụng 1 mức tương ứng hậu quả nghiêm trọng nhất (không cộng dồn nhiều mức lỗi chất lượng cùng lúc). Mức 1/2 tái phạm (≥2 lần) trừ gấp đôi · Mức 1 tái phạm từ lần 3, Mức 2 tái phạm, Mức 3, hoặc Gian lận → tự động đề xuất loại.';
   }
   return `<div style="margin-bottom:12px"><div style="font-weight:600;margin-bottom:4px">${c.name} <span class="wf-muted" style="font-weight:400;font-size:11px">(${c.dept} · tối đa ${c.max}đ)</span></div>
     <div class="ptf-row" style="align-items:flex-end"><div class="ptf-f" style="flex:2.5"><label class="wf-muted" style="font-size:11px;display:block">&nbsp;</label><select id="nce-crit-${c.key}" class="mass-sel" onchange="nceCritChanged('${c.key}',this.value)">${opts}</select></div>${extra}</div>
     ${hint?`<div class="wf-muted" style="font-size:10.5px;margin-top:2px">${hint}</div>`:''}</div>`;
 }
+function nceMultiFieldHTML(c){
+  const rows=c.levels.map((lv,i)=>{
+    if(i===0) return '';
+    return `<div class="ptf-row" style="align-items:center;margin-bottom:4px">
+      <label style="flex:2.3;font-weight:400;font-size:12px"><input type="checkbox" class="nce-multi" data-key="${c.key}" data-level="${i}" onchange="nceMultiToggle('${c.key}',${i},this.checked)"> ${lv.label} (${lv.pt})</label>
+      <div class="ptf-f" id="nce-mcount-${c.key}-${i}" style="flex:.6;display:none"><input type="number" id="nce-mcount-input-${c.key}-${i}" class="mass-sel" value="1" min="1" placeholder="Số lần" onchange="recalcNccEval()"></div>
+    </div>`;
+  }).join('');
+  let caseRow='', hint='Các mục độc lập với nhau — có thể chọn nhiều mục nếu phát sinh đồng thời trong kỳ; mỗi mục trừ điểm theo đúng số lần vi phạm.';
+  if(c.key==='giaohang'){
+    caseRow=`<label style="display:block;font-weight:400;font-size:12px;margin-top:4px"><input type="checkbox" id="nce-case-${c.key}" onchange="recalcNccEval()"> Có Case sự vụ liên quan (bắt buộc để trừ điểm)</label>`;
+    hint='Các mục độc lập với nhau — có thể chọn nhiều mục nếu phát sinh nhiều lô hàng vi phạm khác nhau trong kỳ. Chỉ trừ điểm khi có Case sự vụ ghi nhận trong PO; không tạo Case thì không trừ điểm dù chọn mức vi phạm.';
+  }
+  return `<div style="margin-bottom:12px"><div style="font-weight:600;margin-bottom:4px">${c.name} <span class="wf-muted" style="font-weight:400;font-size:11px">(${c.dept} · tối đa ${c.max}đ)</span></div>
+    ${rows}${caseRow}
+    <div class="wf-muted" style="font-size:10.5px;margin-top:2px">${hint}</div></div>`;
+}
+function nceMultiToggle(key,level,checked){
+  const wrap=document.getElementById('nce-mcount-'+key+'-'+level);
+  if(wrap) wrap.style.display=checked?'flex':'none';
+  recalcNccEval();
+}
 function nceCountApplies(key,level){
   if(key==='chatluong') return level==1||level==2;
-  if(key==='giaban'||key==='thanhtoan'||key==='dichvu'||key==='oncung') return level>0;
   return false;
 }
 function nceCritChanged(key,value){
@@ -2066,15 +2108,28 @@ function nceEvalFormHTML(vendorFixed){
       <div class="wf-muted" style="font-size:12px" id="nce-action">—</div>
     </div>`;
 }
+function nceReadMultiItems(key){
+  return [...document.querySelectorAll('.nce-multi[data-key="'+key+'"]:checked')].map(el=>{
+    const level=+el.dataset.level;
+    const countEl=document.getElementById('nce-mcount-input-'+key+'-'+level);
+    return {level, count:countEl?(+countEl.value||1):1};
+  });
+}
 function recalcNccEval(){
   const picks={};
   NCC_CRITERIA.forEach(c=>{
     if(c.bonus){ picks[c.key]=[...document.querySelectorAll('.nce-bonus[data-key="'+c.key+'"]:checked')].map(el=>+el.value); return; }
+    if(c.key==='giaban' || c.key==='thanhtoan' || c.key==='dichvu' || c.key==='oncung'){
+      picks[c.key]=nceReadMultiItems(c.key); return;
+    }
+    if(c.key==='giaohang'){
+      const caseEl=document.getElementById('nce-case-'+c.key);
+      picks[c.key]={items:nceReadMultiItems(c.key), hasCase:caseEl?caseEl.checked:false};
+      return;
+    }
     const el=document.getElementById('nce-crit-'+c.key); const level=el?+el.value:0;
-    if(c.key==='chatluong' || c.key==='giaban' || c.key==='thanhtoan' || c.key==='dichvu' || c.key==='oncung'){
+    if(c.key==='chatluong'){
       const countEl=document.getElementById('nce-count-'+c.key); picks[c.key]={level,count:countEl?(+countEl.value||1):1};
-    } else if(c.key==='giaohang'){
-      const caseEl=document.getElementById('nce-case-'+c.key); picks[c.key]={level,hasCase:caseEl?caseEl.checked:false};
     } else { picks[c.key]=level; }
   });
   const {total,autoExclude}=nccEvalScores(picks); const g=nccGrade(total);
