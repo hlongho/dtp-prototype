@@ -664,6 +664,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     <div class="pm-body" id="nce-body"></div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeNccEvalModal()">Hủy</button><button class="btn pri" onclick="confirmNccEval()">Lưu đánh giá</button></div></div>
   </div>
+  <!-- Modal tạo mới đợt Đánh giá NCC nhập khẩu / dịch vụ -->
+  <div class="modal-back" id="npfback" onclick="closeNpfEvalModal()" style="z-index:135"></div>
+  <div class="po-modal" id="npfmodal" style="z-index:140;width:min(680px,96vw);max-height:88vh;overflow:auto">
+    <div class="pm-head"><h3 id="npf-title">Đánh giá NCC</h3><button title="Đóng" onclick="closeNpfEvalModal()">✕</button></div>
+    <div class="pm-body" id="npf-body"></div>
+    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeNpfEvalModal()">Hủy</button><button class="btn pri" onclick="confirmNpfEval()">Lưu đánh giá</button></div></div>
+  </div>
   <!-- Modal thêm phí phát sinh (Shipment Fee) -->
   <div class="modal-back" id="feeback" onclick="closeFeeModal()" style="z-index:135"></div>
   <div class="po-modal" id="feemodal" style="z-index:140;width:min(620px,94vw)">
@@ -2147,6 +2154,181 @@ function confirmNccEval(){
   closeNccEvalModal();
   toast('✓ Đã lưu đánh giá NCC "'+vendor+'" · '+period+' · '+total+'/100 · Xếp loại '+g);
   if(NCE_CONTEXT.vendorFixed) go('vendor'); else go('rpt_ncceval');
+}
+
+/* ===== Đánh giá NCC nhập khẩu / NCC dịch vụ — theo "danh gia ncc nk + dich vu (gop y).xls" =====
+   NCC có 3 loại: Nội địa (hệ thống ở trên, thang A-E) · Nhập khẩu · Dịch vụ (2 loại này thang A-D, không có E).
+   Mỗi loại 8 tiêu chí phẳng (không nhóm cha/con), tổng 100đ. Đa số tiêu chí là các mức đã bao gồm sẵn
+   tần suất vi phạm trong nhãn (VD: "Vi phạm 1-2 lần") nên chỉ cần chọn 1 mức — không cần thêm số lần. */
+const NCC_PROFILES={
+  nhapkhau:{
+    label:'NCC nhập khẩu', ico:'🚢', color:'#0b827c',
+    grades:[{min:90,g:'A',label:'Nhà cung cấp ưu tiên'},{min:80,g:'B',label:'Đạt yêu cầu'},{min:70,g:'C',label:'Cần cải thiện'},{min:0,g:'D',label:'Xem xét thay thế'}],
+    criteria:[
+      {key:'chatluong',name:'Chất lượng hàng hóa',max:40,type:'select',levels:[
+        {label:'Không phát sinh lỗi',pt:0},{label:'Có lỗi nhỏ nhưng chấp nhận được',pt:-5},
+        {label:'Có lỗi phải xử lý hoặc phân loại',pt:-10},{label:'Có lỗi ảnh hưởng sản xuất, có đền bù/hợp tác xử lý',pt:-20},
+        {label:'Trả hàng hoặc khiếu nại nghiêm trọng, không hợp tác xử lý',pt:-40}]},
+      {key:'tiendo',name:'Tiến độ giao hàng / Số lần giao hàng trễ hạn',max:15,type:'select',levels:[
+        {label:'Không vi phạm',pt:0},{label:'Vi phạm 1-2 lần',pt:-5},{label:'Vi phạm 3-4 lần',pt:-10},{label:'Vi phạm 5 lần trở lên',pt:-15}]},
+      {key:'gia',name:'Giá cả và tính cạnh tranh',max:15,type:'select',levels:[
+        {label:'Rất cạnh tranh',pt:0},{label:'Hợp lý',pt:-5},{label:'Cao hơn thị trường dưới 5%',pt:-10},{label:'Cao hơn trên 10%',pt:-15}]},
+      {key:'chungtu',name:'Chứng từ xuất/nhập khẩu',max:5,type:'select',levels:[
+        {label:'Không sai (Invoice, Packing List, B/L, C/O, COA, CQ, MSDS…)',pt:0},{label:'Sai nhỏ',pt:-2},{label:'Sai nhiều, phát sinh chi phí/chậm thông quan',pt:-5}]},
+      {key:'dieukhoan',name:'Điều khoản thương mại',max:10,type:'select',levels:[
+        {label:'L/C sau khi tàu chạy 120 ngày hoặc TT 90 ngày',pt:0},
+        {label:'L/C sau khi tàu chạy 90 ngày hoặc TT 60 ngày',pt:-1},
+        {label:'L/C trước khi tàu chạy 120 ngày',pt:-2},
+        {label:'L/C trước khi tàu chạy 90 ngày hoặc TT 30 ngày',pt:-3},
+        {label:'L/C At Sight (mở trước khi giao hàng)',pt:-4},
+        {label:'TT đặt cọc 30%, thanh toán 70% sau B/L',pt:-5},
+        {label:'TT đặt cọc 50%, thanh toán 50% trước giao hàng',pt:-7},
+        {label:'TT 100% đặt cọc trước sản xuất/giao hàng',pt:-10}]},
+      {key:'dichvuht',name:'Dịch vụ và hỗ trợ',max:5,type:'bool',desc:'Phản hồi nhanh, phối hợp xử lý tốt khiếu nại/sự cố, hỗ trợ kỹ thuật theo yêu cầu'},
+      {key:'nangluc',name:'Năng lực cung ứng',max:5,type:'bool',desc:'Công suất ổn định, đảm bảo nguồn hàng lâu dài, có dự phòng, đáp ứng đơn hàng gấp'},
+      {key:'tuanthu',name:'Tuân thủ pháp luật và ESG',max:5,type:'bool',desc:'ISO, môi trường, lao động, đạo đức kinh doanh, tuân thủ quy định'},
+    ]},
+  dichvu:{
+    label:'NCC dịch vụ', ico:'🛠️', color:'#8c4b02',
+    grades:[{min:90,g:'A',label:'Nhà cung cấp dịch vụ ưu tiên'},{min:80,g:'B',label:'Đạt yêu cầu'},{min:70,g:'C',label:'Cần cải thiện'},{min:0,g:'D',label:'Xem xét thay thế'}],
+    criteria:[
+      {key:'chatluong',name:'Chất lượng dịch vụ',max:40,type:'select',levels:[
+        {label:'Không phát sinh lỗi',pt:0},{label:'Có lỗi nhỏ, xử lý ngay',pt:-5},
+        {label:'Có lỗi ảnh hưởng tiến độ',pt:-10},{label:'Có lỗi gây thiệt hại, có đền bù',pt:-20},{label:'Lỗi nghiêm trọng',pt:-40}]},
+      {key:'tiendo',name:'Tiến độ thực hiện',max:15,type:'select',levels:[
+        {label:'Không vi phạm',pt:0},{label:'Vi phạm 1-2 lần',pt:-5},{label:'Vi phạm 3-4 lần',pt:-10},{label:'Vi phạm 5 lần trở lên',pt:-15}]},
+      {key:'gia',name:'Giá dịch vụ',max:15,type:'select',levels:[
+        {label:'Rất cạnh tranh',pt:0},{label:'Hợp lý',pt:-5},{label:'Cao hơn thị trường dưới 5%',pt:-10},{label:'Cao hơn trên 10%',pt:-15}]},
+      {key:'chungtu',name:'Độ chính xác chứng từ',max:5,type:'select',levels:[
+        {label:'Không sai (hóa đơn, bảng kê, chứng từ liên quan...)',pt:0},{label:'Sai nhỏ',pt:-2},{label:'Sai nhiều, phát sinh chi phí/chậm thông quan',pt:-5}]},
+      {key:'xulysuco',name:'Khả năng xử lý sự cố',max:10,type:'bonusBool',desc:'Chủ động xử lý phát sinh/khiếu nại, đề xuất phương án, hỗ trợ ngoài giờ, phối hợp với hãng tàu/cảng/hải quan'},
+      {key:'phanhoi',name:'Khả năng phản hồi',max:5,type:'select',levels:[
+        {label:'Trong 2 giờ làm việc',pt:0},{label:'Trong ngày',pt:-2},{label:'Qua ngày sau',pt:-5}]},
+      {key:'tuanthu',name:'Tuân thủ và có năng lực',max:5,type:'bool',desc:'Giấy phép, bảo hiểm trách nhiệm, tuân thủ pháp luật, hệ thống quản lý'},
+      {key:'hoptac',name:'Mức độ hợp tác tốt',max:5,type:'bonusBool',desc:'Chủ động tư vấn giải pháp, hỗ trợ tối ưu chi phí, phối hợp giải quyết vấn đề, thái độ hợp tác tốt'},
+    ]},
+};
+function npfScore(profile,picks){
+  const per={}; let total=0;
+  profile.criteria.forEach(c=>{
+    let pt;
+    if(c.type==='select'){ const idx=picks[c.key]||0; const lvl=c.levels[idx]||c.levels[0]; pt=Math.max(0,Math.min(c.max,c.max+lvl.pt)); }
+    else if(c.type==='bool'){ pt = picks[c.key] ? Math.max(0,c.max-5) : c.max; }
+    else { pt = picks[c.key] ? c.max : 0; } // bonusBool
+    per[c.key]=pt; total+=pt;
+  });
+  return {per,total};
+}
+function npfGrade(profile,total){ for(const g of profile.grades){ if(total>=g.min) return g; } return profile.grades[profile.grades.length-1]; }
+function npfPickLabel(c,val){
+  if(c.type==='select') return (c.levels[val||0]||c.levels[0]).label;
+  if(c.type==='bool') return val ? 'Không đáp ứng ('+c.desc+')' : 'Đáp ứng đầy đủ';
+  return val ? 'Đạt ('+c.desc+')' : 'Chưa đạt / chưa có bằng chứng';
+}
+function npfCriteriaRowsHTML(type,picks){
+  const profile=NCC_PROFILES[type];
+  const {per,total}=npfScore(profile,picks); const g=npfGrade(profile,total);
+  let rows=profile.criteria.map(c=>`<tr><td><b>${c.name}</b></td><td class="num">${c.max}</td><td class="num"><b>${per[c.key]}</b></td><td>${npfPickLabel(c,picks[c.key])}</td></tr>`).join('');
+  rows+=`<tr style="font-weight:700;background:var(--bg)"><td>TỔNG ĐIỂM</td><td class="num">100</td><td class="num">${total}</td><td>Xếp loại ${g.g} — ${g.label}</td></tr>`;
+  return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm tối đa</th><th class="num">Điểm đạt</th><th>Mức đã chọn</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function npfGradePill(profile,g){ return pill(g==='A'||g==='B'?'ok':(g==='C'?'info':'err'), g+' — '+(profile.grades.find(x=>x.g===g)||{}).label); }
+let NCC_EVALS_EXT=[
+  {type:'nhapkhau', vendor:'Recycling Corp USA', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. XNK', note:'',
+    picks:{chatluong:0,tiendo:0,gia:1,chungtu:0,dieukhoan:2,dichvuht:false,nangluc:false,tuanthu:false}},
+  {type:'nhapkhau', vendor:'Green Fiber (Thailand)', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. XNK', note:'Giao trễ 1 lô nguyên liệu do kẹt cảng',
+    picks:{chatluong:0,tiendo:1,gia:2,chungtu:0,dieukhoan:0,dichvuht:false,nangluc:false,tuanthu:false}},
+  {type:'nhapkhau', vendor:'Nippon Pulp Co.', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. XNK', note:'Lô bột giấy lẫn tạp chất, phải phân loại lại; hồ sơ C/O sai nhỏ',
+    picks:{chatluong:2,tiendo:2,gia:0,chungtu:1,dieukhoan:4,dichvuht:true,nangluc:false,tuanthu:false}},
+  {type:'dichvu', vendor:'ONE Line', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Logistics', note:'',
+    picks:{chatluong:0,tiendo:0,gia:1,chungtu:0,xulysuco:true,phanhoi:0,tuanthu:false,hoptac:true}},
+  {type:'dichvu', vendor:'Maersk', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Logistics', note:'Phản hồi chậm khi container bị lưu tại cảng',
+    picks:{chatluong:0,tiendo:1,gia:2,chungtu:0,xulysuco:false,phanhoi:1,tuanthu:false,hoptac:true}},
+  {type:'dichvu', vendor:'Evergreen', period:'Kỳ 07/2026', date:'05/07/2026', by:'P. Logistics', note:'',
+    picks:{chatluong:1,tiendo:0,gia:0,chungtu:0,xulysuco:true,phanhoi:0,tuanthu:false,hoptac:true}},
+];
+function npfLatestEval(type,vendor){ const list=NCC_EVALS_EXT.filter(e=>e.type===type&&e.vendor===vendor); return list[list.length-1]||null; }
+function npfEvalsListRows(type,vendor){
+  const profile=NCC_PROFILES[type];
+  return NCC_EVALS_EXT.filter(e=>e.type===type&&e.vendor===vendor).map(e=>{ const {total}=npfScore(profile,e.picks); const g=npfGrade(profile,total);
+    return [`<a style="cursor:pointer" onclick="openNpfHistoryModal('${type}','${vendor.replace(/'/g,"\\'")}','${e.period}')">${e.period}</a>`, e.date, total+'/100', npfGradePill(profile,g.g), e.by];
+  });
+}
+function npfEvalTableRows(type,vendors){
+  const profile=NCC_PROFILES[type];
+  return vendors.map(v=>{ const e=npfLatestEval(type,v); if(!e) return '';
+    const {total}=npfScore(profile,e.picks); const g=npfGrade(profile,total);
+    return `<tr><td><a style="cursor:pointer" onclick="openNpfHistoryModal('${type}','${v.replace(/'/g,"\\'")}','${e.period}')"><b>${v}</b></a></td><td class="num"><b>${total}</b></td><td>${npfGradePill(profile,g.g)}</td><td>${e.note||'—'}</td></tr>`;
+  }).join('');
+}
+function openNpfHistoryModal(type,vendor,period){
+  const e=NCC_EVALS_EXT.find(x=>x.type===type&&x.vendor===vendor&&x.period===period); if(!e) return;
+  const profile=NCC_PROFILES[type]; const {total}=npfScore(profile,e.picks); const g=npfGrade(profile,total);
+  document.getElementById('eval-title').textContent=profile.label+' · '+e.period+' · '+total+'/100 · Xếp loại '+g.g;
+  document.getElementById('eval-body').innerHTML=`<p class="po-hint">NCC <b>${e.vendor}</b> · Ngày đánh giá <b>${e.date}</b> · Người đánh giá <b>${e.by}</b>${e.note?' · Ghi chú: '+e.note:''}</p>`+npfCriteriaRowsHTML(type,e.picks);
+  document.getElementById('evalback').classList.add('show');
+  document.getElementById('evalmodal').classList.add('show');
+}
+let NPF_CONTEXT={type:null, vendorFixed:null};
+function npfFieldHTML(c){
+  if(c.type==='select'){
+    const opts=c.levels.map((lv,i)=>`<option value="${i}">${lv.label} (${lv.pt})</option>`).join('');
+    return `<div style="margin-bottom:12px"><div style="font-weight:600;margin-bottom:4px">${c.name} <span class="wf-muted" style="font-weight:400;font-size:11px">(tối đa ${c.max}đ)</span></div>
+      <select id="npf-crit-${c.key}" class="mass-sel" onchange="recalcNpfEval()">${opts}</select></div>`;
+  }
+  const bonus=c.type==='bonusBool';
+  return `<div style="margin-bottom:12px"><label style="font-weight:400;font-size:13px"><input type="checkbox" id="npf-crit-${c.key}" onchange="recalcNpfEval()"> <b>${c.name}</b> <span class="wf-muted" style="font-size:11px">(${bonus?'cộng tối đa '+c.max+'đ nếu đạt':'tối đa '+c.max+'đ — tick nếu KHÔNG đáp ứng'}: ${c.desc})</span></label></div>`;
+}
+function npfFormHTML(type,vendorFixed){
+  const profile=NCC_PROFILES[type];
+  const vendorNames=[...new Set(NCC_EVALS_EXT.filter(e=>e.type===type).map(e=>e.vendor))];
+  const vendorField=vendorFixed
+    ? `<div class="ptf-f" style="flex:2"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Nhà cung cấp</label><input class="mass-sel" value="${vendorFixed}" disabled></div>`
+    : `<div class="ptf-f" style="flex:2"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Nhà cung cấp *</label><select id="npf-vendor" class="mass-sel">${vendorNames.map(v=>`<option>${v}</option>`).join('')}</select></div>`;
+  return `<div class="ptf-row" style="align-items:baseline">${vendorField}
+      <div class="ptf-f" style="flex:1"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Kỳ đánh giá *</label><input id="npf-period" class="mass-sel" placeholder="VD: Kỳ 08/2026"></div>
+    </div>
+    ${profile.criteria.map(npfFieldHTML).join('')}
+    <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Ghi chú / bằng chứng</label><input id="npf-note" class="mass-sel" placeholder="VD: Giao trễ do kẹt cảng..."></div>
+    <div class="ptf-item" style="background:var(--bg)">
+      <div style="font-weight:600">Kết quả</div>
+      <div style="margin-top:4px">Tổng điểm: <b id="npf-total">0</b>/100 · Xếp loại <b id="npf-grade">—</b> <span class="wf-muted" style="font-size:11px">(thang A-D, không có E)</span></div>
+      <div class="wf-muted" style="font-size:12px" id="npf-action">—</div>
+    </div>`;
+}
+function recalcNpfEval(){
+  const profile=NCC_PROFILES[NPF_CONTEXT.type]; const picks={};
+  profile.criteria.forEach(c=>{
+    const el=document.getElementById('npf-crit-'+c.key);
+    picks[c.key] = c.type==='select' ? (el?+el.value:0) : (el?el.checked:false);
+  });
+  const {total}=npfScore(profile,picks); const g=npfGrade(profile,total);
+  document.getElementById('npf-total').textContent=total;
+  document.getElementById('npf-grade').textContent=g.g+' — '+g.label;
+  document.getElementById('npf-action').textContent = g.g==='A' ? 'Ưu tiên hợp tác lâu dài' : g.g==='B' ? 'Tiếp tục hợp tác' : g.g==='C' ? 'Yêu cầu cải thiện, theo dõi kỳ tiếp theo' : 'Xem xét thay thế NCC';
+  return {picks,total,g};
+}
+function openNpfEvalModal(type,vendorFixed){
+  NPF_CONTEXT={type,vendorFixed:vendorFixed||null};
+  const profile=NCC_PROFILES[type];
+  document.getElementById('npf-title').textContent='Đánh giá '+profile.label;
+  document.getElementById('npf-body').innerHTML=npfFormHTML(type,vendorFixed);
+  document.getElementById('npf-period').value='Kỳ 08/2026';
+  document.getElementById('npfback').classList.add('show');
+  document.getElementById('npfmodal').classList.add('show');
+  recalcNpfEval();
+}
+function closeNpfEvalModal(){ const b=document.getElementById('npfback'),m=document.getElementById('npfmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
+function confirmNpfEval(){
+  const vendor=NPF_CONTEXT.vendorFixed || document.getElementById('npf-vendor').value;
+  const period=(document.getElementById('npf-period').value||'').trim();
+  if(!period){ toast('Nhập Kỳ đánh giá'); return; }
+  const {picks,total,g}=recalcNpfEval();
+  const note=(document.getElementById('npf-note').value||'').trim();
+  NCC_EVALS_EXT.push({type:NPF_CONTEXT.type,vendor,period,date:'Hôm nay',by:'Bạn',picks,note});
+  closeNpfEvalModal();
+  toast('✓ Đã lưu đánh giá '+NCC_PROFILES[NPF_CONTEXT.type].label+' "'+vendor+'" · '+period+' · '+total+'/100 · Xếp loại '+g.g);
+  go('rpt_ncceval');
 }
 
 /* ===== Shipment Fees (Quản lý chi phí) ===== */
@@ -4142,13 +4324,24 @@ S.rpt_ncctop = ()=> appnav('Báo cáo mua hàng','Top 10 NCC doanh số cao',TAB
  </div>`;
 S.rpt_ncceval = ()=> appnav('Báo cáo mua hàng','Đánh giá NCC',TAB_RPT,'Đánh giá NCC')
  + `<div class="sf-body">
-   ${hl({crumb:'Báo cáo mua hàng',ico:'⭐',color:'#2e844a',title:'Đánh giá nhà cung cấp T7/2026',sub:'Chấm điểm theo Bộ tiêu chí đánh giá NCC — 8 tiêu chí, thang 100 điểm, xếp loại A-E',
-     fields:[['Kỳ','Kỳ 07/2026'],['Số NCC đánh giá','11'],['Thang điểm','8 tiêu chí — 100đ'],['Cập nhật','Hôm nay']],actions:[{t:'Đánh giá NCC',pri:true,fn:'openNccEvalModal()'},{t:'Xuất báo cáo'},'Đổi kỳ']})}
-   ${card('Đánh giá NCC Kỳ 07/2026 — 8 tiêu chí, thang 100 điểm',
+   ${hl({crumb:'Báo cáo mua hàng',ico:'⭐',color:'#2e844a',title:'Đánh giá nhà cung cấp T7/2026',sub:'NCC có 3 loại: Nội địa · Nhập khẩu · Dịch vụ — mỗi loại 1 bộ tiêu chí riêng, thang 100 điểm',
+     fields:[['Kỳ','Kỳ 07/2026'],['NCC nội địa','11'],['NCC nhập khẩu','3'],['NCC dịch vụ','3']],
+     actions:[{t:'Đánh giá NCC nội địa',pri:true,fn:'openNccEvalModal()'},{t:'Đánh giá NCC nhập khẩu',fn:"openNpfEvalModal('nhapkhau')"},{t:'Đánh giá NCC dịch vụ',fn:"openNpfEvalModal('dichvu')"},'Xuất báo cáo']})}
+   ${card('Đánh giá NCC nội địa — Kỳ 07/2026 (8 tiêu chí, thang 100đ, xếp loại A-E)',
      `<div class="tbl-wrap"><table class="tbl">
         <thead><tr><th>Tên NCC</th><th>Mặt hàng cung cấp</th><th class="num">Tổng cộng (đồng)</th><th class="num">Điểm đánh giá</th><th>Xếp loại</th><th>Ghi chú / Kết luận</th></tr></thead>
         <tbody>${nccEvalRows()}</tbody></table></div>
       <div class="po-hint">Điểm theo 8 tiêu chí có trọng số (Chất lượng 40 · Giá bán 15 · Thanh toán 10 · Giao hàng 10 · Dịch vụ sau bán 10 · Ổn định nguồn cung 5 · Môi trường/ESG 5 · Hỗ trợ nổi trội 5) → Xếp loại A (90-100) · B (80-89) · C (70-79) · D (60-69) · E (dưới 60). Bấm tên NCC để xem chi tiết đợt đánh giá.</div>`)}
+   ${card('Đánh giá NCC nhập khẩu — Kỳ 07/2026 (8 tiêu chí, thang 100đ, xếp loại A-D)',
+     `<div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Tên NCC</th><th class="num">Điểm đánh giá</th><th>Xếp loại</th><th>Ghi chú</th></tr></thead>
+        <tbody>${npfEvalTableRows('nhapkhau',['Recycling Corp USA','Green Fiber (Thailand)','Nippon Pulp Co.'])}</tbody></table></div>
+      <div class="po-hint">Theo file "danh gia ncc nk + dich vu": Chất lượng 40 · Tiến độ giao hàng 15 · Giá cả 15 · Chứng từ XNK 5 · Điều khoản thương mại 10 · Dịch vụ & hỗ trợ 5 · Năng lực cung ứng 5 · Tuân thủ pháp luật/ESG 5 → Xếp loại A (90-100) · B (80-89) · C (70-79) · D (dưới 70) — không có hạng E.</div>`)}
+   ${card('Đánh giá NCC dịch vụ — Kỳ 07/2026 (8 tiêu chí, thang 100đ, xếp loại A-D)',
+     `<div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Tên NCC</th><th class="num">Điểm đánh giá</th><th>Xếp loại</th><th>Ghi chú</th></tr></thead>
+        <tbody>${npfEvalTableRows('dichvu',['ONE Line','Maersk','Evergreen'])}</tbody></table></div>
+      <div class="po-hint">Chất lượng dịch vụ 40 · Tiến độ thực hiện 15 · Giá dịch vụ 15 · Độ chính xác chứng từ 5 · Khả năng xử lý sự cố 10 (điểm cộng) · Khả năng phản hồi 5 · Tuân thủ & năng lực 5 · Mức độ hợp tác tốt 5 (điểm cộng) → Xếp loại A (90-100) · B (80-89) · C (70-79) · D (dưới 70) — không có hạng E.</div>`)}
  </div>`;
 /* ===== Theo dõi Claim / Khiếu nại (BP XNK) ===== */
 // [năm, số Invoice, số B/L, tổng phát sinh VND, đơn vị bị claim, claim USD, claim VND, tình trạng, lý do, đối tượng chịu TN]
