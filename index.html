@@ -1919,9 +1919,13 @@ function nccEvalScores(picks){
       const idxs=Array.isArray(p)?p:[];
       per[c.key]=Math.min(c.max, idxs.reduce((s,i)=>s+(c.levels[i]?c.levels[i].pt:0),0));
     } else if(c.key==='chatluong'){
+      // Mức 1: "tái phạm trừ gấp đôi" — nhân đôi 1 lần khi có tái phạm (không cộng dồn thêm theo số lần).
+      // Mức 2 & 3: "mỗi vụ" — trừ theo từng vụ, nhân trực tiếp theo số lần vi phạm trong kỳ.
+      // Gian lận: "đưa về 0" — luôn trừ hết điểm bất kể số lần.
       const lvl=pickLevel(p), count=pickCount(p); const base=c.levels[lvl]||c.levels[0];
       let ded=base.pt;
-      if((lvl===1||lvl===2) && count>=2) ded=ded*2;
+      if(lvl===1) ded = count>=2 ? base.pt*2 : base.pt;
+      else if(lvl===2 || lvl===3) ded = base.pt*count;
       per[c.key]=Math.max(0, Math.min(c.max, c.max+ded));
       if(lvl===1 && count>=3) autoExclude.push('Chất lượng Mức 1 tái phạm từ lần thứ 3 trong kỳ — đề xuất loại (cấu hình Mức 1)');
       if(lvl===2 && count>=2) autoExclude.push('Chất lượng Mức 2 tái phạm — đề xuất loại (cấu hình Mức 2)');
