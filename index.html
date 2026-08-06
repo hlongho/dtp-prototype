@@ -932,13 +932,12 @@ const sampleActivity=[['📞','Gọi xác nhận số lượng đặt hàng','Ng
    Báo giá nội địa là 1 THÔNG BÁO GIÁ THÁNG gửi khách hàng (không có SL/thành tiền — số lượng do khách
    hàng đăng ký riêng qua ĐKĐH, giới hạn = TB sản lượng 3 tháng trước). Mỗi báo giá gắn với 1 tháng áp
    dụng, liệt kê ĐẦY ĐỦ bảng giá sản phẩm tháng đó (giống văn bản gốc), không phải bảng dòng SP tự chọn. */
-const DQ_DEFAULT_NOTE='Khổ ghép: 1.400-2.400mm / Các tiêu chuẩn khác theo bảng tiêu chuẩn';
 let QUOTES=[
   {no:'QUO-0451', cust:'Cty Hưng Thịnh Phát', month:'2026-07', sentDate:'12/07/2026', status:'Đã gửi', items:[
-    {code:'WTN', name:'Giấy White Top WTN', plant:'ĐTBD', gsmFrom:140, gsmTo:150, gsmLabel:'140–150', base:15200, price:15200, priceOrig:15200, isAnchor:true, note:DQ_DEFAULT_NOTE},
-    {code:'TD', name:'Giấy Testliner Loại 1 (TĐ)', plant:'ĐTBD', gsmFrom:160, gsmTo:200, gsmLabel:'160–200', base:13000, price:12900, priceOrig:12900, isAnchor:false, note:DQ_DEFAULT_NOTE}]},
+    {code:'WTN', name:'Giấy White Top WTN', plant:'ĐTBD', gsmFrom:140, gsmTo:150, gsmLabel:'140–150', base:15200, price:15200, priceOrig:15200, isAnchor:true, note:''},
+    {code:'TD', name:'Giấy Testliner Loại 1 (TĐ)', plant:'ĐTBD', gsmFrom:160, gsmTo:200, gsmLabel:'160–200', base:13000, price:12900, priceOrig:12900, isAnchor:false, note:''}]},
   {no:'QUO-0448', cust:'Cty Hưng Thịnh Phát', month:'2026-06', sentDate:'05/06/2026', status:'Hết hiệu lực', items:[
-    {code:'M1S', name:'Giấy Medium gia keo (M1S)', plant:'ĐTBD', gsmFrom:90, gsmTo:90, gsmLabel:'90', base:10400, price:10800, priceOrig:10800, isAnchor:false, note:DQ_DEFAULT_NOTE}]},
+    {code:'M1S', name:'Giấy Medium gia keo (M1S)', plant:'ĐTBD', gsmFrom:90, gsmTo:90, gsmLabel:'90', base:10400, price:10800, priceOrig:10800, isAnchor:false, note:''}]},
 ];
 let quoteSeq=452;
 function quoteMonthLabel(m){ const parts=(m||'').split('-'); return parts.length===2 ? 'Tháng '+parts[1]+'/'+parts[0] : '—'; }
@@ -1010,7 +1009,7 @@ function dqConfirmPending(){
   const {segs,gaps}=dqSplitRange(DQ_PENDING.code, parsed.a, parsed.b);
   if(!segs.length){ toast('Không tìm thấy giá cho định lượng này trong Bảng giá custom'); return; }
   segs.forEach(s=>QSEL.push({code:DQ_PENDING.code, gsmFrom:s.gsmFrom, gsmTo:s.gsmTo, base:s.base, price:s.price, priceOrig:s.price, isAnchor:s.isAnchor,
-    note:DQ_DEFAULT_NOTE}));
+    note:''}));
   DQ_PENDING=null;
   renderDqPending(); renderDqRows();
   if(gaps.length) toast('⚠ Định lượng '+gaps.map(g=>g[0]===g[1]?g[0]:g[0]+'–'+g[1]).join(', ')+' không có giá trong Bảng giá — đã bỏ qua, chỉ thêm '+segs.length+' dòng có giá');
@@ -1609,8 +1608,8 @@ S.quote = ()=> appnav('Bán hàng nội địa','Cơ hội',TAB_SALES,'Cơ hội
          ['3. Giao hàng','Đúng thời hạn đã xác nhận trên ĐKĐH/ĐH'],
          ['4. Điều khoản khác','Theo Hợp đồng Nguyên tắc đã ký kết']])
      ])}
-     ${card('Sản phẩm đã chọn (lấy từ Bảng giá chuẩn DTP 2026)', tbl([{t:'STT'},{t:'Chủng loại sản phẩm'},{t:'Định lượng',num:true},{t:'Giá tháng '+qPrevMonthNum('2026-07'),num:true},{t:'Giá tháng '+qMonthNum('2026-07'),num:true}],
-       (QUOTES.find(x=>x.no==='QUO-0451')||{items:[]}).items.map((p,i)=>[String(i+1),p.name,p.gsmLabel+' gsm',p.base.toLocaleString('vi-VN'),'<b>'+p.price.toLocaleString('vi-VN')+'</b>'])),{n:String((QUOTES.find(x=>x.no==='QUO-0451')||{items:[]}).items.length)})}
+     ${card('Sản phẩm đã chọn (lấy từ Bảng giá chuẩn DTP 2026)', tbl([{t:'STT'},{t:'Chủng loại sản phẩm'},{t:'Định lượng',num:true},{t:'Giá tháng '+qPrevMonthNum('2026-07'),num:true},{t:'Giá tháng '+qMonthNum('2026-07'),num:true},{t:'Ghi chú'}],
+       (QUOTES.find(x=>x.no==='QUO-0451')||{items:[]}).items.map((p,i)=>[String(i+1),p.name,p.gsmLabel+' gsm',p.base.toLocaleString('vi-VN'),'<b>'+p.price.toLocaleString('vi-VN')+'</b>','<span class="wf-muted" style="font-size:11px">'+(p.note||'—')+'</span>'])),{n:String((QUOTES.find(x=>x.no==='QUO-0451')||{items:[]}).items.length)})}
      </div>
      ${activity([['📤','Gửi báo giá cho khách','Trần Thị B · 12/07/2026'],['✍','Lập báo giá QUO-0451','12/07/2026']])}
    </div>
