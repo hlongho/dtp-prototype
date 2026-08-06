@@ -179,6 +179,7 @@ a:hover{text-decoration:underline}
 .dq-sugg-item{padding:8px 10px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--line)}
 .dq-sugg-item:last-child{border-bottom:none}
 .dq-sugg-item:hover{background:var(--bg)}
+.dq-pending-box{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;margin-bottom:10px;border:1px solid var(--sf-blue-l);background:var(--sf-blue-l);border-radius:8px}
 .btn[disabled]{opacity:.45;cursor:not-allowed}
 .lm-head{padding:16px 20px;border-bottom:1px solid var(--line)}
 .lm-head h3{margin:0 0 10px;font-size:15px;color:var(--ink)}
@@ -929,6 +930,11 @@ function qMonthExpiry(m){ const parts=(m||'').split('-'); if(parts.length!==2) r
   const yy=parts[0], mm=parts[1]; const lastDay=new Date(parseInt(yy,10),parseInt(mm,10),0).getDate();
   return lastDay+'/'+mm+'/'+yy;
 }
+function qMonthNum(m){ const parts=(m||'').split('-'); return parts.length===2 ? parts[1]+'/'+parts[0] : '—'; } // "07/2026" (tháng hiện tại = tháng báo giá)
+function qPrevMonthNum(m){ const parts=(m||'').split('-'); if(parts.length!==2) return '—'; // tháng trước
+  let yy=parseInt(parts[0],10), mm=parseInt(parts[1],10)-1; if(mm<1){mm=12;yy--;}
+  return (mm<10?'0':'')+mm+'/'+yy;
+}
 function quotesRows(){
   return QUOTES.map(q=>`<tr>
     <td><a data-go="quote">${q.no}</a></td><td>${quoteMonthLabel(q.month)}</td><td>${q.sentDate}</td>
@@ -941,24 +947,47 @@ function renderQuotes(){ const tb=document.getElementById('quotes-tbody'); if(tb
    Mỗi khoảng định lượng do pbCustoms() gộp sẵn (liền kề + đồng giá) nên chọn bằng dropdown — luôn hợp lệ,
    không cần tự nhập/validate định lượng. */
 function dqProductByCode(code){ return PB_PRODUCTS.find(p=>p.code===code); }
-let QSEL=[]; // {code,gsmFrom} — sản phẩm & khoảng định lượng đã chọn (code/gsmFrom tra ra từ Bảng giá)
-function dqInitSel(){ QSEL=[{code:'TD',gsmFrom:140},{code:'M1S',gsmFrom:100}]; }
+let QSEL=[]; // {code,gsmFrom} — sản phẩm & khoảng định lượng ĐÃ THÊM vào báo giá (code/gsmFrom tra ra từ Bảng giá)
+let DQ_PENDING=null; // {code,gsmFrom} — sản phẩm vừa chọn từ ô tìm kiếm, đang chờ chọn định lượng rồi mới bấm Thêm
+function dqInitSel(){ QSEL=[{code:'TD',gsmFrom:140},{code:'M1S',gsmFrom:100}]; DQ_PENDING=null; }
 function dqRangeFor(sel){ return pbCustoms(sel.code).find(r=>r.gsmFrom===sel.gsmFrom); }
 function dqRemoveSel(i){ QSEL.splice(i,1); renderDqRows(); }
-function dqAddProduct(code){
+function dqSetRange(i,gsmFrom){ QSEL[i].gsmFrom=Number(gsmFrom); renderDqRows(); } // đổi khoảng định lượng của 1 dòng đã thêm
+// Bước 1: chọn sản phẩm từ gợi ý tìm kiếm — CHƯA thêm vào bảng, chỉ đưa vào khung chờ để chọn định lượng
+function dqPickProduct(code){
   const ranges=pbCustoms(code);
-  QSEL.push({code, gsmFrom: ranges.length?ranges[0].gsmFrom:null});
+  DQ_PENDING={code, gsmFrom: ranges.length?ranges[0].gsmFrom:null};
   const s=document.getElementById('dq-search'); if(s) s.value='';
-  dqSearchInput(); renderDqRows();
+  dqSearchInput(); renderDqPending();
 }
-function dqSetRange(i,gsmFrom){ QSEL[i].gsmFrom=Number(gsmFrom); renderDqRows(); }
+function dqPendingSetRange(gsmFrom){ if(DQ_PENDING) DQ_PENDING.gsmFrom=Number(gsmFrom); }
+function dqCancelPending(){ DQ_PENDING=null; renderDqPending(); }
+// Bước 2: đã chọn định lượng xong, bấm Thêm mới thực sự đưa xuống bảng báo giá
+function dqConfirmPending(){
+  if(!DQ_PENDING) return;
+  QSEL.push({code:DQ_PENDING.code, gsmFrom:DQ_PENDING.gsmFrom});
+  DQ_PENDING=null;
+  renderDqPending(); renderDqRows();
+}
+function renderDqPending(){
+  const box=document.getElementById('dq-pending'); if(!box) return;
+  if(!DQ_PENDING){ box.innerHTML=''; return; }
+  const p=dqProductByCode(DQ_PENDING.code); const ranges=pbCustoms(DQ_PENDING.code);
+  const opts=ranges.map(rr=>`<option value="${rr.gsmFrom}" ${rr.gsmFrom===DQ_PENDING.gsmFrom?'selected':''}>${rr.gsmLabel} gsm${rr.isAnchor?' (chuẩn)':''} — ${rr.custom.toLocaleString('vi-VN')} ₫/kg</option>`).join('');
+  box.innerHTML=`<div class="dq-pending-box">
+    <div><b>${p.name}</b><div class="wf-muted" style="font-size:11px">Nhà máy ${p.plant} — chọn định lượng rồi bấm Thêm</div></div>
+    <select class="mass-sel" style="width:auto;min-width:220px" onchange="dqPendingSetRange(this.value)">${opts}</select>
+    <button class="btn sm pri" onclick="dqConfirmPending()">＋ Thêm vào báo giá</button>
+    <button class="btn sm" onclick="dqCancelPending()">Hủy</button>
+  </div>`;
+}
 function dqSearchInput(){
   const box=document.getElementById('dq-suggest'); if(!box) return;
   const q=norm(document.getElementById('dq-search').value||'');
   if(!q){ box.hidden=true; box.innerHTML=''; return; }
   const matches=PB_PRODUCTS.filter(p=>norm(p.name).includes(q));
   box.innerHTML=matches.length
-    ? matches.slice(0,8).map(p=>`<div class="dq-sugg-item" onclick="dqAddProduct('${p.code}')"><b>${p.name}</b><div class="wf-muted" style="font-size:11px">Nhà máy ${p.plant} · Giá chuẩn ${p.base.toLocaleString('vi-VN')} ₫/kg</div></div>`).join('')
+    ? matches.slice(0,8).map(p=>`<div class="dq-sugg-item" onclick="dqPickProduct('${p.code}')"><b>${p.name}</b><div class="wf-muted" style="font-size:11px">Nhà máy ${p.plant} · Giá chuẩn ${p.base.toLocaleString('vi-VN')} ₫/kg</div></div>`).join('')
     : `<div class="dq-sugg-item wf-muted">Không tìm thấy sản phẩm phù hợp</div>`;
   box.hidden=false;
 }
@@ -984,6 +1013,8 @@ function qOnMonthChange(){
   const dl=document.getElementById('q-deadline-val'); if(dl) dl.textContent=qMonthDeadline(m);
   const dl2=document.getElementById('q-deadline-disp'); if(dl2) dl2.value=qMonthDeadline(m);
   const exp=document.getElementById('q-exp-disp'); if(exp) exp.value=qMonthExpiry(m);
+  const thx=document.getElementById('dq-th-x'); if(thx) thx.innerHTML='Giá tháng<br>'+qPrevMonthNum(m);
+  const thy=document.getElementById('dq-th-y'); if(thy) thy.innerHTML='Giá tháng<br>'+qMonthNum(m);
 }
 function openQuoteModal(){
   const no='QUO-0'+quoteSeq;
@@ -1005,9 +1036,10 @@ function openQuoteModal(){
        <input id="dq-search" class="mass-sel" placeholder="🔍 Tìm sản phẩm theo tên (VD: Testliner, Whitetop, Medium…)" oninput="dqSearchInput()" onfocus="dqSearchInput()">
        <div id="dq-suggest" class="dq-suggest" hidden></div>
      </div>
+     <div id="dq-pending"></div>
      <div class="tbl-wrap"><table class="tbl" style="table-layout:fixed">
        <colgroup><col style="width:32%"><col style="width:28%"><col style="width:16%"><col style="width:18%"><col style="width:6%"></colgroup>
-       <thead><tr style="white-space:normal"><th style="white-space:normal">Chủng loại sản phẩm</th><th style="white-space:normal">Khoảng định lượng (gsm)</th><th class="num" style="white-space:normal">Giá<br>chuẩn</th><th class="num" style="white-space:normal">Giá<br>áp dụng</th><th></th></tr></thead>
+       <thead><tr style="white-space:normal"><th style="white-space:normal">Chủng loại sản phẩm</th><th style="white-space:normal">Khoảng định lượng (gsm)</th><th class="num" style="white-space:normal" id="dq-th-x">Giá tháng<br>${qPrevMonthNum(month)}</th><th class="num" style="white-space:normal" id="dq-th-y">Giá tháng<br>${qMonthNum(month)}</th><th></th></tr></thead>
        <tbody id="dq-tbody">${dqPriceRowsHTML()}</tbody>
      </table></div>
      <div class="po-hint" style="margin-top:10px">
@@ -1232,7 +1264,7 @@ function exportQuotePDF(no){
       <p>Kính gửi : <b>${q.cust}</b></p>
       <p>Trước hết, chúng tôi xin chân thành cảm ơn sự hợp tác và hỗ trợ quý báu mà Quý công ty đã dành cho công ty chúng tôi và rất mong tiếp tục nhận được sự ủng hộ trong thời gian tới.</p>
       <p>Căn cứ vào diễn biến của thị trường nguyên liệu giấy trong thời gian gần đây, chúng tôi xin thông báo về việc điều chỉnh giá bán sản phẩm giấy cuộn cho các ĐH/ĐKĐH được gửi tới chúng tôi xác nhận từ ngày ${q.sentDate} (thời điểm nhận được báo giá) và giao hàng trong ${quoteMonthLabel(q.month)}. Cụ thể như sau:</p>
-      <table><thead><tr><th>STT</th><th>Chủng loại sản phẩm</th><th class="num">Giá chuẩn</th><th class="num">Giá áp dụng</th></tr></thead>
+      <table><thead><tr><th>STT</th><th>Chủng loại sản phẩm</th><th class="num">Giá tháng ${qPrevMonthNum(q.month)}</th><th class="num">Giá tháng ${qMonthNum(q.month)}</th></tr></thead>
         <tbody>${rows}</tbody></table>
       <p><b>Số lượng nhận ĐKĐH:</b> tối đa bằng trung bình sản lượng 3 tháng trước đó.</p>
       <ol>
@@ -1476,7 +1508,7 @@ S.quote = ()=> appnav('Bán hàng nội địa','Cơ hội',TAB_SALES,'Cơ hội
          ['3. Giao hàng','Đúng thời hạn đã xác nhận trên ĐKĐH/ĐH'],
          ['4. Điều khoản khác','Theo Hợp đồng Nguyên tắc đã ký kết']])
      ])}
-     ${card('Sản phẩm đã chọn (lấy từ Bảng giá chuẩn DTP 2026)', tbl([{t:'STT'},{t:'Chủng loại sản phẩm'},{t:'Khoảng định lượng',num:true},{t:'Giá chuẩn',num:true},{t:'Giá áp dụng',num:true}],
+     ${card('Sản phẩm đã chọn (lấy từ Bảng giá chuẩn DTP 2026)', tbl([{t:'STT'},{t:'Chủng loại sản phẩm'},{t:'Định lượng',num:true},{t:'Giá tháng '+qPrevMonthNum('2026-07'),num:true},{t:'Giá tháng '+qMonthNum('2026-07'),num:true}],
        (QUOTES.find(x=>x.no==='QUO-0451')||{items:[]}).items.map((p,i)=>[String(i+1),p.name+' <span class="wf-muted" style="font-size:11px">(Nhà máy '+p.plant+')</span>',p.gsmLabel+' gsm',p.base.toLocaleString('vi-VN'),'<b>'+p.price.toLocaleString('vi-VN')+'</b>'])),{n:String((QUOTES.find(x=>x.no==='QUO-0451')||{items:[]}).items.length)})}
      </div>
      ${activity([['📤','Gửi báo giá cho khách','Trần Thị B · 12/07/2026'],['✍','Lập báo giá QUO-0451','12/07/2026']])}
