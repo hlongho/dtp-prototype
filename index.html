@@ -949,9 +949,17 @@ const DQ_PRODUCTS=[
   {name:'Giấy Medium, gia keo (M1S)', spec:'100 đến 185 g/m2', priceLast:10400, price:10200, note:'Khổ ghép: 1.400-2.400mm / Các tiêu chuẩn khác theo bảng tiêu chuẩn'},
 ];
 function dqGsmRange(spec){ const nums=(spec.replace(/m2/gi,'').match(/\d+/g)||[]).map(Number); if(!nums.length) return {min:0,max:9999}; return {min:Math.min(...nums), max:Math.max(...nums)}; }
-let QSEL=[]; // {idx,gsm} — sản phẩm đã thêm vào báo giá qua ô tìm kiếm (idx = index trong DQ_PRODUCTS), kèm định lượng cụ thể
+// Cho phép nhập 1 số cụ thể (VD "150") hoặc 1 khoảng (VD "150-200" / "150 – 200") — trả về null nếu không hợp lệ
+function dqParseGsm(val){
+  const m=String(val||'').trim().match(/^(\d+)\s*(?:[-–]\s*(\d+))?$/);
+  if(!m) return null;
+  const a=Number(m[1]), b=m[2]!==undefined?Number(m[2]):a;
+  if(a>b) return null;
+  return {a,b};
+}
+let QSEL=[]; // {idx,gsm} — sản phẩm đã thêm vào báo giá qua ô tìm kiếm (idx = index trong DQ_PRODUCTS), kèm định lượng (số hoặc khoảng)
 function dqInitSel(){ QSEL=[{idx:1,gsm:'160'},{idx:4,gsm:'180'}]; }
-function dqRowOutOfRange(sel){ if(!sel||!String(sel.gsm).trim()) return false; const r=dqGsmRange(DQ_PRODUCTS[sel.idx].spec); const v=parseFloat(sel.gsm); return isNaN(v)||v<r.min||v>r.max; }
+function dqRowOutOfRange(sel){ if(!sel||!String(sel.gsm).trim()) return false; const r=dqGsmRange(DQ_PRODUCTS[sel.idx].spec); const p=dqParseGsm(sel.gsm); return !p||p.a<r.min||p.b>r.max; }
 // Chỉ lưu giá trị khi đang gõ (không validate/không render lại cả bảng — tránh mất focus khi mới gõ 1 ký tự);
 // việc kiểm tra khoảng định lượng chỉ hiển thị khi rời khỏi ô (blur), lúc đó người dùng đã gõ xong số.
 function dqInputGsm(i,val){ QSEL[i].gsm=val; }
@@ -959,7 +967,7 @@ function dqBlurGsm(i){
   const sel=QSEL[i]; if(!sel) return; const p=DQ_PRODUCTS[sel.idx]; const range=dqGsmRange(p.spec); const out=dqRowOutOfRange(sel);
   const inp=document.getElementById('dq-gsm-'+i), hint=document.getElementById('dq-hint-'+i);
   if(inp) inp.classList.toggle('input-err', out);
-  if(hint){ hint.textContent = out ? '⚠ ngoài khoảng '+range.min+'–'+range.max : 'Khoảng: '+p.spec; hint.style.color = out?'#c23934':''; hint.style.fontWeight = out?'700':''; }
+  if(hint){ hint.textContent = out ? '⚠ ngoài khoảng '+range.min+'–'+range.max : 'Cho phép: '+p.spec+' (nhập 1 số hoặc 1 khoảng, VD 160 hoặc 150-180)'; hint.style.color = out?'#c23934':''; hint.style.fontWeight = out?'700':''; }
 }
 function dqRemoveSel(i){ QSEL.splice(i,1); renderDqRows(); }
 function dqAddProduct(idx){
@@ -984,7 +992,7 @@ function dqPriceRowsHTML(){
     return `<tr>
     <td><b>${p.name}</b><div class="wf-muted" style="font-size:11px">${p.note}</div></td>
     <td><input id="dq-gsm-${i}" class="mass-sel num${out?' input-err':''}" style="width:82px" placeholder="${p.spec}" value="${sel.gsm||''}" oninput="dqInputGsm(${i},this.value)" onblur="dqBlurGsm(${i})">
-      <div id="dq-hint-${i}" class="wf-muted" style="font-size:10px${out?';color:#c23934;font-weight:700':''}">${out?'⚠ ngoài khoảng '+range.min+'–'+range.max:'Khoảng: '+p.spec}</div></td>
+      <div id="dq-hint-${i}" class="wf-muted" style="font-size:10px${out?';color:#c23934;font-weight:700':''}">${out?'⚠ ngoài khoảng '+range.min+'–'+range.max:'Cho phép: '+p.spec+' (số hoặc khoảng, VD 160 hoặc 150-180)'}</div></td>
     <td class="num">${p.priceLast.toLocaleString('vi-VN')}</td>
     <td class="num"><b>${p.price.toLocaleString('vi-VN')}</b></td>
     <td class="num"><button class="btn sm" title="Xoá" onclick="dqRemoveSel(${i})">✕</button></td></tr>`; }).join('');
