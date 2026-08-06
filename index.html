@@ -1604,7 +1604,7 @@ S.quote = ()=> appnav('Bán hàng nội địa','Cơ hội',TAB_SALES,'Cơ hội
          ['4. Điều khoản khác','Theo Hợp đồng Nguyên tắc đã ký kết']])
      ])}
      ${card('Sản phẩm đã chọn (lấy từ Bảng giá chuẩn DTP 2026)', tbl([{t:'STT'},{t:'Chủng loại sản phẩm'},{t:'Định lượng',num:true},{t:'Giá tháng '+qPrevMonthNum('2026-07'),num:true},{t:'Giá tháng '+qMonthNum('2026-07'),num:true}],
-       (QUOTES.find(x=>x.no==='QUO-0451')||{items:[]}).items.map((p,i)=>[String(i+1),p.name,p.gsmLabel+' gsm',p.base.toLocaleString('vi-VN'),'<b>'+p.price.toLocaleString('vi-VN')+'</b>'])),{n:String((QUOTES.find(x=>x.no==='QUO-0451')||{items:[]}).items.length),r:'<button class="btn sm" onclick="openQpModal(\'QUO-0451\')">＋ Quản lý sản phẩm</button>'})}
+       (QUOTES.find(x=>x.no==='QUO-0451')||{items:[]}).items.map((p,i)=>[String(i+1),p.name,p.gsmLabel+' gsm',p.base.toLocaleString('vi-VN'),'<b>'+p.price.toLocaleString('vi-VN')+'</b>'])),{n:String((QUOTES.find(x=>x.no==='QUO-0451')||{items:[]}).items.length)})}
      </div>
      ${activity([['📤','Gửi báo giá cho khách','Trần Thị B · 12/07/2026'],['✍','Lập báo giá QUO-0451','12/07/2026']])}
    </div>
