@@ -1039,7 +1039,7 @@ function dqPriceRowsHTML(){
   if(!QSEL.length) return `<tr><td colspan="5" class="wf-muted" style="text-align:center;padding:16px">Chưa chọn sản phẩm — dùng ô tìm kiếm phía trên để thêm sản phẩm vào báo giá.</td></tr>`;
   return QSEL.map((sel,i)=>{ const p=dqProductByCode(sel.code); const label=sel.gsmFrom===sel.gsmTo?String(sel.gsmFrom):sel.gsmFrom+'–'+sel.gsmTo;
     return `<tr>
-    <td><b>${p.name}</b><div class="wf-muted" style="font-size:11px">Nhà máy ${p.plant}${sel.isAnchor?' · định lượng chuẩn':''}</div></td>
+    <td><b>${p.name}</b></td>
     <td class="num">${label} gsm</td>
     <td class="num">${sel.priceOrig.toLocaleString('vi-VN')}</td>
     <td class="num"><div style="display:flex;align-items:center;justify-content:flex-end">
@@ -1604,7 +1604,7 @@ S.quote = ()=> appnav('Bán hàng nội địa','Cơ hội',TAB_SALES,'Cơ hội
          ['4. Điều khoản khác','Theo Hợp đồng Nguyên tắc đã ký kết']])
      ])}
      ${card('Sản phẩm đã chọn (lấy từ Bảng giá chuẩn DTP 2026)', tbl([{t:'STT'},{t:'Chủng loại sản phẩm'},{t:'Định lượng',num:true},{t:'Giá tháng '+qPrevMonthNum('2026-07'),num:true},{t:'Giá tháng '+qMonthNum('2026-07'),num:true}],
-       (QUOTES.find(x=>x.no==='QUO-0451')||{items:[]}).items.map((p,i)=>[String(i+1),p.name+' <span class="wf-muted" style="font-size:11px">(Nhà máy '+p.plant+')</span>',p.gsmLabel+' gsm',p.base.toLocaleString('vi-VN'),'<b>'+p.price.toLocaleString('vi-VN')+'</b>'])),{n:String((QUOTES.find(x=>x.no==='QUO-0451')||{items:[]}).items.length),r:'<button class="btn sm" onclick="openQpModal(\'QUO-0451\')">＋ Quản lý sản phẩm</button>'})}
+       (QUOTES.find(x=>x.no==='QUO-0451')||{items:[]}).items.map((p,i)=>[String(i+1),p.name,p.gsmLabel+' gsm',p.base.toLocaleString('vi-VN'),'<b>'+p.price.toLocaleString('vi-VN')+'</b>'])),{n:String((QUOTES.find(x=>x.no==='QUO-0451')||{items:[]}).items.length),r:'<button class="btn sm" onclick="openQpModal(\'QUO-0451\')">＋ Quản lý sản phẩm</button>'})}
      </div>
      ${activity([['📤','Gửi báo giá cho khách','Trần Thị B · 12/07/2026'],['✍','Lập báo giá QUO-0451','12/07/2026']])}
    </div>
