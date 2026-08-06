@@ -932,12 +932,13 @@ const sampleActivity=[['📞','Gọi xác nhận số lượng đặt hàng','Ng
    Báo giá nội địa là 1 THÔNG BÁO GIÁ THÁNG gửi khách hàng (không có SL/thành tiền — số lượng do khách
    hàng đăng ký riêng qua ĐKĐH, giới hạn = TB sản lượng 3 tháng trước). Mỗi báo giá gắn với 1 tháng áp
    dụng, liệt kê ĐẦY ĐỦ bảng giá sản phẩm tháng đó (giống văn bản gốc), không phải bảng dòng SP tự chọn. */
+const DQ_DEFAULT_NOTE='Khổ ghép: 1.400-2.400mm / Các tiêu chuẩn khác theo bảng tiêu chuẩn';
 let QUOTES=[
   {no:'QUO-0451', cust:'Cty Hưng Thịnh Phát', month:'2026-07', sentDate:'12/07/2026', status:'Đã gửi', items:[
-    {code:'WTN', name:'Giấy White Top WTN', plant:'ĐTBD', gsmFrom:140, gsmTo:150, gsmLabel:'140–150', base:15200, price:15200, priceOrig:15200, isAnchor:true},
-    {code:'TD', name:'Giấy Testliner Loại 1 (TĐ)', plant:'ĐTBD', gsmFrom:160, gsmTo:200, gsmLabel:'160–200', base:13000, price:12900, priceOrig:12900, isAnchor:false}]},
+    {code:'WTN', name:'Giấy White Top WTN', plant:'ĐTBD', gsmFrom:140, gsmTo:150, gsmLabel:'140–150', base:15200, price:15200, priceOrig:15200, isAnchor:true, note:DQ_DEFAULT_NOTE},
+    {code:'TD', name:'Giấy Testliner Loại 1 (TĐ)', plant:'ĐTBD', gsmFrom:160, gsmTo:200, gsmLabel:'160–200', base:13000, price:12900, priceOrig:12900, isAnchor:false, note:DQ_DEFAULT_NOTE}]},
   {no:'QUO-0448', cust:'Cty Hưng Thịnh Phát', month:'2026-06', sentDate:'05/06/2026', status:'Hết hiệu lực', items:[
-    {code:'M1S', name:'Giấy Medium gia keo (M1S)', plant:'ĐTBD', gsmFrom:90, gsmTo:90, gsmLabel:'90', base:10400, price:10800, priceOrig:10800, isAnchor:false}]},
+    {code:'M1S', name:'Giấy Medium gia keo (M1S)', plant:'ĐTBD', gsmFrom:90, gsmTo:90, gsmLabel:'90', base:10400, price:10800, priceOrig:10800, isAnchor:false, note:DQ_DEFAULT_NOTE}]},
 ];
 let quoteSeq=452;
 function quoteMonthLabel(m){ const parts=(m||'').split('-'); return parts.length===2 ? 'Tháng '+parts[1]+'/'+parts[0] : '—'; }
@@ -1008,7 +1009,8 @@ function dqConfirmPending(){
   if(!parsed){ toast('Định lượng không hợp lệ — nhập 1 số (VD 150) hoặc 1 khoảng (VD 150-200)'); return; }
   const {segs,gaps}=dqSplitRange(DQ_PENDING.code, parsed.a, parsed.b);
   if(!segs.length){ toast('Không tìm thấy giá cho định lượng này trong Bảng giá custom'); return; }
-  segs.forEach(s=>QSEL.push({code:DQ_PENDING.code, gsmFrom:s.gsmFrom, gsmTo:s.gsmTo, base:s.base, price:s.price, priceOrig:s.price, isAnchor:s.isAnchor}));
+  segs.forEach(s=>QSEL.push({code:DQ_PENDING.code, gsmFrom:s.gsmFrom, gsmTo:s.gsmTo, base:s.base, price:s.price, priceOrig:s.price, isAnchor:s.isAnchor,
+    note:DQ_DEFAULT_NOTE}));
   DQ_PENDING=null;
   renderDqPending(); renderDqRows();
   if(gaps.length) toast('⚠ Định lượng '+gaps.map(g=>g[0]===g[1]?g[0]:g[0]+'–'+g[1]).join(', ')+' không có giá trong Bảng giá — đã bỏ qua, chỉ thêm '+segs.length+' dòng có giá');
@@ -1049,7 +1051,8 @@ function dqPriceRowsHTML(){
   if(!QSEL.length) return `<tr><td colspan="5" class="wf-muted" style="text-align:center;padding:16px">Chưa chọn sản phẩm — dùng ô tìm kiếm phía trên để thêm sản phẩm vào báo giá.</td></tr>`;
   return QSEL.map((sel,i)=>{ const p=dqProductByCode(sel.code); const label=sel.gsmFrom===sel.gsmTo?String(sel.gsmFrom):sel.gsmFrom+'–'+sel.gsmTo;
     return `<tr>
-    <td><b>${p.name}</b></td>
+    <td><b>${p.name}</b>
+      <textarea id="dq-note-${i}" class="mass-sel" style="margin-top:4px;font-size:11px;min-height:32px;resize:vertical" placeholder="Ghi chú (hiện trên PDF báo giá)" oninput="dqSetNote(${i},this.value)">${sel.note||''}</textarea></td>
     <td class="num">${label} gsm</td>
     <td class="num">${sel.priceOrig.toLocaleString('vi-VN')}</td>
     <td class="num"><div style="display:flex;align-items:center;justify-content:flex-end">
@@ -1063,10 +1066,11 @@ function dqSetPrice(i,val){
   const n=parseFloat(val); QSEL[i].price=isNaN(n)?0:n;
   const badge=document.getElementById('dq-delta-'+i); if(badge) badge.innerHTML=dqDeltaBadge(QSEL[i]);
 }
+function dqSetNote(i,val){ QSEL[i].note=val; }
 function dqSelectedItems(){
   return QSEL.map(sel=>{ const p=dqProductByCode(sel.code); if(!p) return null;
     const gsmLabel=sel.gsmFrom===sel.gsmTo?String(sel.gsmFrom):sel.gsmFrom+'–'+sel.gsmTo;
-    return {code:p.code,name:p.name,plant:p.plant,gsmFrom:sel.gsmFrom,gsmTo:sel.gsmTo,gsmLabel,base:sel.base,price:sel.price,priceOrig:sel.priceOrig,isAnchor:sel.isAnchor}; }).filter(Boolean);
+    return {code:p.code,name:p.name,plant:p.plant,gsmFrom:sel.gsmFrom,gsmTo:sel.gsmTo,gsmLabel,base:sel.base,price:sel.price,priceOrig:sel.priceOrig,isAnchor:sel.isAnchor,note:sel.note||''}; }).filter(Boolean);
 }
 function qOnMonthChange(){
   const m=document.getElementById('q-month').value;
@@ -1336,7 +1340,7 @@ function exportQuotePDF(no){
   const list=(q.items&&q.items.length)?q.items:[];
   const rows=list.map((p,i)=>`<tr><td class="num">${i+1}</td><td>${p.name} / Định lượng: ${p.gsmLabel} g/m2.</td>
     <td class="num">${p.priceOrig.toLocaleString('vi-VN')}</td><td class="num"><b>${p.price.toLocaleString('vi-VN')}</b></td>
-    <td>Khổ ghép: 1.400-2.400mm / Các tiêu chuẩn khác theo bảng tiêu chuẩn</td></tr>`).join('')
+    <td>${p.note||''}</td></tr>`).join('')
     || `<tr><td colspan="5" class="muted" style="text-align:center">Chưa có sản phẩm — vào "Quản lý sản phẩm" để thêm</td></tr>`;
   w.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>${qMonthTitle(q.month)}</title>
     <style>
