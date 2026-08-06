@@ -1026,10 +1026,12 @@ function dqSearchInput(){
   box.hidden=false;
 }
 // Giá tháng hiện tại (Y) cho phép điều chỉnh tay (VD đàm phán với khách). Không dùng cột riêng để báo đã
-// điều chỉnh — thay vào đó hiện dấu +/- nhỏ ngay cạnh ô nhập, thể hiện chênh lệch so với GIÁ CHUẨN (X).
+// điều chỉnh — thay vào đó hiện dấu +/- nhỏ ngay cạnh ô nhập, thể hiện chênh lệch so với ĐÚNG GIÁ CỦA
+// KHUNG ĐỊNH LƯỢNG ĐÓ theo Bảng giá (priceOrig) — không so với giá chuẩn chung của sản phẩm (base), vì mỗi
+// khung định lượng có thể có giá khác nhau. Mới load từ Bảng giá (chưa sửa) thì priceOrig===price → không có dấu.
 // Khung chứa dấu +/- có độ rộng CỐ ĐỊNH (dù rỗng) để ô nhập giá luôn thẳng cột, không bị lệch qua lại.
 function dqDeltaBadge(sel){
-  const d=sel.price-sel.base; if(!d) return '';
+  const d=sel.price-sel.priceOrig; if(!d) return '';
   const cls=d>0?'dq-delta-up':'dq-delta-down';
   return `<span class="dq-delta-badge ${cls}">${d>0?'+':'-'}${Math.abs(d).toLocaleString('vi-VN')}</span>`;
 }
@@ -1039,7 +1041,7 @@ function dqPriceRowsHTML(){
     return `<tr>
     <td><b>${p.name}</b><div class="wf-muted" style="font-size:11px">Nhà máy ${p.plant}${sel.isAnchor?' · định lượng chuẩn':''}</div></td>
     <td class="num">${label} gsm</td>
-    <td class="num">${sel.base.toLocaleString('vi-VN')}</td>
+    <td class="num">${sel.priceOrig.toLocaleString('vi-VN')}</td>
     <td class="num"><div style="display:flex;align-items:center;justify-content:flex-end">
       <input id="dq-price-${i}" class="mass-sel num" style="width:82px;flex:none" type="number" value="${sel.price}" oninput="dqSetPrice(${i},this.value)" title="Giá gốc theo Bảng giá (định lượng ${label}): ${sel.priceOrig.toLocaleString('vi-VN')} ₫/kg">
       <span id="dq-delta-${i}" class="dq-delta-slot">${dqDeltaBadge(sel)}</span></div></td>
