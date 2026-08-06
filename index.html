@@ -1320,26 +1320,36 @@ function openScFromPoListBulk(){
   const poNos=rows.map(tr=>{ const tds=tr.querySelectorAll('td'); return tds[1]?tds[1].textContent.trim():''; }).filter(Boolean);
   openScFromPoModal(poNos);
 }
+function qDateLong(d){ // "DD/MM/YYYY" -> "ngày DD tháng MM năm YYYY" (đúng văn phong công văn)
+  const parts=(d||'').split('/'); if(parts.length!==3) return d||'';
+  return 'ngày '+parts[0]+' tháng '+parts[1]+' năm '+parts[2];
+}
+// Xuất PDF đúng theo mẫu văn bản "BG nội địa.docx" — thư thông báo giá tháng, không phải phiếu báo giá SL/thành tiền.
 function exportQuotePDF(no){
   const q=QUOTES.find(x=>x.no===no)||QUOTES[0];
   const w=window.open('','_blank');
   if(!w){ toast('Trình duyệt chặn cửa sổ — cho phép popup để xuất PDF'); return; }
   const list=(q.items&&q.items.length)?q.items:[];
-  const rows=list.map((p,i)=>`<tr><td>${i+1}</td><td>${p.name}<div class="muted" style="font-size:11px">Nhà máy ${p.plant} · Định lượng: ${p.gsmLabel} gsm</div></td>
-    <td class="num">${p.base.toLocaleString('vi-VN')}</td><td class="num"><b>${p.price.toLocaleString('vi-VN')}</b></td></tr>`).join('');
+  const rows=list.map((p,i)=>`<tr><td class="num">${i+1}</td><td>${p.name} / Định lượng: ${p.gsmLabel} g/m2.</td>
+    <td class="num">${p.priceOrig.toLocaleString('vi-VN')}</td><td class="num"><b>${p.price.toLocaleString('vi-VN')}</b></td>
+    <td>Khổ ghép: 1.400-2.400mm / Các tiêu chuẩn khác theo bảng tiêu chuẩn</td></tr>`).join('')
+    || `<tr><td colspan="5" class="muted" style="text-align:center">Chưa có sản phẩm — vào "Quản lý sản phẩm" để thêm</td></tr>`;
   w.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>${qMonthTitle(q.month)}</title>
-    <style>body{font-family:Arial,"Segoe UI",sans-serif;color:#222;margin:36px;font-size:13px}
-    h1{font-size:20px;margin:0 0 2px;text-align:center} .muted{color:#666} .sec{margin:14px 0} .lbl{color:#666;font-size:11px}
-    table{width:100%;border-collapse:collapse;margin:14px 0} th,td{border:1px solid #ccc;padding:7px 10px;text-align:left;font-size:12.5px} th{background:#f2f2f2}
-    .num{text-align:right} ol{margin:6px 0;padding-left:20px}</style></head>
+    <style>body{font-family:"Times New Roman",Times,serif;color:#000;margin:44px 56px;font-size:14px;line-height:1.5}
+    h1{font-size:15px;font-weight:700;text-align:center;margin:0 0 18px;text-transform:uppercase;letter-spacing:.3px}
+    p{margin:0 0 10px;text-align:justify;text-indent:28px} .muted{color:#666}
+    table{width:100%;border-collapse:collapse;margin:10px 0 14px} th,td{border:1px solid #000;padding:5px 8px;font-size:12.5px;text-align:left;vertical-align:top}
+    th{text-align:center;font-weight:700} .num{text-align:center}
+    ol{margin:0 0 10px 0;padding-left:24px} li{margin-bottom:5px;text-align:justify}
+    .right{text-align:right;text-indent:0}</style></head>
     <body>
       <h1>${qMonthTitle(q.month)}</h1>
-      <p>Kính gửi : <b>${q.cust}</b></p>
+      <p style="text-indent:0">Kính gửi : <b>${(q.cust||'').toUpperCase()}</b></p>
       <p>Trước hết, chúng tôi xin chân thành cảm ơn sự hợp tác và hỗ trợ quý báu mà Quý công ty đã dành cho công ty chúng tôi và rất mong tiếp tục nhận được sự ủng hộ trong thời gian tới.</p>
-      <p>Căn cứ vào diễn biến của thị trường nguyên liệu giấy trong thời gian gần đây, chúng tôi xin thông báo về việc điều chỉnh giá bán sản phẩm giấy cuộn cho các ĐH/ĐKĐH được gửi tới chúng tôi xác nhận từ ngày ${q.sentDate} (thời điểm nhận được báo giá) và giao hàng trong ${quoteMonthLabel(q.month)}. Cụ thể như sau:</p>
-      <table><thead><tr><th>STT</th><th>Chủng loại sản phẩm</th><th class="num">Giá tháng ${qPrevMonthNum(q.month)}</th><th class="num">Giá tháng ${qMonthNum(q.month)}</th></tr></thead>
+      <p>Căn cứ vào diễn biến phức tạp của thị trường nguyên liệu giấy trong thời gian gần đây, sau khi cân nhắc thận trọng trên tinh thần chia sẻ cùng khách hàng, chúng tôi xin thông báo về việc điều chỉnh giá bán sản phẩm giấy cuộn cho các ĐH/ĐKĐH được gửi tới chúng tôi xác nhận từ ngày ${q.sentDate} (thời điểm nhận được báo giá) và giao hàng trong tháng ${qMonthNum(q.month)}. Cụ thể như sau:</p>
+      <table><thead><tr><th>STT</th><th>Chủng loại sản phẩm</th><th>Đơn giá T${qPrevMonthNum(q.month)}</th><th>Đơn giá T${qMonthNum(q.month)}</th><th>Ghi chú</th></tr></thead>
         <tbody>${rows}</tbody></table>
-      <p><b>Số lượng nhận ĐKĐH:</b> tối đa bằng trung bình sản lượng 3 tháng trước đó.</p>
+      <p>Số lượng nhận ĐKĐH: tối đa bằng trung bình sản lượng 3 tháng trước đó.</p>
       <ol>
         <li>ĐKĐH: Chúng tôi ưu tiên nhận đơn hàng nếu quý khách hàng đảm bảo tiến độ thanh toán, nhận hàng đúng cam kết và đăng ký đặt hàng cho tháng sau sẽ được hai bên xác nhận chậm nhất vào ngày 25 hàng tháng, đơn hàng chi tiết bên mua sẽ gửi cho bên bán trước thời hạn giao hàng gần nhất tối thiểu 07 ngày.</li>
         <li>Đơn giá: Chưa bao gồm VAT và giao hàng tại kho Quý khách hàng.</li>
@@ -1348,8 +1358,8 @@ function exportQuotePDF(no){
       </ol>
       <p>Một lần nữa chúng tôi xin chân thành cảm ơn và mong muốn tiếp tục được phục vụ Quý khách hàng lâu dài.</p>
       <p>Trân trọng kính chào!</p>
-      <p class="sec" style="text-align:right">TP.HCM, ngày ${q.sentDate}</p>
-      <div class="sec" style="text-align:right;margin-top:40px"><b>Tổng Giám đốc</b></div>
+      <p class="right">TP.HCM, ${qDateLong(q.sentDate)}</p>
+      <p class="right" style="margin-top:40px"><b>Tổng Giám đốc</b></p>
     </body></html>`);
   w.document.close(); w.focus(); setTimeout(function(){ try{w.print();}catch(e){} }, 300);
 }
