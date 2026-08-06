@@ -1073,27 +1073,12 @@ function openQuoteModal(){
   const no='QUO-0'+quoteSeq;
   const month='2026-07';
   document.getElementById('quote-body').innerHTML=
-    `<p class="po-hint"><b id="q-title-val">${qMonthTitle(month)}</b> — theo file "BG nội địa.docx". Đơn giá <b>₫/kg</b>, <b>chưa gồm VAT</b>, giao tại kho khách hàng.
-       ĐKĐH tháng báo giá phải được 2 bên xác nhận chậm nhất ngày <b id="q-deadline-val">${qMonthDeadline(month)}</b>; đơn hàng chi tiết gửi trước hạn giao gần nhất tối thiểu 07 ngày.
-       Sau khi tạo, vào chi tiết báo giá và dùng nút <b>"Quản lý sản phẩm"</b> để thêm sản phẩm & định lượng.</p>
-     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+    `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Số báo giá</label><input id="q-no" class="mass-sel" value="${no}" readonly></div>
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Khách hàng (Kính gửi) *</label><input id="q-cust" class="mass-sel" value="Cty CP Tân Tấn Lộc"></div>
-       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Ngày báo giá (ĐH/ĐKĐH áp dụng từ ngày này)</label><input id="q-date" class="mass-sel" type="date" value="2026-06-27"></div>
-       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Tháng báo giá (áp dụng cho ĐH giao trong tháng)</label><input id="q-month" class="mass-sel" type="month" value="${month}" onchange="qOnMonthChange()"></div>
-       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Hạn xác nhận ĐKĐH</label><input class="mass-sel" id="q-deadline-disp" readonly></div>
-       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Hiệu lực đến (cuối tháng báo giá)</label><input class="mass-sel" id="q-exp-disp" readonly></div>
-     </div>
-     <div class="po-hint">
-       <b>Số lượng nhận ĐKĐH:</b> tối đa bằng trung bình sản lượng 3 tháng trước đó của khách hàng.<br>
-       <b>Điều khoản:</b><br>
-       1. ĐKĐH: ưu tiên nhận đơn hàng nếu khách hàng đảm bảo tiến độ thanh toán, nhận hàng đúng cam kết; ĐKĐH tháng sau được 2 bên xác nhận chậm nhất ngày 25 hàng tháng; đơn hàng chi tiết gửi trước hạn giao gần nhất tối thiểu 07 ngày.<br>
-       2. Đơn giá: chưa bao gồm VAT và giao hàng tại kho Quý khách hàng.<br>
-       3. Giao hàng: đúng thời hạn bên Bán đã xác nhận trên ĐKĐH/ĐH.<br>
-       4. Các điều khoản khác: theo Hợp đồng Nguyên tắc đã ký kết.
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Ngày báo giá</label><input id="q-date" class="mass-sel" type="date" value="2026-06-27"></div>
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Tháng báo giá</label><input id="q-month" class="mass-sel" type="month" value="${month}" onchange="qOnMonthChange()"></div>
      </div>`;
-  document.getElementById('q-deadline-disp').value=qMonthDeadline(month);
-  document.getElementById('q-exp-disp').value=qMonthExpiry(month);
   document.getElementById('quoteback').classList.add('show');
   document.getElementById('quotemodal').classList.add('show');
 }
