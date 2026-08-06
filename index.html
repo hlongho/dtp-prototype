@@ -184,6 +184,14 @@ a:hover{text-decoration:underline}
 .dq-delta-badge{font-size:10px;font-weight:700;white-space:nowrap}
 .dq-delta-badge.dq-delta-up{color:#c23934}
 .dq-delta-badge.dq-delta-down{color:#2e844a}
+.inv-scroll{max-height:560px;overflow:auto;border:1px solid var(--line-2);border-radius:6px}
+.inv-tbl{border-collapse:collapse;width:100%}
+.inv-tbl th{background:var(--nav);position:sticky;z-index:5;height:32px;box-sizing:border-box;font-size:11px;padding:4px 8px;white-space:nowrap;border-bottom:1px solid var(--line-2)}
+.inv-tbl .inv-head-r1 th{top:0}
+.inv-tbl .inv-head-r2 th{top:32px}
+.inv-tbl .inv-head-r3 th{top:64px;border-bottom:2px solid var(--line-2)}
+.inv-tbl .inv-corner{text-align:left;font-weight:700;white-space:normal}
+.inv-tbl td{white-space:nowrap;padding:5px 8px}
 .btn[disabled]{opacity:.45;cursor:not-allowed}
 .lm-head{padding:16px 20px;border-bottom:1px solid var(--line)}
 .lm-head h3{margin:0 0 10px;font-size:15px;color:var(--ink)}
@@ -3365,22 +3373,34 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
  </div>`;
  })();
 
-/* ===== Cảnh báo tồn kho + hàng đi đường (1 bảng: NVL theo hàng dọc, tuần theo hàng ngang) =====
+/* ===== Cảnh báo tồn kho + hàng đi đường (theo feedback Trinh Phạm/chị Diễm) =====
+   Bảng đã TRANSPOSE: Mã NVL chạy theo CỘT (ngang), Tuần chạy theo DÒNG (dọc, cuốn xuống).
+   Freeze 3 dòng đầu (Mã NVL / Sản lượng SD dự kiến / Số lượng hàng chưa có kế hoạch giao) khi cuộn xuống xem các tuần.
+   Mỗi tuần tách riêng 2 dòng: Tồn đầu kỳ + ETA (theo phương án chị Diễm chọn).
    Công thức cuốn chiếu theo ETA (chốt với Helen Phan / Trinh Phạm):
    Tồn khả dụng (tuần N) = Tồn đầu kỳ (N) + ETA (SL hàng có ETA trong tuần N)
    Tồn cuối kỳ (tuần N)  = Tồn khả dụng (N) − Sản lượng SD dự kiến (N)
-   Tồn đầu kỳ (tuần N+1) = Tồn cuối kỳ (tuần N) */
-// Nhãn mỗi tuần là khoảng ngày thực tế "DD/MM - DD/MM" (7 ngày liên tiếp) thay vì "Tuần N" trừu tượng.
-function invWeekLabel(offsetDays){
-  const start=new Date(2026,7,3); start.setDate(start.getDate()+offsetDays); // mốc: Tuần hiện tại bắt đầu 03/08/2026
-  const end=new Date(start); end.setDate(end.getDate()+6);
-  const f=d=>(d.getDate()<10?'0':'')+d.getDate()+'/'+((d.getMonth()+1)<10?'0':'')+(d.getMonth()+1);
-  return f(start)+' - '+f(end);
+   Tồn đầu kỳ (tuần N+1) = Tồn cuối kỳ (tuần N)
+   Mặc định load phạm vi 2,5 tháng (~11 tuần) — có chọn lại "Từ ngày/Đến ngày" nếu muốn xem range khác. */
+function invFmtDate(d){ return (d.getDate()<10?'0':'')+d.getDate()+'/'+((d.getMonth()+1)<10?'0':'')+(d.getMonth()+1); }
+function invFmtISO(d){ return d.getFullYear()+'-'+((d.getMonth()+1)<10?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate(); }
+const INV_TODAY=new Date(2026,7,3); // mốc "hôm nay" — đầu tuần hiện tại
+function invDefaultTo(){ const d=new Date(INV_TODAY); d.setDate(d.getDate()+76); return d; } // ~2,5 tháng
+let INV_RANGE_FROM=new Date(INV_TODAY);
+let INV_RANGE_TO=invDefaultTo();
+function invWeeksInRange(){
+  const weeks=[]; let s=new Date(INV_RANGE_FROM);
+  while(s<=INV_RANGE_TO){
+    const e=new Date(s); e.setDate(e.getDate()+6);
+    const offsetDays=Math.round((s-INV_TODAY)/86400000);
+    weeks.push({label:invFmtDate(s)+' - '+invFmtDate(e), offsetDays});
+    s=new Date(s); s.setDate(s.getDate()+7);
+  }
+  return weeks;
 }
-const INV_CUR_WEEK={label:invWeekLabel(0)};
-const INV_NEXT_WEEKS=[7,14,21,28,35,42,49,56].map(off=>({label:invWeekLabel(off)}));
 // usage = sản lượng sử dụng dự kiến/THÁNG (tấn, số gốc) — quy đổi ra tuần = usage/4.33
-// tonDauKy = tồn đầu kỳ tuần hiện tại · incoming[i] = SL có ETA về đúng tuần thứ i (0 = tuần hiện tại, 1..8 = 8 tuần tới)
+// tonDauKy = tồn đầu kỳ tuần hiện tại (= "số lượng hàng chưa có kế hoạch giao", đã về nhưng chưa lên kế hoạch dùng)
+// incoming[i] = SL có ETA về đúng tuần cách tuần hiện tại i tuần (0 = tuần hiện tại)
 const OCC_TYPES=[
   {name:'OCC',         usage:900, tonDauKy:1240, incoming:[800,0,0,0,0,0,600,0,0]},
   {name:'JOCC',        usage:300, tonDauKy:980,  incoming:[200,0,0,0,300,0,0,0,0]},
@@ -3399,60 +3419,73 @@ const OCC_TYPES=[
   {name:'PPMC',        usage:130, tonDauKy:400,  incoming:[60,0,0,0,130,0,0,0,0]},
   {name:'WBPT',        usage:90,  tonDauKy:270,  incoming:[30,0,0,0,0,0,90,0,0]},
 ];
-const INV_WEEKS=[INV_CUR_WEEK,...INV_NEXT_WEEKS]; // toàn bộ các tuần hiển thị (tuần hiện tại + các tuần tới), đồng nhất 2 cột Tồn đầu kỳ/ETA
-// Trả về đúng 1 mảng "weeks" đồng nhất cho MỌI tuần (kể cả tuần hiện tại): mỗi tuần chỉ có Tồn đầu kỳ + ETA.
-// Tồn đầu kỳ (tuần N+1) = Tồn khả dụng (tuần N) − Sản lượng SD dự kiến (tuần N) — không hiển thị riêng "Tồn cuối kỳ"/
-// "Tồn khả dụng" vì đã lồng vào Tồn đầu kỳ của tuần kế tiếp (cuốn chiếu).
-function invTypeTimeline(t){
+// Trả về mảng "weeks" đồng nhất cho MỌI tuần trong range hiện tại: mỗi tuần chỉ có Tồn đầu kỳ + ETA — không hiển thị
+// riêng "Tồn cuối kỳ"/"Tồn khả dụng" vì đã lồng vào Tồn đầu kỳ của tuần kế tiếp (cuốn chiếu).
+function invTypeTimeline(t,weeks){
   const usageW=Math.round(t.usage/4.33);
-  const weeks=[]; let dauKy=t.tonDauKy;
-  for(let i=0;i<INV_WEEKS.length;i++){
-    const hangVe=t.incoming[i]||0;
-    weeks.push({dauKy,hangVe});
-    dauKy=dauKy+hangVe-usageW;
-  }
-  return {usageW,weeks};
+  const out=[];
+  weeks.forEach(w=>{
+    const idx=w.offsetDays/7; // số tuần cách tuần hiện tại (có thể âm nếu Từ ngày trước tuần hiện tại — coi như chưa có dữ liệu)
+    let dauKy;
+    if(idx===0) dauKy=t.tonDauKy;
+    else if(idx>0 && out.length) dauKy=out[out.length-1].cuoiKy;
+    else dauKy=t.tonDauKy;
+    const hangVe=idx>=0?(t.incoming[idx]||0):0;
+    const cuoiKy=dauKy+hangVe-usageW;
+    out.push({dauKy,hangVe,cuoiKy});
+  });
+  return {usageW,weeks:out};
 }
-function invTotals(){
-  const rows=OCC_TYPES.map(invTypeTimeline);
-  const sumWeeks=INV_WEEKS.map((_,i)=>({
+function invTotals(weeks){
+  const rows=OCC_TYPES.map(t=>invTypeTimeline(t,weeks));
+  const sumWeeks=weeks.map((_,i)=>({
     dauKy:rows.reduce((s,r)=>s+r.weeks[i].dauKy,0),
     hangVe:rows.reduce((s,r)=>s+r.weeks[i].hangVe,0),
   }));
   return {
     sumUsage:rows.reduce((s,r)=>s+r.usageW,0),
+    sumUnplanned:OCC_TYPES.reduce((s,t)=>s+t.tonDauKy,0),
     sumWeeks,
-    sumDauKy:sumWeeks[0].dauKy, sumHangVe0:sumWeeks[0].hangVe, sumKhaDung0:sumWeeks[0].dauKy+sumWeeks[0].hangVe,
+    rows,
   };
 }
-function invWeekCell(w){
-  return `<td class="num"${w.dauKy<0?' style="color:var(--err);font-weight:700"':''}>${w.dauKy.toLocaleString('vi-VN')}</td><td class="num">${w.hangVe>0?w.hangVe.toLocaleString('vi-VN'):'—'}</td>`;
+function invRangeChange(){
+  const f=document.getElementById('inv-from').value, t=document.getElementById('inv-to').value;
+  if(!f||!t) return;
+  INV_RANGE_FROM=new Date(f); INV_RANGE_TO=new Date(t);
+  const wrap=document.getElementById('inv-table-wrap'); if(wrap) wrap.innerHTML=invTableHTML();
 }
-function invMatrixRows(){
-  let h=OCC_TYPES.map(t=>{
-    const r=invTypeTimeline(t);
-    return `<tr><td>${t.name}</td><td class="num" style="text-align:center">${r.usageW.toLocaleString('vi-VN')}</td>
-      ${r.weeks.map(invWeekCell).join('')}</tr>`;
+function invTableHTML(){
+  const weeks=invWeeksInRange();
+  const T=invTotals(weeks);
+  const headMa=`<tr class="inv-head-r1"><th colspan="2" class="inv-corner">Tuần \\ Mã NVL</th>${OCC_TYPES.map(t=>`<th class="num">${t.name}</th>`).join('')}<th class="num">Tổng</th></tr>`;
+  const headUsage=`<tr class="inv-head-r2"><th colspan="2" class="inv-corner">Sản lượng SD dự kiến (tấn/tuần)</th>${T.rows.map(r=>`<th class="num">${r.usageW.toLocaleString('vi-VN')}</th>`).join('')}<th class="num">${T.sumUsage.toLocaleString('vi-VN')}</th></tr>`;
+  const headUnplanned=`<tr class="inv-head-r3"><th colspan="2" class="inv-corner">Số lượng hàng chưa có kế hoạch giao</th>${OCC_TYPES.map(t=>`<th class="num">${t.tonDauKy.toLocaleString('vi-VN')}</th>`).join('')}<th class="num">${T.sumUnplanned.toLocaleString('vi-VN')}</th></tr>`;
+  const body=weeks.map((w,wi)=>{
+    const dauKyCells=T.rows.map(r=>{const c=r.weeks[wi]; return `<td class="num"${c.dauKy<0?' style="color:var(--err);font-weight:700"':''}>${c.dauKy.toLocaleString('vi-VN')}</td>`;}).join('');
+    const etaCells=T.rows.map(r=>{const c=r.weeks[wi]; return `<td class="num">${c.hangVe>0?c.hangVe.toLocaleString('vi-VN'):'—'}</td>`;}).join('');
+    const sw=T.sumWeeks[wi];
+    return `<tr><td rowspan="2" class="wf-muted" style="font-weight:700;vertical-align:middle;white-space:nowrap">${w.label}</td>
+        <td class="wf-muted" style="font-size:11px">Tồn đầu kỳ</td>${dauKyCells}<td class="num"${sw.dauKy<0?' style="color:var(--err);font-weight:700"':''}><b>${sw.dauKy.toLocaleString('vi-VN')}</b></td></tr>
+      <tr><td class="wf-muted" style="font-size:11px">ETA</td>${etaCells}<td class="num">${sw.hangVe>0?sw.hangVe.toLocaleString('vi-VN'):'—'}</td></tr>`;
   }).join('');
-  const T=invTotals();
-  h+=`<tr style="font-weight:700;background:var(--bg)"><td>Tổng NVL</td><td class="num" style="text-align:center">${T.sumUsage.toLocaleString('vi-VN')}</td>
-    ${T.sumWeeks.map(invWeekCell).join('')}</tr>`;
-  return h;
+  return `<div class="inv-scroll"><table class="tbl inv-tbl">
+      <thead>${headMa}${headUsage}${headUnplanned}</thead>
+      <tbody>${body}</tbody></table></div>`;
 }
 S.matinv = ()=> appnav('Mua nhập khẩu','Cảnh báo tồn kho',TAB_IM,'Kế hoạch NVL')
  + `<div class="sf-body">
    ${hl({crumb:'Cảnh báo tồn kho + hàng đi đường',ico:'🌐',color:'#0b827c',title:'Tồn kho khả dụng NVL chính — báo cáo theo tuần',sub:'Tồn đầu kỳ + ETA (SL hàng có ETA về trong tuần, đồng bộ từ Rosy) − SL sử dụng dự kiến → Tồn cuối kỳ cuốn chiếu sang tuần sau',
-     fields:(()=>{ const T=invTotals(); return [['Kỳ hiện tại',INV_CUR_WEEK.label],['Loại NVL theo dõi','16'],['Tồn hiện tại (tổng NVL)',T.sumDauKy.toLocaleString('vi-VN')+' tấn'],['ETA (tuần hiện tại)',T.sumHangVe0.toLocaleString('vi-VN')+' tấn'],['Tồn khả dụng (tuần hiện tại)',T.sumKhaDung0.toLocaleString('vi-VN')+' tấn']]; })(),
+     fields:(()=>{ const T=invTotals(invWeeksInRange()); return [['Kỳ hiện tại',invFmtDate(INV_TODAY)],['Loại NVL theo dõi','16'],['Tồn hiện tại (tổng NVL)',T.sumUnplanned.toLocaleString('vi-VN')+' tấn'],['Phạm vi hiển thị','~2,5 tháng (có thể đổi)']]; })(),
      actions:[{t:'Ký hợp đồng nhập khẩu',pri:true,fn:"go('imcontract_list')"},'Xuất báo cáo']})}
    ${banner('warn','PLYB tồn đầu kỳ dự kiến <b>âm từ tuần 14/09 - 20/09/2026</b> nếu không có lô hàng mới về — BGĐ cân nhắc đặt hàng bổ sung. Các loại NVL khác hiện ổn định.')}
    ${card('Tồn kho khả dụng theo tuần — theo loại NVL',
-     `<div class="tbl-wrap"><table class="tbl">
-        <thead>
-          <tr><th rowspan="2">Loại NVL</th><th rowspan="2" class="num" style="text-align:center">Sản lượng SD dự kiến<br>(tấn/tuần)</th>
-            ${INV_WEEKS.map(w=>`<th colspan="2" style="text-align:center">${w.label}</th>`).join('')}</tr>
-          <tr>${INV_WEEKS.map(()=>`<th class="num">Tồn đầu kỳ</th><th class="num">ETA</th>`).join('')}</tr>
-        </thead>
-        <tbody>${invMatrixRows()}</tbody></table></div>`)}
+     `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Từ ngày</label><input id="inv-from" class="mass-sel" style="width:auto" type="date" value="${invFmtISO(INV_RANGE_FROM)}" onchange="invRangeChange()"></div>
+        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Đến ngày</label><input id="inv-to" class="mass-sel" style="width:auto" type="date" value="${invFmtISO(INV_RANGE_TO)}" onchange="invRangeChange()"></div>
+        <div class="wf-muted" style="font-size:11px;align-self:flex-end;padding-bottom:8px">Mặc định load 2,5 tháng — đổi Từ/Đến ngày để xem phạm vi khác</div>
+      </div>
+      <div id="inv-table-wrap">${invTableHTML()}</div>`)}
  </div>`;
 
 /* ===== Payment / Payment Term / Payment Term Item (Mua hàng nhập khẩu) =====
