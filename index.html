@@ -719,12 +719,19 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     <div class="pm-body" id="sc-body"></div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeScFromPoModal()">Hủy</button><button class="btn pri" onclick="confirmScFromPo()">Tạo Sales Contract</button></div></div>
   </div>
-  <!-- Modal tạo báo giá -->
+  <!-- Modal Báo giá mới (tạo Quote, chưa chọn sản phẩm) -->
   <div class="modal-back" id="quoteback" onclick="closeQuoteModal()" style="z-index:135"></div>
   <div class="po-modal" id="quotemodal" style="z-index:140;width:min(640px,94vw)">
-    <div class="pm-head"><h3>Tạo báo giá</h3><button title="Đóng" onclick="closeQuoteModal()">✕</button></div>
+    <div class="pm-head"><h3>Báo giá mới</h3><button title="Đóng" onclick="closeQuoteModal()">✕</button></div>
     <div class="pm-body" id="quote-body"></div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeQuoteModal()">Hủy</button><button class="btn pri" onclick="confirmQuote()">Tạo báo giá</button></div></div>
+  </div>
+  <!-- Modal Quản lý sản phẩm báo giá (thêm/sửa Quote Line Item) -->
+  <div class="modal-back" id="qpback" onclick="closeQpModal()" style="z-index:135"></div>
+  <div class="po-modal" id="qpmodal" style="z-index:140;width:min(780px,96vw);max-height:88vh;overflow:auto">
+    <div class="pm-head"><h3 id="qp-title">Quản lý sản phẩm báo giá</h3><button title="Đóng" onclick="closeQpModal()">✕</button></div>
+    <div class="pm-body" id="qp-body"></div>
+    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeQpModal()">Hủy</button><button class="btn pri" onclick="confirmQp()">Lưu sản phẩm</button></div></div>
   </div>
   <!-- Modal phê duyệt (có lý do) -->
   <div class="modal-back" id="apprback" onclick="closeApproveModal()" style="z-index:135"></div>
@@ -913,10 +920,10 @@ const sampleActivity=[['📞','Gọi xác nhận số lượng đặt hàng','Ng
    dụng, liệt kê ĐẦY ĐỦ bảng giá sản phẩm tháng đó (giống văn bản gốc), không phải bảng dòng SP tự chọn. */
 let QUOTES=[
   {no:'QUO-0451', cust:'Cty Hưng Thịnh Phát', month:'2026-07', sentDate:'12/07/2026', status:'Đã gửi', items:[
-    {code:'WTN', name:'Giấy White Top WTN', plant:'ĐTBD', gsmLabel:'140–150', base:15200, price:15200, isAnchor:true},
-    {code:'TD', name:'Giấy Testliner Loại 1 (TĐ)', plant:'ĐTBD', gsmLabel:'160–200', base:13000, price:12900, isAnchor:false}]},
+    {code:'WTN', name:'Giấy White Top WTN', plant:'ĐTBD', gsmFrom:140, gsmTo:150, gsmLabel:'140–150', base:15200, price:15200, priceOrig:15200, isAnchor:true},
+    {code:'TD', name:'Giấy Testliner Loại 1 (TĐ)', plant:'ĐTBD', gsmFrom:160, gsmTo:200, gsmLabel:'160–200', base:13000, price:12900, priceOrig:12900, isAnchor:false}]},
   {no:'QUO-0448', cust:'Cty Hưng Thịnh Phát', month:'2026-06', sentDate:'05/06/2026', status:'Hết hiệu lực', items:[
-    {code:'M1S', name:'Giấy Medium gia keo (M1S)', plant:'ĐTBD', gsmLabel:'90', base:10400, price:10800, isAnchor:false}]},
+    {code:'M1S', name:'Giấy Medium gia keo (M1S)', plant:'ĐTBD', gsmFrom:90, gsmTo:90, gsmLabel:'90', base:10400, price:10800, priceOrig:10800, isAnchor:false}]},
 ];
 let quoteSeq=452;
 function quoteMonthLabel(m){ const parts=(m||'').split('-'); return parts.length===2 ? 'Tháng '+parts[1]+'/'+parts[0] : '—'; }
@@ -970,7 +977,6 @@ function dqSplitRange(code,a,b){
 }
 let QSEL=[]; // {code,gsmFrom,gsmTo,base,price,isAnchor} — từng dòng ĐÃ THÊM vào báo giá (giá đã tra sẵn từ Bảng giá)
 let DQ_PENDING=null; // {code,gsmInput} — sản phẩm vừa chọn từ ô tìm kiếm, đang chờ nhập định lượng rồi mới bấm Thêm
-function dqInitSel(){ QSEL=[{code:'TD',gsmFrom:140,gsmTo:150,base:13000,price:13000,priceOrig:13000,isAnchor:true},{code:'M1S',gsmFrom:100,gsmTo:110,base:10400,price:10400,priceOrig:10400,isAnchor:true}]; DQ_PENDING=null; }
 function dqRemoveSel(i){ QSEL.splice(i,1); renderDqRows(); }
 // Bước 1: chọn sản phẩm từ gợi ý tìm kiếm — CHƯA thêm vào bảng, chỉ đưa vào khung chờ để nhập định lượng
 function dqPickProduct(code){
@@ -1040,7 +1046,7 @@ function dqSetPrice(i,val){
 function dqSelectedItems(){
   return QSEL.map(sel=>{ const p=dqProductByCode(sel.code); if(!p) return null;
     const gsmLabel=sel.gsmFrom===sel.gsmTo?String(sel.gsmFrom):sel.gsmFrom+'–'+sel.gsmTo;
-    return {code:p.code,name:p.name,plant:p.plant,gsmLabel,base:sel.base,price:sel.price,isAnchor:sel.isAnchor}; }).filter(Boolean);
+    return {code:p.code,name:p.name,plant:p.plant,gsmFrom:sel.gsmFrom,gsmTo:sel.gsmTo,gsmLabel,base:sel.base,price:sel.price,priceOrig:sel.priceOrig,isAnchor:sel.isAnchor}; }).filter(Boolean);
 }
 function qOnMonthChange(){
   const m=document.getElementById('q-month').value;
@@ -1051,13 +1057,15 @@ function qOnMonthChange(){
   const thx=document.getElementById('dq-th-x'); if(thx) thx.innerHTML='Giá tháng<br>'+qPrevMonthNum(m);
   const thy=document.getElementById('dq-th-y'); if(thy) thy.innerHTML='Giá tháng<br>'+qMonthNum(m);
 }
+// "Báo giá mới" — theo chuẩn Salesforce chỉ tạo Quote rỗng (chưa có Quote Line Item); chọn/quản lý sản phẩm
+// làm ở bước riêng (nút "Quản lý sản phẩm" trên trang chi tiết báo giá, xem openQpModal).
 function openQuoteModal(){
   const no='QUO-0'+quoteSeq;
   const month='2026-07';
-  dqInitSel();
   document.getElementById('quote-body').innerHTML=
     `<p class="po-hint"><b id="q-title-val">${qMonthTitle(month)}</b> — theo file "BG nội địa.docx". Đơn giá <b>₫/kg</b>, <b>chưa gồm VAT</b>, giao tại kho khách hàng.
-       ĐKĐH tháng báo giá phải được 2 bên xác nhận chậm nhất ngày <b id="q-deadline-val">${qMonthDeadline(month)}</b>; đơn hàng chi tiết gửi trước hạn giao gần nhất tối thiểu 07 ngày.</p>
+       ĐKĐH tháng báo giá phải được 2 bên xác nhận chậm nhất ngày <b id="q-deadline-val">${qMonthDeadline(month)}</b>; đơn hàng chi tiết gửi trước hạn giao gần nhất tối thiểu 07 ngày.
+       Sau khi tạo, vào chi tiết báo giá và dùng nút <b>"Quản lý sản phẩm"</b> để thêm sản phẩm & định lượng.</p>
      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Số báo giá</label><input id="q-no" class="mass-sel" value="${no}" readonly></div>
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Khách hàng (Kính gửi) *</label><input id="q-cust" class="mass-sel" value="Cty CP Tân Tấn Lộc"></div>
@@ -1066,18 +1074,7 @@ function openQuoteModal(){
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Hạn xác nhận ĐKĐH</label><input class="mass-sel" id="q-deadline-disp" readonly></div>
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Hiệu lực đến (cuối tháng báo giá)</label><input class="mass-sel" id="q-exp-disp" readonly></div>
      </div>
-     <div class="wf-muted" style="font-size:12px;font-weight:700;margin-bottom:4px">Chọn sản phẩm & định lượng (lấy trực tiếp từ Bảng giá chuẩn DTP 2026)</div>
-     <div class="dq-search-wrap" style="margin-bottom:10px">
-       <input id="dq-search" class="mass-sel" placeholder="🔍 Tìm sản phẩm theo tên (VD: Testliner, Whitetop, Medium…)" oninput="dqSearchInput()" onfocus="dqSearchInput()">
-       <div id="dq-suggest" class="dq-suggest" hidden></div>
-     </div>
-     <div id="dq-pending"></div>
-     <div class="tbl-wrap"><table class="tbl" style="table-layout:fixed">
-       <colgroup><col style="width:32%"><col style="width:28%"><col style="width:16%"><col style="width:18%"><col style="width:6%"></colgroup>
-       <thead><tr style="white-space:normal"><th style="white-space:normal">Chủng loại sản phẩm</th><th style="white-space:normal">Khoảng định lượng (gsm)</th><th class="num" style="white-space:normal" id="dq-th-x">Giá tháng<br>${qPrevMonthNum(month)}</th><th class="num" style="white-space:normal" id="dq-th-y">Giá tháng<br>${qMonthNum(month)}</th><th></th></tr></thead>
-       <tbody id="dq-tbody">${dqPriceRowsHTML()}</tbody>
-     </table></div>
-     <div class="po-hint" style="margin-top:10px">
+     <div class="po-hint">
        <b>Số lượng nhận ĐKĐH:</b> tối đa bằng trung bình sản lượng 3 tháng trước đó của khách hàng.<br>
        <b>Điều khoản:</b><br>
        1. ĐKĐH: ưu tiên nhận đơn hàng nếu khách hàng đảm bảo tiến độ thanh toán, nhận hàng đúng cam kết; ĐKĐH tháng sau được 2 bên xác nhận chậm nhất ngày 25 hàng tháng; đơn hàng chi tiết gửi trước hạn giao gần nhất tối thiểu 07 ngày.<br>
@@ -1094,15 +1091,46 @@ function closeQuoteModal(){ const b=document.getElementById('quoteback'),m=docum
 function confirmQuote(){
   const cust=(document.getElementById('q-cust').value||'').trim();
   if(!cust){ toast('Nhập Khách hàng'); return; }
-  const items=dqSelectedItems();
-  if(!items.length){ toast('Chọn ít nhất 1 sản phẩm và nhập định lượng'); return; }
   const month=document.getElementById('q-month').value;
   const dateVal=document.getElementById('q-date').value;
   const sentDate=dateVal ? dateVal.split('-').reverse().join('/') : 'Hôm nay';
   const no='QUO-0'+(quoteSeq++);
-  QUOTES.unshift({no, cust, month, sentDate, status:'Nháp', items});
+  QUOTES.unshift({no, cust, month, sentDate, status:'Nháp', items:[]});
   renderQuotes(); closeQuoteModal();
-  toast('Đã tạo '+qMonthTitle(month)+' gửi '+cust+' · '+items.length+' sản phẩm · hạn xác nhận ĐKĐH '+qMonthDeadline(month));
+  toast('Đã tạo '+qMonthTitle(month)+' gửi '+cust+' · hạn xác nhận ĐKĐH '+qMonthDeadline(month)+' · vào chi tiết báo giá để thêm sản phẩm');
+}
+/* ===== Quản lý sản phẩm báo giá (Quote Line Items) — thêm/sửa sản phẩm cho 1 báo giá ĐÃ TẠO ===== */
+let QP_QUOTE_NO=null;
+function openQpModal(no){
+  QP_QUOTE_NO=no;
+  const q=QUOTES.find(x=>x.no===no);
+  QSEL=((q&&q.items)||[]).map(it=>({code:it.code, gsmFrom:it.gsmFrom, gsmTo:it.gsmTo, base:it.base, price:it.price,
+    priceOrig:(it.priceOrig!==undefined?it.priceOrig:it.price), isAnchor:it.isAnchor}));
+  DQ_PENDING=null;
+  const month=(q&&q.month)||'2026-07';
+  const t=document.getElementById('qp-title'); if(t) t.textContent='Quản lý sản phẩm báo giá · '+no;
+  document.getElementById('qp-body').innerHTML=
+    `<div class="wf-muted" style="font-size:12px;font-weight:700;margin-bottom:4px">Chọn sản phẩm & định lượng (lấy trực tiếp từ Bảng giá chuẩn DTP 2026)</div>
+     <div class="dq-search-wrap" style="margin-bottom:10px">
+       <input id="dq-search" class="mass-sel" placeholder="🔍 Tìm sản phẩm theo tên (VD: Testliner, Whitetop, Medium…)" oninput="dqSearchInput()" onfocus="dqSearchInput()">
+       <div id="dq-suggest" class="dq-suggest" hidden></div>
+     </div>
+     <div id="dq-pending"></div>
+     <div class="tbl-wrap"><table class="tbl" style="table-layout:fixed">
+       <colgroup><col style="width:32%"><col style="width:28%"><col style="width:16%"><col style="width:18%"><col style="width:6%"></colgroup>
+       <thead><tr style="white-space:normal"><th style="white-space:normal">Chủng loại sản phẩm</th><th style="white-space:normal">Khoảng định lượng (gsm)</th><th class="num" style="white-space:normal" id="dq-th-x">Giá tháng<br>${qPrevMonthNum(month)}</th><th class="num" style="white-space:normal" id="dq-th-y">Giá tháng<br>${qMonthNum(month)}</th><th></th></tr></thead>
+       <tbody id="dq-tbody">${dqPriceRowsHTML()}</tbody>
+     </table></div>`;
+  document.getElementById('qpback').classList.add('show');
+  document.getElementById('qpmodal').classList.add('show');
+}
+function closeQpModal(){ const b=document.getElementById('qpback'),m=document.getElementById('qpmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
+function confirmQp(){
+  const q=QUOTES.find(x=>x.no===QP_QUOTE_NO); if(!q) return;
+  q.items=dqSelectedItems();
+  closeQpModal();
+  toast('Đã lưu '+q.items.length+' sản phẩm cho báo giá '+q.no);
+  if(S.quote) go('quote');
 }
 function createContract(){ toast('Đã tạo Hợp đồng nháp từ cơ hội — chuyển sang màn Hợp đồng'); setTimeout(function(){ if(S.contract) go('contract'); }, 700); }
 function createCaseQuick(){ toast('Đã tạo Case khiếu nại từ cơ hội — mở màn Case'); setTimeout(function(){ if(S.case) go('case'); }, 700); }
@@ -1525,7 +1553,7 @@ S.quote = ()=> appnav('Bán hàng nội địa','Cơ hội',TAB_SALES,'Cơ hội
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="opp">Cơ hội</span> &rsaquo; Báo giá',ico:'₫',color:'#0176d3',title:'QUO-0451 · Cty Hưng Thịnh Phát',sub:'BÁO GIÁ THÁNG 07/2026 · đơn giá chưa gồm VAT',
      fields:[['Tháng báo giá','Tháng 07/2026'],['Trạng thái',pill('ok','Đã gửi')],['Ngày gửi','12/07/2026'],['Hạn xác nhận ĐKĐH','25/06/2026'],['Hiệu lực đến','31/07/2026']],
-     actions:[{t:'Xuất PDF',pri:true,fn:"exportQuotePDF('QUO-0451')"},'Gửi khách','Sửa']})}
+     actions:[{t:'Quản lý sản phẩm',pri:true,fn:"openQpModal('QUO-0451')"},{t:'Xuất PDF',fn:"exportQuotePDF('QUO-0451')"},'Gửi khách','Sửa']})}
    ${path(['Nháp','Gửi khách hàng','Hết hiệu lực'],1)}
    <div class="cols-side act-tab">
      <div>
@@ -1544,7 +1572,7 @@ S.quote = ()=> appnav('Bán hàng nội địa','Cơ hội',TAB_SALES,'Cơ hội
          ['4. Điều khoản khác','Theo Hợp đồng Nguyên tắc đã ký kết']])
      ])}
      ${card('Sản phẩm đã chọn (lấy từ Bảng giá chuẩn DTP 2026)', tbl([{t:'STT'},{t:'Chủng loại sản phẩm'},{t:'Định lượng',num:true},{t:'Giá tháng '+qPrevMonthNum('2026-07'),num:true},{t:'Giá tháng '+qMonthNum('2026-07'),num:true}],
-       (QUOTES.find(x=>x.no==='QUO-0451')||{items:[]}).items.map((p,i)=>[String(i+1),p.name+' <span class="wf-muted" style="font-size:11px">(Nhà máy '+p.plant+')</span>',p.gsmLabel+' gsm',p.base.toLocaleString('vi-VN'),'<b>'+p.price.toLocaleString('vi-VN')+'</b>'])),{n:String((QUOTES.find(x=>x.no==='QUO-0451')||{items:[]}).items.length)})}
+       (QUOTES.find(x=>x.no==='QUO-0451')||{items:[]}).items.map((p,i)=>[String(i+1),p.name+' <span class="wf-muted" style="font-size:11px">(Nhà máy '+p.plant+')</span>',p.gsmLabel+' gsm',p.base.toLocaleString('vi-VN'),'<b>'+p.price.toLocaleString('vi-VN')+'</b>'])),{n:String((QUOTES.find(x=>x.no==='QUO-0451')||{items:[]}).items.length),r:'<button class="btn sm" onclick="openQpModal(\'QUO-0451\')">＋ Quản lý sản phẩm</button>'})}
      </div>
      ${activity([['📤','Gửi báo giá cho khách','Trần Thị B · 12/07/2026'],['✍','Lập báo giá QUO-0451','12/07/2026']])}
    </div>
@@ -1574,7 +1602,7 @@ S.opp = ()=> appnav('Bán hàng nội địa','Cơ hội',['Trang chủ','Lead',
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="opp_list">Cơ hội</span> &rsaquo;',ico:'💼',color:'#0176d3',title:'Cty Hưng Thịnh — Cung cấp Medium Q3',sub:'Cơ hội · 1.200.000.000 ₫ · Đóng dự kiến 30/07/2026',
      fields:[['Số tiền','1.200.000.000 ₫'],['Giai đoạn',pill('info','Gửi mẫu')],['Xác suất','60%'],['Phụ trách','Trần Thị B']],
-     actions:[{t:'Tạo báo giá',pri:true,fn:'openQuoteModal()'},{t:'Tạo hợp đồng',fn:'createContract()'},{t:'Trình duyệt',fn:'openApproveModal()'},{t:'Tạo Sample Request',fn:'openSampleModal()'},'Sửa']})}
+     actions:[{t:'Báo giá mới',pri:true,fn:'openQuoteModal()'},{t:'Tạo hợp đồng',fn:'createContract()'},{t:'Trình duyệt',fn:'openApproveModal()'},{t:'Tạo Sample Request',fn:'openSampleModal()'},'Sửa']})}
    ${path(['Phân tích nhu cầu','Gửi mẫu','Báo giá','Đàm phán','Hợp đồng','Đóng - Thắng','Đóng - Thua'],1)}
    <div class="cols-side act-tab">
      <div>
@@ -1585,7 +1613,7 @@ S.opp = ()=> appnav('Bán hàng nội địa','Cơ hội',['Trang chủ','Lead',
           <thead><tr><th>Số báo giá</th><th>Tháng báo giá</th><th>Ngày gửi</th><th>Trạng thái</th><th></th></tr></thead>
           <tbody id="quotes-tbody">${quotesRows()}</tbody>
        </table></div>`,
-       {n:String(QUOTES.length), r:'<button class="btn sm" onclick="openQuoteModal()">＋ Tạo báo giá</button>'})}
+       {n:String(QUOTES.length), r:'<button class="btn sm" onclick="openQuoteModal()">＋ Báo giá mới</button>'})}
      ${card('Hợp đồng', tbl([{t:'Số HĐ'},{t:'Ngày ký'},{t:'Hiệu lực đến'},{t:'Giá trị'},{t:'Trạng thái'}],[
        ['<a data-go="contract">HĐ-0388</a>','30/11/2025','30/11/2026','3.000.000.000 ₫',pill('ok','Hiệu lực')]]),
        {n:'1',r:'<button class="btn sm" onclick="createContract()">＋ Tạo hợp đồng</button>'})}
@@ -3973,7 +4001,7 @@ S.oppo = ()=> appnav('Bán hàng nội địa','Opportunity PO',TAB_SALES,'Oppor
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="oppo_list">Opportunity PO</span> &rsaquo;',ico:'📄',color:'#0176d3',title:'Cty Hưng Thịnh — PO Medium Q3',sub:'Opportunity PO · 1.180.000.000 ₫ · Đóng dự kiến 30/07/2026',
      fields:[['Giá trị','1.180.000.000 ₫'],['Giai đoạn',pill('info','Đã duyệt PO & Chờ xử lý')],['Xác suất','70%'],['Phụ trách','Trần Thị B']],
-     actions:[{t:'Tạo báo giá',pri:true,fn:'openQuoteModal()'},{t:'Tạo đơn hàng (PO)',fn:"go('oppo')"},{t:'Tạo Case',fn:'createCaseQuick()'},{t:'Trình duyệt',fn:'openSubmitModal()'},'Sửa']})}
+     actions:[{t:'Báo giá mới',pri:true,fn:'openQuoteModal()'},{t:'Tạo đơn hàng (PO)',fn:"go('oppo')"},{t:'Tạo Case',fn:'createCaseQuick()'},{t:'Trình duyệt',fn:'openSubmitModal()'},'Sửa']})}
    <div class="oppo-status-strip">
      <span><b>Trạng thái công nợ:</b> ${pill('warn','Nợ 15–30 ngày · quá hạn 420.000.000 ₫ · chỉ giao 70% hàng')}</span>
      <span><b>Tồn kho:</b> ${pill('ok','Đủ tồn giao 70% · thiếu 30% đưa vào KHSX')}</span>
@@ -3983,7 +4011,7 @@ S.oppo = ()=> appnav('Bán hàng nội địa','Opportunity PO',TAB_SALES,'Oppor
      <div>
      ${card('Báo giá', tbl([{t:'Số báo giá'},{t:'Tháng báo giá'},{t:'Ngày gửi'},{t:'Trạng thái'}],[
        ['<a data-go="quote">QUO-0451</a>','Tháng 07/2026','12/07/2026',pill('ok','Đã gửi')],
-       ['<a data-go="quote">QUO-0448</a>','Tháng 06/2026','05/06/2026',pill('mut','Hết hiệu lực')]]),{n:'2',r:'<button class="btn sm" onclick="openQuoteModal()">＋ Tạo báo giá</button>'})}
+       ['<a data-go="quote">QUO-0448</a>','Tháng 06/2026','05/06/2026',pill('mut','Hết hiệu lực')]]),{n:'2',r:'<button class="btn sm" onclick="openQuoteModal()">＋ Báo giá mới</button>'})}
      ${card('Chi tiết Opportunity PO', fg([['Tên Opportunity','Cty Hưng Thịnh — PO Medium Q3'],
        ['Khách hàng','Cty Hưng Thịnh Phát','link','account'],['Mã PO khách','PO-KH-8842'],
        ['Số lượng dự kiến','120 tấn'],
