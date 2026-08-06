@@ -180,6 +180,7 @@ a:hover{text-decoration:underline}
 .dq-sugg-item:last-child{border-bottom:none}
 .dq-sugg-item:hover{background:var(--bg)}
 .dq-pending-box{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;margin-bottom:10px;border:1px solid var(--sf-blue-l);background:var(--sf-blue-l);border-radius:8px}
+.dq-delta-slot{display:inline-block;width:44px;flex:none;text-align:left;padding-left:4px}
 .dq-delta-badge{font-size:10px;font-weight:700;white-space:nowrap}
 .dq-delta-badge.dq-delta-up{color:#c23934}
 .dq-delta-badge.dq-delta-down{color:#2e844a}
@@ -1025,11 +1026,12 @@ function dqSearchInput(){
   box.hidden=false;
 }
 // Giá tháng hiện tại (Y) cho phép điều chỉnh tay (VD đàm phán với khách). Không dùng cột riêng để báo đã
-// điều chỉnh — thay vào đó hiện 1 badge nhỏ ▲/▼ ngay cạnh ô nhập, thể hiện chênh lệch so với GIÁ CHUẨN (X).
+// điều chỉnh — thay vào đó hiện dấu +/- nhỏ ngay cạnh ô nhập, thể hiện chênh lệch so với GIÁ CHUẨN (X).
+// Khung chứa dấu +/- có độ rộng CỐ ĐỊNH (dù rỗng) để ô nhập giá luôn thẳng cột, không bị lệch qua lại.
 function dqDeltaBadge(sel){
   const d=sel.price-sel.base; if(!d) return '';
   const cls=d>0?'dq-delta-up':'dq-delta-down';
-  return `<span class="dq-delta-badge ${cls}">${d>0?'▲+':'▼'}${Math.abs(d).toLocaleString('vi-VN')}</span>`;
+  return `<span class="dq-delta-badge ${cls}">${d>0?'+':'-'}${Math.abs(d).toLocaleString('vi-VN')}</span>`;
 }
 function dqPriceRowsHTML(){
   if(!QSEL.length) return `<tr><td colspan="5" class="wf-muted" style="text-align:center;padding:16px">Chưa chọn sản phẩm — dùng ô tìm kiếm phía trên để thêm sản phẩm vào báo giá.</td></tr>`;
@@ -1038,9 +1040,9 @@ function dqPriceRowsHTML(){
     <td><b>${p.name}</b><div class="wf-muted" style="font-size:11px">Nhà máy ${p.plant}${sel.isAnchor?' · định lượng chuẩn':''}</div></td>
     <td class="num">${label} gsm</td>
     <td class="num">${sel.base.toLocaleString('vi-VN')}</td>
-    <td class="num"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px">
-      <input id="dq-price-${i}" class="mass-sel num" style="width:82px" type="number" value="${sel.price}" oninput="dqSetPrice(${i},this.value)" title="Giá gốc theo Bảng giá (định lượng ${label}): ${sel.priceOrig.toLocaleString('vi-VN')} ₫/kg">
-      <span id="dq-delta-${i}">${dqDeltaBadge(sel)}</span></div></td>
+    <td class="num"><div style="display:flex;align-items:center;justify-content:flex-end">
+      <input id="dq-price-${i}" class="mass-sel num" style="width:82px;flex:none" type="number" value="${sel.price}" oninput="dqSetPrice(${i},this.value)" title="Giá gốc theo Bảng giá (định lượng ${label}): ${sel.priceOrig.toLocaleString('vi-VN')} ₫/kg">
+      <span id="dq-delta-${i}" class="dq-delta-slot">${dqDeltaBadge(sel)}</span></div></td>
     <td class="num"><button class="btn sm" title="Xoá" onclick="dqRemoveSel(${i})">✕</button></td></tr>`; }).join('');
 }
 function renderDqRows(){ const tb=document.getElementById('dq-tbody'); if(tb) tb.innerHTML=dqPriceRowsHTML(); }
