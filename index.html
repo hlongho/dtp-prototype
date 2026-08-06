@@ -4219,17 +4219,19 @@ function pbGroupRanges(p){
   p.gsmAxis.forEach(gsm=>{
     const r=pbPriceAt(p,gsm);
     if(!r){ cur=null; return; }
-    if(cur && cur.price===r.price){ cur.to=gsm; }
-    else { cur={from:gsm,to:gsm,price:r.price,delta:r.delta,isAnchor:p.anchorGsm.includes(gsm)}; groups.push(cur); }
+    if(cur && cur.price===r.price){ cur.to=gsm; cur.values.push(gsm); }
+    else { cur={from:gsm,to:gsm,price:r.price,delta:r.delta,isAnchor:p.anchorGsm.includes(gsm),values:[gsm]}; groups.push(cur); }
   });
   return groups;
 }
 // 1 record Price Book Entry Custom cho mỗi khoảng định lượng đồng giá, liền kề (theo pbGroupRanges) — bỏ các
-// định lượng "–" (không sản xuất)
+// định lượng "–" (không sản xuất). Định lượng (gsm) lưu dạng Multi-Select Picklist — "values" là danh sách các
+// định lượng cụ thể thuộc record đó (gsmFrom/gsmTo = min/max của values, giữ lại để tính toán khoảng nhanh).
 function pbCustoms(code){ const out=[]; PB_PRODUCTS.forEach(p=>{ if(code&&p.code!==code) return;
   pbGroupRanges(p).forEach(g=>{ const range=g.from===g.to?String(g.from):g.from+'–'+g.to;
     out.push({id:'PBEC-'+p.code+'-DL'+g.from+(g.from!==g.to?('-'+g.to):''), code:p.code, name:p.name, plant:p.plant, base:p.base,
-      gsmFrom:g.from, gsmTo:g.to, gsmLabel:range, isAnchor:g.isAnchor, delta:g.delta, custom:g.price}); }); }); return out; }
+      gsmFrom:g.from, gsmTo:g.to, gsmValues:g.values, gsmLabel:range, isAnchor:g.isAnchor, delta:g.delta, custom:g.price}); }); }); return out; }
+function pbValueChips(values){ return (values||[]).map(v=>`<span class="slds-badge" style="margin:2px 4px 2px 0">${v} gsm</span>`).join(''); }
 
 S.pbe_list = ()=> appnav('Dữ liệu nền tảng','Price Book Entry',TAB_MD,'Price Book Entry')
  + `<div class="sf-body">${lv({crumb:'Price Book Entry',ico:'🏷️',color:'#5867e8',object:'Price Book Entry',view:'Bảng giá chuẩn DTP 2026',views:['Bảng giá chuẩn DTP 2026','ĐTLA','ĐTBD','Tất cả'],count:String(PB_PRODUCTS.length),newLabel:'Entry mới',
@@ -4265,7 +4267,7 @@ S.pbec = ()=> appnav('Dữ liệu nền tảng','Bảng giá custom',TAB_MD,'B�
        ['Sản phẩm (Product2 · lookup)',c.name,'link','product'],
        ['Bảng giá (Pricebook2 · lookup)','Bảng giá chuẩn DTP 2026','link','pricebook'],
        ['Price Book Entry tương ứng (suy ra từ Product2 + Pricebook2)',c.name+' · '+pbFmt(c.base),'link','pbe'],
-       ['Nhà máy',c.plant],['Định lượng từ (gsm)',String(c.gsmFrom)],['Định lượng đến (gsm)',String(c.gsmTo)],
+       ['Nhà máy',c.plant],['Định lượng (gsm) — Multi-Select Picklist',pbValueChips(c.gsmValues)],
        ['Định lượng chuẩn',c.isAnchor?'✓':''],
        ['Giá chuẩn (list price từ Product2 + Pricebook2)',pbFmt(c.base)],
        ['Giá lệch so với giá chuẩn',c.isAnchor?'0 (đây là khoảng định lượng chuẩn)':(c.delta>0?'+':'')+c.delta.toLocaleString('vi-VN')+' ₫/kg'],
