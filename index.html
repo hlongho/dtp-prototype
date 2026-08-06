@@ -1056,7 +1056,7 @@ function dqPriceRowsHTML(){
     <td class="num"><div style="display:flex;align-items:center;justify-content:flex-end">
       <input id="dq-price-${i}" class="mass-sel num" style="width:82px;flex:none" type="number" value="${sel.price}" oninput="dqSetPrice(${i},this.value)" title="Giá gốc theo Bảng giá (định lượng ${label}): ${sel.priceOrig.toLocaleString('vi-VN')} ₫/kg">
       <span id="dq-delta-${i}" class="dq-delta-slot">${dqDeltaBadge(sel)}</span></div></td>
-    <td><textarea id="dq-note-${i}" class="mass-sel" style="font-size:11px;min-height:32px;resize:vertical" placeholder="Ghi chú (hiện trên PDF báo giá)" oninput="dqSetNote(${i},this.value)">${sel.note||''}</textarea></td>
+    <td><textarea id="dq-note-${i}" class="mass-sel" style="font-size:11px;min-height:32px;resize:vertical" oninput="dqSetNote(${i},this.value)">${sel.note||''}</textarea></td>
     <td class="num"><button class="btn sm" title="Xoá" onclick="dqRemoveSel(${i})">✕</button></td></tr>`; }).join('');
 }
 function renderDqRows(){ const tb=document.getElementById('dq-tbody'); if(tb) tb.innerHTML=dqPriceRowsHTML(); }
