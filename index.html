@@ -184,14 +184,16 @@ a:hover{text-decoration:underline}
 .dq-delta-badge{font-size:10px;font-weight:700;white-space:nowrap}
 .dq-delta-badge.dq-delta-up{color:#c23934}
 .dq-delta-badge.dq-delta-down{color:#2e844a}
-.inv-scroll{max-height:560px;overflow:auto;border:1px solid var(--line-2);border-radius:6px}
-.inv-tbl{border-collapse:collapse;width:100%}
-.inv-tbl th{background:var(--nav);position:sticky;z-index:5;height:32px;box-sizing:border-box;font-size:11px;padding:4px 8px;white-space:nowrap;border-bottom:1px solid var(--line-2)}
-.inv-tbl .inv-head-r1 th{top:0}
-.inv-tbl .inv-head-r2 th{top:32px}
-.inv-tbl .inv-head-r3 th{top:64px;border-bottom:2px solid var(--line-2)}
-.inv-tbl .inv-corner{text-align:left;font-weight:700;white-space:normal}
-.inv-tbl td{white-space:nowrap;padding:5px 8px}
+.inv-scroll{max-height:560px;overflow:auto;border:1px solid var(--line-2);border-radius:6px;position:relative}
+/* position:sticky trên th bị vô hiệu nếu table dùng border-collapse:collapse (bug phổ biến trên nhiều browser) —
+   dùng selector độ đặc thù cao (table.tbl.inv-tbl) để chắc chắn thắng rule chung "table.tbl{border-collapse:collapse}". */
+table.tbl.inv-tbl{border-collapse:separate;border-spacing:0;width:100%}
+table.tbl.inv-tbl th{background:var(--nav);position:sticky;z-index:5;height:32px;box-sizing:border-box;font-size:11px;padding:4px 8px;white-space:nowrap;border-bottom:1px solid var(--line-2)}
+table.tbl.inv-tbl .inv-head-r1 th{top:0}
+table.tbl.inv-tbl .inv-head-r2 th{top:32px}
+table.tbl.inv-tbl .inv-head-r3 th{top:64px;border-bottom:2px solid var(--line-2)}
+table.tbl.inv-tbl .inv-corner{text-align:left;font-weight:700;white-space:normal}
+table.tbl.inv-tbl td{white-space:nowrap;padding:5px 8px;border-bottom:1px solid var(--line)}
 .btn[disabled]{opacity:.45;cursor:not-allowed}
 .lm-head{padding:16px 20px;border-bottom:1px solid var(--line)}
 .lm-head h3{margin:0 0 10px;font-size:15px;color:var(--ink)}
