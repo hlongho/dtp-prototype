@@ -1069,13 +1069,19 @@ function qOnMonthChange(){
 }
 // "Báo giá mới" — theo chuẩn Salesforce chỉ tạo Quote rỗng (chưa có Quote Line Item); chọn/quản lý sản phẩm
 // làm ở bước riêng (nút "Quản lý sản phẩm" trên trang chi tiết báo giá, xem openQpModal).
-function openQuoteModal(){
+// Field theo đúng bảng "Quản lý thông tin Quote (Trong nước)" trong FSD (mục 2.10.3) — 4 field bắt buộc:
+// Số báo giá, Tên Opportunity, Trạng thái, Tên Khách hàng. Tên Opportunity/Trạng thái auto-điền theo ngữ cảnh
+// (Quote luôn được tạo từ 1 Opportunity, không tạo độc lập). Tháng báo giá là field nghiệp vụ riêng cho báo
+// giá tháng (theo BG nội địa.docx) — không có trong FSD nhưng cần cho luồng ĐKĐH/hiệu lực/PDF.
+function openQuoteModal(oppName,custName){
   const no='QUO-0'+quoteSeq;
   const month='2026-07';
   document.getElementById('quote-body').innerHTML=
     `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Số báo giá</label><input id="q-no" class="mass-sel" value="${no}" readonly></div>
-       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Khách hàng (Kính gửi) *</label><input id="q-cust" class="mass-sel" value="Cty CP Tân Tấn Lộc"></div>
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Tên Opportunity</label><input id="q-opp" class="mass-sel" value="${oppName||'Cty Hưng Thịnh — Medium Q3'}" readonly></div>
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Khách hàng (Tên Khách hàng) *</label><input id="q-cust" class="mass-sel" value="${custName||'Cty Hưng Thịnh Phát'}"></div>
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Trạng thái</label><input class="mass-sel" value="Nháp" readonly></div>
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Ngày báo giá</label><input id="q-date" class="mass-sel" type="date" value="2026-06-27"></div>
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Tháng báo giá</label><input id="q-month" class="mass-sel" type="month" value="${month}" onchange="qOnMonthChange()"></div>
      </div>`;
@@ -1086,11 +1092,12 @@ function closeQuoteModal(){ const b=document.getElementById('quoteback'),m=docum
 function confirmQuote(){
   const cust=(document.getElementById('q-cust').value||'').trim();
   if(!cust){ toast('Nhập Khách hàng'); return; }
+  const opp=(document.getElementById('q-opp').value||'').trim();
   const month=document.getElementById('q-month').value;
   const dateVal=document.getElementById('q-date').value;
   const sentDate=dateVal ? dateVal.split('-').reverse().join('/') : 'Hôm nay';
   const no='QUO-0'+(quoteSeq++);
-  QUOTES.unshift({no, cust, month, sentDate, status:'Nháp', items:[]});
+  QUOTES.unshift({no, opp, cust, month, sentDate, status:'Nháp', items:[]});
   renderQuotes(); closeQuoteModal();
   toast('Đã tạo '+qMonthTitle(month)+' gửi '+cust+' · hạn xác nhận ĐKĐH '+qMonthDeadline(month)+' · vào chi tiết báo giá để thêm sản phẩm');
 }
@@ -1619,7 +1626,7 @@ S.opp = ()=> appnav('Bán hàng nội địa','Cơ hội',['Trang chủ','Lead',
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="opp_list">Cơ hội</span> &rsaquo;',ico:'💼',color:'#0176d3',title:'Cty Hưng Thịnh — Cung cấp Medium Q3',sub:'Cơ hội · 1.200.000.000 ₫ · Đóng dự kiến 30/07/2026',
      fields:[['Số tiền','1.200.000.000 ₫'],['Giai đoạn',pill('info','Gửi mẫu')],['Xác suất','60%'],['Phụ trách','Trần Thị B']],
-     actions:[{t:'Báo giá mới',pri:true,fn:'openQuoteModal()'},{t:'Tạo hợp đồng',fn:'createContract()'},{t:'Trình duyệt',fn:'openApproveModal()'},{t:'Tạo Sample Request',fn:'openSampleModal()'},'Sửa']})}
+     actions:[{t:'Báo giá mới',pri:true,fn:"openQuoteModal('Cty Hưng Thịnh — Medium Q3','Cty Hưng Thịnh Phát')"},{t:'Tạo hợp đồng',fn:'createContract()'},{t:'Trình duyệt',fn:'openApproveModal()'},{t:'Tạo Sample Request',fn:'openSampleModal()'},'Sửa']})}
    ${path(['Phân tích nhu cầu','Gửi mẫu','Báo giá','Đàm phán','Hợp đồng','Đóng - Thắng','Đóng - Thua'],1)}
    <div class="cols-side act-tab">
      <div>
@@ -1630,7 +1637,7 @@ S.opp = ()=> appnav('Bán hàng nội địa','Cơ hội',['Trang chủ','Lead',
           <thead><tr><th>Số báo giá</th><th>Tháng báo giá</th><th>Ngày gửi</th><th>Trạng thái</th><th></th></tr></thead>
           <tbody id="quotes-tbody">${quotesRows()}</tbody>
        </table></div>`,
-       {n:String(QUOTES.length), r:'<button class="btn sm" onclick="openQuoteModal()">＋ Báo giá mới</button>'})}
+       {n:String(QUOTES.length), r:'<button class="btn sm" onclick="openQuoteModal(\'Cty Hưng Thịnh — Medium Q3\',\'Cty Hưng Thịnh Phát\')">＋ Báo giá mới</button>'})}
      ${card('Hợp đồng', tbl([{t:'Số HĐ'},{t:'Ngày ký'},{t:'Hiệu lực đến'},{t:'Giá trị'},{t:'Trạng thái'}],[
        ['<a data-go="contract">HĐ-0388</a>','30/11/2025','30/11/2026','3.000.000.000 ₫',pill('ok','Hiệu lực')]]),
        {n:'1',r:'<button class="btn sm" onclick="createContract()">＋ Tạo hợp đồng</button>'})}
@@ -4012,7 +4019,7 @@ S.oppo = ()=> appnav('Bán hàng nội địa','Opportunity PO',TAB_SALES,'Oppor
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="oppo_list">Opportunity PO</span> &rsaquo;',ico:'📄',color:'#0176d3',title:'Cty Hưng Thịnh — PO Medium Q3',sub:'Opportunity PO · 1.180.000.000 ₫ · Đóng dự kiến 30/07/2026',
      fields:[['Giá trị','1.180.000.000 ₫'],['Giai đoạn',pill('info','Đã duyệt PO & Chờ xử lý')],['Xác suất','70%'],['Phụ trách','Trần Thị B']],
-     actions:[{t:'Báo giá mới',pri:true,fn:'openQuoteModal()'},{t:'Tạo đơn hàng (PO)',fn:"go('oppo')"},{t:'Tạo Case',fn:'createCaseQuick()'},{t:'Trình duyệt',fn:'openSubmitModal()'},'Sửa']})}
+     actions:[{t:'Báo giá mới',pri:true,fn:"openQuoteModal('Cty Hưng Thịnh — PO Medium Q3','Cty Hưng Thịnh Phát')"},{t:'Tạo đơn hàng (PO)',fn:"go('oppo')"},{t:'Tạo Case',fn:'createCaseQuick()'},{t:'Trình duyệt',fn:'openSubmitModal()'},'Sửa']})}
    <div class="oppo-status-strip">
      <span><b>Trạng thái công nợ:</b> ${pill('warn','Nợ 15–30 ngày · quá hạn 420.000.000 ₫ · chỉ giao 70% hàng')}</span>
      <span><b>Tồn kho:</b> ${pill('ok','Đủ tồn giao 70% · thiếu 30% đưa vào KHSX')}</span>
@@ -4022,7 +4029,7 @@ S.oppo = ()=> appnav('Bán hàng nội địa','Opportunity PO',TAB_SALES,'Oppor
      <div>
      ${card('Báo giá', tbl([{t:'Số báo giá'},{t:'Tháng báo giá'},{t:'Ngày gửi'},{t:'Trạng thái'}],[
        ['<a data-go="quote">QUO-0451</a>','Tháng 07/2026','12/07/2026',pill('ok','Đã gửi')],
-       ['<a data-go="quote">QUO-0448</a>','Tháng 06/2026','05/06/2026',pill('mut','Hết hiệu lực')]]),{n:'2',r:'<button class="btn sm" onclick="openQuoteModal()">＋ Báo giá mới</button>'})}
+       ['<a data-go="quote">QUO-0448</a>','Tháng 06/2026','05/06/2026',pill('mut','Hết hiệu lực')]]),{n:'2',r:'<button class="btn sm" onclick="openQuoteModal(\'Cty Hưng Thịnh — PO Medium Q3\',\'Cty Hưng Thịnh Phát\')">＋ Báo giá mới</button>'})}
      ${card('Chi tiết Opportunity PO', fg([['Tên Opportunity','Cty Hưng Thịnh — PO Medium Q3'],
        ['Khách hàng','Cty Hưng Thịnh Phát','link','account'],['Mã PO khách','PO-KH-8842'],
        ['Số lượng dự kiến','120 tấn'],
