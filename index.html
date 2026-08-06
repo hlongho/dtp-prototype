@@ -3461,8 +3461,8 @@ function invTableHTML(){
   const weeks=invWeeksInRange();
   const T=invTotals(weeks);
   const headMa=`<tr class="inv-head-r1"><th colspan="2" class="inv-corner">Tuần \\ Mã NVL</th>${OCC_TYPES.map(t=>`<th class="num">${t.name}</th>`).join('')}<th class="num">Tổng</th></tr>`;
-  const headUsage=`<tr class="inv-head-r2"><th colspan="2" class="inv-corner">Sản lượng SD dự kiến (tấn/tuần)</th>${T.rows.map(r=>`<th class="num">${r.usageW.toLocaleString('vi-VN')}</th>`).join('')}<th class="num">${T.sumUsage.toLocaleString('vi-VN')}</th></tr>`;
-  const headUnplanned=`<tr class="inv-head-r3"><th colspan="2" class="inv-corner">Số lượng hàng chưa có kế hoạch giao</th>${OCC_TYPES.map(t=>`<th class="num">${t.tonDauKy.toLocaleString('vi-VN')}</th>`).join('')}<th class="num">${T.sumUnplanned.toLocaleString('vi-VN')}</th></tr>`;
+  const headUnplanned=`<tr class="inv-head-r2"><th colspan="2" class="inv-corner">Số lượng hàng chưa có kế hoạch giao</th>${OCC_TYPES.map(t=>`<th class="num">${t.tonDauKy.toLocaleString('vi-VN')}</th>`).join('')}<th class="num">${T.sumUnplanned.toLocaleString('vi-VN')}</th></tr>`;
+  const headUsage=`<tr class="inv-head-r3"><th colspan="2" class="inv-corner">Sản lượng SD dự kiến (tấn/tuần)</th>${T.rows.map(r=>`<th class="num">${r.usageW.toLocaleString('vi-VN')}</th>`).join('')}<th class="num">${T.sumUsage.toLocaleString('vi-VN')}</th></tr>`;
   const body=weeks.map((w,wi)=>{
     const dauKyCells=T.rows.map(r=>{const c=r.weeks[wi]; return `<td class="num"${c.dauKy<0?' style="color:var(--err);font-weight:700"':''}>${c.dauKy.toLocaleString('vi-VN')}</td>`;}).join('');
     const etaCells=T.rows.map(r=>{const c=r.weeks[wi]; return `<td class="num">${c.hangVe>0?c.hangVe.toLocaleString('vi-VN'):'—'}</td>`;}).join('');
@@ -3472,7 +3472,7 @@ function invTableHTML(){
       <tr><td class="wf-muted" style="font-size:11px">ETA</td>${etaCells}<td class="num">${sw.hangVe>0?sw.hangVe.toLocaleString('vi-VN'):'—'}</td></tr>`;
   }).join('');
   return `<div class="inv-scroll"><table class="tbl inv-tbl">
-      <thead>${headMa}${headUsage}${headUnplanned}</thead>
+      <thead>${headMa}${headUnplanned}${headUsage}</thead>
       <tbody>${body}</tbody></table></div>`;
 }
 S.matinv = ()=> appnav('Mua nhập khẩu','Cảnh báo tồn kho',TAB_IM,'Kế hoạch NVL')
