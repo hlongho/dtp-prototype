@@ -3410,46 +3410,44 @@ const OCC_TYPES=[
   {name:'PPMC',        usage:130, tonDauKy:400,  incoming:[60,0,0,0,130,0,0,0,0]},
   {name:'WBPT',        usage:90,  tonDauKy:270,  incoming:[30,0,0,0,0,0,90,0,0]},
 ];
+const INV_WEEKS=[INV_CUR_WEEK,...INV_NEXT_WEEKS]; // toàn bộ các tuần hiển thị (tuần hiện tại + các tuần tới), đồng nhất 2 cột Tồn đầu kỳ/ETA
+// Trả về đúng 1 mảng "weeks" đồng nhất cho MỌI tuần (kể cả tuần hiện tại): mỗi tuần chỉ có Tồn đầu kỳ + ETA.
+// Tồn đầu kỳ (tuần N+1) = Tồn khả dụng (tuần N) − Sản lượng SD dự kiến (tuần N) — không hiển thị riêng "Tồn cuối kỳ"/
+// "Tồn khả dụng" vì đã lồng vào Tồn đầu kỳ của tuần kế tiếp (cuốn chiếu).
 function invTypeTimeline(t){
   const usageW=Math.round(t.usage/4.33);
-  const hangVe0=t.incoming[0]||0;
-  const khaDung0=t.tonDauKy+hangVe0;
-  let cuoiKy=khaDung0-usageW;
-  const future=[];
-  for(let i=1;i<=INV_NEXT_WEEKS.length;i++){
-    const dauKy=cuoiKy, hangVe=t.incoming[i]||0, khaDung=dauKy+hangVe;
-    cuoiKy=khaDung-usageW;
-    future.push({hangVe,cuoiKy});
+  const weeks=[]; let dauKy=t.tonDauKy;
+  for(let i=0;i<INV_WEEKS.length;i++){
+    const hangVe=t.incoming[i]||0;
+    weeks.push({dauKy,hangVe});
+    dauKy=dauKy+hangVe-usageW;
   }
-  return {usageW,dauKy0:t.tonDauKy,hangVe0,khaDung0,future};
+  return {usageW,weeks};
 }
 function invTotals(){
   const rows=OCC_TYPES.map(invTypeTimeline);
+  const sumWeeks=INV_WEEKS.map((_,i)=>({
+    dauKy:rows.reduce((s,r)=>s+r.weeks[i].dauKy,0),
+    hangVe:rows.reduce((s,r)=>s+r.weeks[i].hangVe,0),
+  }));
   return {
     sumUsage:rows.reduce((s,r)=>s+r.usageW,0),
-    sumDauKy:rows.reduce((s,r)=>s+r.dauKy0,0),
-    sumHangVe0:rows.reduce((s,r)=>s+r.hangVe0,0),
-    sumKhaDung0:rows.reduce((s,r)=>s+r.khaDung0,0),
-    sumFuture:INV_NEXT_WEEKS.map((_,i)=>({
-      hangVe:rows.reduce((s,r)=>s+r.future[i].hangVe,0),
-      cuoiKy:rows.reduce((s,r)=>s+r.future[i].cuoiKy,0),
-    })),
+    sumWeeks,
+    sumDauKy:sumWeeks[0].dauKy, sumHangVe0:sumWeeks[0].hangVe, sumKhaDung0:sumWeeks[0].dauKy+sumWeeks[0].hangVe,
   };
 }
-function invFutureCell(f){
-  return `<td class="num"${f.cuoiKy<0?' style="color:var(--err);font-weight:700"':''}>${f.hangVe>0?`<div class="wf-muted" style="font-size:10px">ETA: ${f.hangVe.toLocaleString('vi-VN')}</div>`:''}${f.cuoiKy.toLocaleString('vi-VN')}</td>`;
+function invWeekCell(w){
+  return `<td class="num"${w.dauKy<0?' style="color:var(--err);font-weight:700"':''}>${w.dauKy.toLocaleString('vi-VN')}</td><td class="num">${w.hangVe>0?w.hangVe.toLocaleString('vi-VN'):'—'}</td>`;
 }
 function invMatrixRows(){
   let h=OCC_TYPES.map(t=>{
     const r=invTypeTimeline(t);
     return `<tr><td>${t.name}</td><td class="num" style="text-align:center">${r.usageW.toLocaleString('vi-VN')}</td>
-      <td class="num">${r.dauKy0.toLocaleString('vi-VN')}</td><td class="num">${r.hangVe0.toLocaleString('vi-VN')}</td><td class="num"><b>${r.khaDung0.toLocaleString('vi-VN')}</b></td>
-      ${r.future.map(invFutureCell).join('')}</tr>`;
+      ${r.weeks.map(invWeekCell).join('')}</tr>`;
   }).join('');
   const T=invTotals();
   h+=`<tr style="font-weight:700;background:var(--bg)"><td>Tổng NVL</td><td class="num" style="text-align:center">${T.sumUsage.toLocaleString('vi-VN')}</td>
-    <td class="num">${T.sumDauKy.toLocaleString('vi-VN')}</td><td class="num">${T.sumHangVe0.toLocaleString('vi-VN')}</td><td class="num">${T.sumKhaDung0.toLocaleString('vi-VN')}</td>
-    ${T.sumFuture.map(invFutureCell).join('')}</tr>`;
+    ${T.sumWeeks.map(invWeekCell).join('')}</tr>`;
   return h;
 }
 S.matinv = ()=> appnav('Mua nhập khẩu','Cảnh báo tồn kho',TAB_IM,'Kế hoạch NVL')
@@ -3457,14 +3455,13 @@ S.matinv = ()=> appnav('Mua nhập khẩu','Cảnh báo tồn kho',TAB_IM,'Kế 
    ${hl({crumb:'Cảnh báo tồn kho + hàng đi đường',ico:'🌐',color:'#0b827c',title:'Tồn kho khả dụng NVL chính — báo cáo theo tuần',sub:'Tồn đầu kỳ + ETA (SL hàng có ETA về trong tuần, đồng bộ từ Rosy) − SL sử dụng dự kiến → Tồn cuối kỳ cuốn chiếu sang tuần sau',
      fields:(()=>{ const T=invTotals(); return [['Kỳ hiện tại',INV_CUR_WEEK.label+' ('+INV_CUR_WEEK.month+')'],['Loại NVL theo dõi','16'],['Tồn hiện tại (tổng NVL)',T.sumDauKy.toLocaleString('vi-VN')+' tấn'],['ETA (tuần hiện tại)',T.sumHangVe0.toLocaleString('vi-VN')+' tấn'],['Tồn khả dụng (tuần hiện tại)',T.sumKhaDung0.toLocaleString('vi-VN')+' tấn']]; })(),
      actions:[{t:'Ký hợp đồng nhập khẩu',pri:true,fn:"go('imcontract_list')"},'Xuất báo cáo']})}
-   ${banner('warn','PLYB tồn khả dụng dự kiến <b>âm từ Tuần 2/T9/2026</b> nếu không có lô hàng mới về — BGĐ cân nhắc đặt hàng bổ sung. Các loại NVL khác hiện ổn định.')}
+   ${banner('warn','PLYB tồn đầu kỳ dự kiến <b>âm từ Tuần 3/T9/2026</b> nếu không có lô hàng mới về — BGĐ cân nhắc đặt hàng bổ sung. Các loại NVL khác hiện ổn định.')}
    ${card('Tồn kho khả dụng theo tuần — theo loại NVL',
      `<div class="tbl-wrap"><table class="tbl">
         <thead>
           <tr><th rowspan="2">Loại NVL</th><th rowspan="2" class="num" style="text-align:center">Sản lượng SD dự kiến<br>(tấn/tuần)</th>
-            <th colspan="3" style="text-align:center">${INV_CUR_WEEK.label}<br><span class="wf-muted" style="font-weight:400;font-size:10px">(${INV_CUR_WEEK.month})</span></th>
-            ${INV_NEXT_WEEKS.map(w=>`<th rowspan="2" class="num">${w.label}<br><span class="wf-muted" style="font-weight:400;font-size:10px">(${w.month})</span></th>`).join('')}</tr>
-          <tr><th class="num">Tồn đầu kỳ</th><th class="num">ETA</th><th class="num">Tồn khả dụng</th></tr>
+            ${INV_WEEKS.map(w=>`<th colspan="2" style="text-align:center">${w.label}<br><span class="wf-muted" style="font-weight:400;font-size:10px">(${w.month})</span></th>`).join('')}</tr>
+          <tr>${INV_WEEKS.map(()=>`<th class="num">Tồn đầu kỳ</th><th class="num">ETA</th>`).join('')}</tr>
         </thead>
         <tbody>${invMatrixRows()}</tbody></table></div>`)}
  </div>`;
