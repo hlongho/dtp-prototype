@@ -4256,7 +4256,7 @@ S.pbec_list = ()=> appnav('Dữ liệu nền tảng','Bảng giá custom',TAB_MD
    cols:[{t:'Mã'},{t:'Sản phẩm (Product2)'},{t:'Nhà máy'},{t:'Khoảng định lượng (gsm)',num:true},{t:'Định lượng chuẩn'},{t:'Giá chuẩn',num:true},{t:'Giá lệch',num:true},{t:'Giá áp dụng',num:true},{t:'Active'}],
    rows:pbCustoms().map(c=>({go:'pbec',cells:[c.id,c.name,c.plant,c.gsmLabel,c.isAnchor?'✓':'',pbFmt(c.base),c.isAnchor?'—':pbDelta(c.delta),pbFmt(c.custom),'✓']}))})}</div>`;
 S.pbec = ()=> appnav('Dữ liệu nền tảng','Bảng giá custom',TAB_MD,'Bảng giá custom')
- + (()=>{ const c=pbCustoms('M1S')[0];
+ + (()=>{ const c=pbCustoms('M1S')[3]; // khoảng 115–195 gsm (13 định lượng) — chọn record nhiều giá trị để thấy rõ multi-select
    return `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="pbec_list">Bảng giá custom</span> &rsaquo;',ico:'📈',color:'#5867e8',title:c.id+' · '+c.name,sub:'Price Book Entry Custom · Khoảng định lượng '+c.gsmLabel+' gsm · Nhà máy '+c.plant,
      fields:[['Giá chuẩn',pbFmt(c.base)],['Giá lệch',c.isAnchor?'—':pbDelta(c.delta)],['Giá áp dụng',pbFmt(c.custom)],['Khoảng định lượng',c.gsmLabel+' gsm'],['Định lượng chuẩn',c.isAnchor?'✓':'']],
