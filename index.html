@@ -1022,26 +1022,26 @@ function dqSearchInput(){
   box.hidden=false;
 }
 // Giá tháng hiện tại (Y) cho phép điều chỉnh tay (VD đàm phán với khách) — giá tháng trước (X) và Giá chuẩn
-// theo Bảng giá luôn giữ nguyên làm mốc tham chiếu để biết đã điều chỉnh hay chưa.
+// theo Bảng giá luôn giữ nguyên làm mốc tham chiếu. Việc đã điều chỉnh hay chưa hiển thị ở CỘT RIÊNG
+// "Đã điều chỉnh" (không còn ghi chú phía dưới ô giá).
 function dqPriceRowsHTML(){
-  if(!QSEL.length) return `<tr><td colspan="5" class="wf-muted" style="text-align:center;padding:16px">Chưa chọn sản phẩm — dùng ô tìm kiếm phía trên để thêm sản phẩm vào báo giá.</td></tr>`;
+  if(!QSEL.length) return `<tr><td colspan="6" class="wf-muted" style="text-align:center;padding:16px">Chưa chọn sản phẩm — dùng ô tìm kiếm phía trên để thêm sản phẩm vào báo giá.</td></tr>`;
   return QSEL.map((sel,i)=>{ const p=dqProductByCode(sel.code); const label=sel.gsmFrom===sel.gsmTo?String(sel.gsmFrom):sel.gsmFrom+'–'+sel.gsmTo;
     const adj=sel.price!==sel.priceOrig;
     return `<tr>
     <td><b>${p.name}</b><div class="wf-muted" style="font-size:11px">Nhà máy ${p.plant}${sel.isAnchor?' · định lượng chuẩn':''}</div></td>
     <td class="num">${label} gsm</td>
     <td class="num">${sel.base.toLocaleString('vi-VN')}</td>
-    <td class="num"><input id="dq-price-${i}" class="mass-sel num" style="width:90px" type="number" value="${sel.price}" oninput="dqSetPrice(${i},this.value)">
-      <div id="dq-price-hint-${i}" class="wf-muted" style="font-size:10px${adj?';color:#0176d3;font-weight:700':''}">${adj?'Bảng giá: '+sel.priceOrig.toLocaleString('vi-VN')+' — đã điều chỉnh':'Theo Bảng giá'}</div></td>
+    <td class="num"><input id="dq-price-${i}" class="mass-sel num" style="width:90px" type="number" value="${sel.price}" oninput="dqSetPrice(${i},this.value)"></td>
+    <td class="num" id="dq-adj-${i}">${adj?`<span class="slds-badge" title="Giá gốc theo Bảng giá: ${sel.priceOrig.toLocaleString('vi-VN')} ₫/kg">✓ Đã điều chỉnh</span>`:''}</td>
     <td class="num"><button class="btn sm" title="Xoá" onclick="dqRemoveSel(${i})">✕</button></td></tr>`; }).join('');
 }
 function renderDqRows(){ const tb=document.getElementById('dq-tbody'); if(tb) tb.innerHTML=dqPriceRowsHTML(); }
-// Chỉ cập nhật giá trị + gợi ý của đúng dòng đang sửa (không render lại cả bảng) để không mất focus khi gõ.
+// Chỉ cập nhật giá trị + cột "Đã điều chỉnh" của đúng dòng đang sửa (không render lại cả bảng) để không mất focus khi gõ.
 function dqSetPrice(i,val){
   const n=parseFloat(val); QSEL[i].price=isNaN(n)?0:n;
-  const hint=document.getElementById('dq-price-hint-'+i); const adj=QSEL[i].price!==QSEL[i].priceOrig;
-  if(hint){ hint.textContent=adj?'Bảng giá: '+QSEL[i].priceOrig.toLocaleString('vi-VN')+' — đã điều chỉnh':'Theo Bảng giá';
-    hint.style.color=adj?'#0176d3':''; hint.style.fontWeight=adj?'700':''; }
+  const cell=document.getElementById('dq-adj-'+i); const adj=QSEL[i].price!==QSEL[i].priceOrig;
+  if(cell) cell.innerHTML=adj?`<span class="slds-badge" title="Giá gốc theo Bảng giá: ${QSEL[i].priceOrig.toLocaleString('vi-VN')} ₫/kg">✓ Đã điều chỉnh</span>`:'';
 }
 function dqSelectedItems(){
   return QSEL.map(sel=>{ const p=dqProductByCode(sel.code); if(!p) return null;
@@ -1117,8 +1117,8 @@ function openQpModal(no){
      </div>
      <div id="dq-pending"></div>
      <div class="tbl-wrap"><table class="tbl" style="table-layout:fixed">
-       <colgroup><col style="width:32%"><col style="width:28%"><col style="width:16%"><col style="width:18%"><col style="width:6%"></colgroup>
-       <thead><tr style="white-space:normal"><th style="white-space:normal">Chủng loại sản phẩm</th><th style="white-space:normal">Khoảng định lượng (gsm)</th><th class="num" style="white-space:normal" id="dq-th-x">Giá tháng<br>${qPrevMonthNum(month)}</th><th class="num" style="white-space:normal" id="dq-th-y">Giá tháng<br>${qMonthNum(month)}</th><th></th></tr></thead>
+       <colgroup><col style="width:27%"><col style="width:16%"><col style="width:13%"><col style="width:16%"><col style="width:18%"><col style="width:10%"></colgroup>
+       <thead><tr style="white-space:normal"><th style="white-space:normal">Chủng loại sản phẩm</th><th style="white-space:normal">Khoảng định lượng (gsm)</th><th class="num" style="white-space:normal" id="dq-th-x">Giá tháng<br>${qPrevMonthNum(month)}</th><th class="num" style="white-space:normal" id="dq-th-y">Giá tháng<br>${qMonthNum(month)}</th><th style="white-space:normal">Đã điều chỉnh</th><th></th></tr></thead>
        <tbody id="dq-tbody">${dqPriceRowsHTML()}</tbody>
      </table></div>`;
   document.getElementById('qpback').classList.add('show');
