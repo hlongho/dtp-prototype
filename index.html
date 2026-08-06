@@ -175,6 +175,11 @@ a:hover{text-decoration:underline}
 .mass-sel{width:100%;padding:8px 10px;border:1px solid var(--line-2);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card);color:var(--ink);outline:none}
 .mass-sel.input-err{border-color:#c23934;background:#fdf4f3}
 .mass-sel:focus{border-color:var(--sf-blue);box-shadow:0 0 0 2px var(--sf-blue-l)}
+.dq-search-wrap{position:relative}
+.dq-suggest{position:absolute;left:0;right:0;top:100%;margin-top:2px;background:var(--card);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 20px rgba(0,0,0,.18);max-height:220px;overflow-y:auto;z-index:20}
+.dq-sugg-item{padding:8px 10px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--line)}
+.dq-sugg-item:last-child{border-bottom:none}
+.dq-sugg-item:hover{background:var(--bg)}
 .btn[disabled]{opacity:.45;cursor:not-allowed}
 .lm-head{padding:16px 20px;border-bottom:1px solid var(--line)}
 .lm-head h3{margin:0 0 10px;font-size:15px;color:var(--ink)}
@@ -944,32 +949,42 @@ const DQ_PRODUCTS=[
   {name:'Giấy Medium, gia keo (M1S)', spec:'100 đến 185 g/m2', priceLast:10400, price:10200, note:'Khổ ghép: 1.400-2.400mm / Các tiêu chuẩn khác theo bảng tiêu chuẩn'},
 ];
 function dqGsmRange(spec){ const nums=(spec.replace(/m2/gi,'').match(/\d+/g)||[]).map(Number); if(!nums.length) return {min:0,max:9999}; return {min:Math.min(...nums), max:Math.max(...nums)}; }
-let QSEL=[]; // {checked,gsm} song song với DQ_PRODUCTS — chọn sản phẩm & nhập định lượng cụ thể cho báo giá
-function dqInitSel(){ QSEL=DQ_PRODUCTS.map(()=>({checked:false,gsm:''})); QSEL[1]={checked:true,gsm:'160'}; QSEL[4]={checked:true,gsm:'180'}; }
-function dqOutOfRange(i){ const sel=QSEL[i]; if(!sel||!sel.checked||!String(sel.gsm).trim()) return false; const r=dqGsmRange(DQ_PRODUCTS[i].spec); const v=parseFloat(sel.gsm); return isNaN(v)||v<r.min||v>r.max; }
-function dqToggleSel(i,checked){ QSEL[i].checked=checked; renderDqRows(); }
+let QSEL=[]; // {idx,gsm} — sản phẩm đã thêm vào báo giá qua ô tìm kiếm (idx = index trong DQ_PRODUCTS), kèm định lượng cụ thể
+function dqInitSel(){ QSEL=[{idx:1,gsm:'160'},{idx:4,gsm:'180'}]; }
+function dqRowOutOfRange(sel){ if(!sel||!String(sel.gsm).trim()) return false; const r=dqGsmRange(DQ_PRODUCTS[sel.idx].spec); const v=parseFloat(sel.gsm); return isNaN(v)||v<r.min||v>r.max; }
 function dqSetGsm(i,val){ QSEL[i].gsm=val; renderDqRows(); }
+function dqRemoveSel(i){ QSEL.splice(i,1); renderDqRows(); }
+function dqAddProduct(idx){
+  QSEL.push({idx,gsm:''});
+  const s=document.getElementById('dq-search'); if(s) s.value='';
+  dqSearchInput();
+  renderDqRows();
+}
+function dqSearchInput(){
+  const box=document.getElementById('dq-suggest'); if(!box) return;
+  const q=norm(document.getElementById('dq-search').value||'');
+  if(!q){ box.hidden=true; box.innerHTML=''; return; }
+  const matches=DQ_PRODUCTS.map((p,idx)=>({p,idx})).filter(x=>norm(x.p.name).includes(q));
+  box.innerHTML=matches.length
+    ? matches.slice(0,8).map(x=>`<div class="dq-sugg-item" onclick="dqAddProduct(${x.idx})"><b>${x.p.name}</b><div class="wf-muted" style="font-size:11px">Định lượng: ${x.p.spec}</div></div>`).join('')
+    : `<div class="dq-sugg-item wf-muted">Không tìm thấy sản phẩm phù hợp</div>`;
+  box.hidden=false;
+}
 function dqPriceRowsHTML(){
-  return DQ_PRODUCTS.map((p,i)=>{ const sel=QSEL[i]||{checked:false,gsm:''}; const range=dqGsmRange(p.spec); const out=dqOutOfRange(i);
+  if(!QSEL.length) return `<tr><td colspan="5" class="wf-muted" style="text-align:center;padding:16px">Chưa chọn sản phẩm — dùng ô tìm kiếm phía trên để thêm sản phẩm vào báo giá.</td></tr>`;
+  return QSEL.map((sel,i)=>{ const p=DQ_PRODUCTS[sel.idx]; const range=dqGsmRange(p.spec); const out=dqRowOutOfRange(sel);
     return `<tr>
-    <td class="num"><input type="checkbox" style="width:16px;height:16px" ${sel.checked?'checked':''} onchange="dqToggleSel(${i},this.checked)"></td>
     <td><b>${p.name}</b><div class="wf-muted" style="font-size:11px">${p.note}</div></td>
-    <td><input class="mass-sel num${out?' input-err':''}" style="width:82px" placeholder="${p.spec}" value="${sel.gsm||''}" ${sel.checked?'':'disabled'} oninput="dqSetGsm(${i},this.value)">
+    <td><input class="mass-sel num${out?' input-err':''}" style="width:82px" placeholder="${p.spec}" value="${sel.gsm||''}" oninput="dqSetGsm(${i},this.value)">
       <div class="wf-muted" style="font-size:10px${out?';color:#c23934;font-weight:700':''}">${out?'⚠ ngoài khoảng '+range.min+'–'+range.max:'Khoảng: '+p.spec}</div></td>
     <td class="num">${p.priceLast.toLocaleString('vi-VN')}</td>
-    <td class="num"><b>${p.price.toLocaleString('vi-VN')}</b></td></tr>`; }).join('');
+    <td class="num"><b>${p.price.toLocaleString('vi-VN')}</b></td>
+    <td class="num"><button class="btn sm" title="Xoá" onclick="dqRemoveSel(${i})">✕</button></td></tr>`; }).join('');
 }
 function renderDqRows(){ const tb=document.getElementById('dq-tbody'); if(tb) tb.innerHTML=dqPriceRowsHTML(); }
 function dqSelectedItems(){
-  return DQ_PRODUCTS.map((p,i)=>({p,sel:QSEL[i]})).filter(x=>x.sel&&x.sel.checked&&String(x.sel.gsm).trim()!=='')
-    .map(x=>({name:x.p.name,gsm:x.sel.gsm,spec:x.p.spec,priceLast:x.p.priceLast,price:x.p.price,note:x.p.note}));
-}
-function quoteItemRowsHTML(items){
-  return items.map((it,i)=>`<tr><td class="num">${i+1}</td>
-    <td><b>${it.name}</b><div class="wf-muted" style="font-size:11px">${it.note}</div></td>
-    <td class="num">${it.gsm} g/m2</td>
-    <td class="num">${it.priceLast.toLocaleString('vi-VN')}</td>
-    <td class="num"><b>${it.price.toLocaleString('vi-VN')}</b></td></tr>`).join('');
+  return QSEL.filter(sel=>String(sel.gsm).trim()!=='').map(sel=>{ const p=DQ_PRODUCTS[sel.idx];
+    return {name:p.name,gsm:sel.gsm,spec:p.spec,priceLast:p.priceLast,price:p.price,note:p.note}; });
 }
 function qOnMonthChange(){
   const m=document.getElementById('q-month').value;
@@ -994,9 +1009,13 @@ function openQuoteModal(){
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Hiệu lực đến (cuối tháng báo giá)</label><input class="mass-sel" id="q-exp-disp" readonly></div>
      </div>
      <div class="wf-muted" style="font-size:12px;font-weight:700;margin-bottom:4px">Chọn sản phẩm & nhập định lượng cho báo giá</div>
+     <div class="dq-search-wrap" style="margin-bottom:10px">
+       <input id="dq-search" class="mass-sel" placeholder="🔍 Tìm sản phẩm theo tên (VD: Testliner, Whitetop, Medium…)" oninput="dqSearchInput()" onfocus="dqSearchInput()">
+       <div id="dq-suggest" class="dq-suggest" hidden></div>
+     </div>
      <div class="tbl-wrap"><table class="tbl" style="table-layout:fixed">
-       <colgroup><col style="width:7%"><col style="width:35%"><col style="width:20%"><col style="width:19%"><col style="width:19%"></colgroup>
-       <thead><tr><th></th><th>Chủng loại sản phẩm</th><th class="num">Định lượng (g/m2)</th><th class="num">Đơn giá tháng trước</th><th class="num">Đơn giá tháng này</th></tr></thead>
+       <colgroup><col style="width:36%"><col style="width:20%"><col style="width:19%"><col style="width:19%"><col style="width:6%"></colgroup>
+       <thead><tr><th>Chủng loại sản phẩm</th><th class="num">Định lượng (g/m2)</th><th class="num">Đơn giá tháng trước</th><th class="num">Đơn giá tháng này</th><th></th></tr></thead>
        <tbody id="dq-tbody">${dqPriceRowsHTML()}</tbody>
      </table></div>
      <div class="po-hint" style="margin-top:10px">
