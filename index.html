@@ -1130,7 +1130,7 @@ function openQpModal(no){
      <div id="dq-pending"></div>
      <div class="tbl-wrap"><table class="tbl" style="table-layout:fixed">
        <colgroup><col style="width:30%"><col style="width:18%"><col style="width:15%"><col style="width:29%"><col style="width:8%"></colgroup>
-       <thead><tr style="white-space:normal"><th style="white-space:normal">Chủng loại sản phẩm</th><th style="white-space:normal">Khoảng định lượng (gsm)</th><th class="num" style="white-space:normal" id="dq-th-x">Giá tháng<br>${qPrevMonthNum(month)}</th><th class="num" style="white-space:normal" id="dq-th-y">Giá tháng<br>${qMonthNum(month)}</th><th></th></tr></thead>
+       <thead><tr style="white-space:normal"><th style="white-space:normal">Chủng loại sản phẩm</th><th style="white-space:normal">Định lượng (gsm)</th><th class="num" style="white-space:normal" id="dq-th-x">Giá tháng<br>${qPrevMonthNum(month)}</th><th class="num" style="white-space:normal" id="dq-th-y">Giá tháng<br>${qMonthNum(month)}</th><th></th></tr></thead>
        <tbody id="dq-tbody">${dqPriceRowsHTML()}</tbody>
      </table></div>`;
   document.getElementById('qpback').classList.add('show');
@@ -4228,9 +4228,9 @@ function pbGroupRanges(p){
 // định lượng "–" (không sản xuất). Định lượng (gsm) lưu dạng Multi-Select Picklist — "values" là danh sách các
 // định lượng cụ thể thuộc record đó (gsmFrom/gsmTo = min/max của values, giữ lại để tính toán khoảng nhanh).
 function pbCustoms(code){ const out=[]; PB_PRODUCTS.forEach(p=>{ if(code&&p.code!==code) return;
-  pbGroupRanges(p).forEach(g=>{ const range=g.from===g.to?String(g.from):g.from+'–'+g.to;
+  pbGroupRanges(p).forEach(g=>{
     out.push({id:'PBEC-'+p.code+'-DL'+g.from+(g.from!==g.to?('-'+g.to):''), code:p.code, name:p.name, plant:p.plant, base:p.base,
-      gsmFrom:g.from, gsmTo:g.to, gsmValues:g.values, gsmLabel:range, isAnchor:g.isAnchor, delta:g.delta, custom:g.price}); }); }); return out; }
+      gsmFrom:g.from, gsmTo:g.to, gsmValues:g.values, gsmLabel:g.values.join(', '), isAnchor:g.isAnchor, delta:g.delta, custom:g.price}); }); }); return out; }
 function pbValueChips(values){ return (values||[]).map(v=>`<span class="slds-badge" style="margin:2px 4px 2px 0">${v} gsm</span>`).join(''); }
 
 S.pbe_list = ()=> appnav('Dữ liệu nền tảng','Price Book Entry',TAB_MD,'Price Book Entry')
@@ -4246,20 +4246,20 @@ S.pbe = ()=> appnav('Dữ liệu nền tảng','Price Book Entry',TAB_MD,'Price 
    <div class="cols-side act-tab">
      <div>
      ${card('Thông tin Price Book Entry', fg([['Product',p.name,'link','product'],['Product Code',p.code],['Nhà máy',p.plant],['Price Book','Bảng giá chuẩn DTP 2026','link','pricebook'],['Giá chuẩn (tại định lượng '+p.anchorGsm.join('/')+' gsm)',p.base.toLocaleString('vi-VN')+' ₫/kg'],['Use Standard Price','✓'],['Active','✓']]))}
-     ${card('Bảng giá theo Khoảng định lượng (g/m2)', `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Mã</th><th class="num">Khoảng định lượng (gsm)</th><th>Định lượng chuẩn</th><th class="num">Giá chuẩn</th><th class="num">Giá lệch</th><th class="num">Giá áp dụng</th></tr></thead><tbody>${pbCustoms(p.code).map(c=>`<tr><td><a data-go="pbec">${c.id}</a></td><td class="num">${c.gsmLabel}</td><td>${c.isAnchor?'✓':''}</td><td class="num">${pbFmt(c.base)}</td><td class="num">${c.isAnchor?'—':pbDelta(c.delta)}</td><td class="num"><b>${pbFmt(c.custom)}</b></td></tr>`).join('')}</tbody></table></div>`,{n:String(pbCustoms(p.code).length),r:'<button class="btn sm" onclick="go(\'pbec\')">＋ Thêm khoảng định lượng</button>'})}
+     ${card('Bảng giá theo Định lượng (g/m2)', `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Mã</th><th class="num">Định lượng (gsm)</th><th>Định lượng chuẩn</th><th class="num">Giá chuẩn</th><th class="num">Giá lệch</th><th class="num">Giá áp dụng</th></tr></thead><tbody>${pbCustoms(p.code).map(c=>`<tr><td><a data-go="pbec">${c.id}</a></td><td class="num">${c.gsmLabel}</td><td>${c.isAnchor?'✓':''}</td><td class="num">${pbFmt(c.base)}</td><td class="num">${c.isAnchor?'—':pbDelta(c.delta)}</td><td class="num"><b>${pbFmt(c.custom)}</b></td></tr>`).join('')}</tbody></table></div>`,{n:String(pbCustoms(p.code).length),r:'<button class="btn sm" onclick="go(\'pbec\')">＋ Thêm khoảng định lượng</button>'})}
      </div>
      ${activity([['🏷️','Tạo Price Book Entry cho '+p.name,'P.Kế toán'],['₫','Áp dụng list price chuẩn theo BẢNG GIÁ CHUẨN_T7','P.Kế toán']])}
    </div>
  </div>`; })();
 S.pbec_list = ()=> appnav('Dữ liệu nền tảng','Bảng giá custom',TAB_MD,'Bảng giá custom')
- + `<div class="sf-body"><div class="po-hint">Mỗi record là 1 <b>khoảng định lượng liền kề, đồng giá</b> (gộp giống merge cell trong file gốc). Chỉ được gộp khi các định lượng liên tiếp có cùng giá áp dụng — nếu có định lượng chen giữa với giá khác hoặc không sản xuất, hệ thống tự tách thành khoảng riêng.</div>${lv({crumb:'Bảng giá custom (Price Book Entry Custom)',ico:'📈',color:'#5867e8',object:'Price Book Entry Custom',view:'Theo khoảng định lượng',views:['Theo khoảng định lượng','ĐTLA','ĐTBD','Tất cả'],count:String(pbCustoms().length),newLabel:'Giá custom mới',
-   cols:[{t:'Mã'},{t:'Sản phẩm (Product2)'},{t:'Nhà máy'},{t:'Khoảng định lượng (gsm)',num:true},{t:'Định lượng chuẩn'},{t:'Giá chuẩn',num:true},{t:'Giá lệch',num:true},{t:'Giá áp dụng',num:true},{t:'Active'}],
+ + `<div class="sf-body"><div class="po-hint">Field <b>Định lượng (gsm)</b> là kiểu <b>Multi-Select Picklist</b> — mỗi record gộp các định lượng liền kề, đồng giá thành 1 danh sách giá trị (giống merge cell trong file gốc). Chỉ được gộp khi các định lượng liên tiếp có cùng giá áp dụng — nếu có định lượng chen giữa với giá khác hoặc không sản xuất, hệ thống tự tách thành record riêng.</div>${lv({crumb:'Bảng giá custom (Price Book Entry Custom)',ico:'📈',color:'#5867e8',object:'Price Book Entry Custom',view:'Theo định lượng',views:['Theo định lượng','ĐTLA','ĐTBD','Tất cả'],count:String(pbCustoms().length),newLabel:'Giá custom mới',
+   cols:[{t:'Mã'},{t:'Sản phẩm (Product2)'},{t:'Nhà máy'},{t:'Định lượng (gsm)',num:true},{t:'Định lượng chuẩn'},{t:'Giá chuẩn',num:true},{t:'Giá lệch',num:true},{t:'Giá áp dụng',num:true},{t:'Active'}],
    rows:pbCustoms().map(c=>({go:'pbec',cells:[c.id,c.name,c.plant,c.gsmLabel,c.isAnchor?'✓':'',pbFmt(c.base),c.isAnchor?'—':pbDelta(c.delta),pbFmt(c.custom),'✓']}))})}</div>`;
 S.pbec = ()=> appnav('Dữ liệu nền tảng','Bảng giá custom',TAB_MD,'Bảng giá custom')
  + (()=>{ const c=pbCustoms('M1S')[3]; // khoảng 115–195 gsm (13 định lượng) — chọn record nhiều giá trị để thấy rõ multi-select
    return `<div class="sf-body narrow">
-   ${hl({crumb:'<span data-go="pbec_list">Bảng giá custom</span> &rsaquo;',ico:'📈',color:'#5867e8',title:c.id+' · '+c.name,sub:'Price Book Entry Custom · Khoảng định lượng '+c.gsmLabel+' gsm · Nhà máy '+c.plant,
-     fields:[['Giá chuẩn',pbFmt(c.base)],['Giá lệch',c.isAnchor?'—':pbDelta(c.delta)],['Giá áp dụng',pbFmt(c.custom)],['Khoảng định lượng',c.gsmLabel+' gsm'],['Định lượng chuẩn',c.isAnchor?'✓':'']],
+   ${hl({crumb:'<span data-go="pbec_list">Bảng giá custom</span> &rsaquo;',ico:'📈',color:'#5867e8',title:c.id+' · '+c.name,sub:'Price Book Entry Custom · Định lượng '+c.gsmLabel+' gsm · Nhà máy '+c.plant,
+     fields:[['Giá chuẩn',pbFmt(c.base)],['Giá lệch',c.isAnchor?'—':pbDelta(c.delta)],['Giá áp dụng',pbFmt(c.custom)],['Định lượng',c.gsmLabel+' gsm'],['Định lượng chuẩn',c.isAnchor?'✓':'']],
      actions:[{t:'Kích hoạt giá custom',pri:true},'Sửa']})}
    <div class="cols-side act-tab">
      <div>
@@ -4274,10 +4274,10 @@ S.pbec = ()=> appnav('Dữ liệu nền tảng','Bảng giá custom',TAB_MD,'B�
        ['Giá áp dụng (= chuẩn + lệch, áp dụng cho MỌI định lượng trong khoảng)',pbFmt(c.custom)],
        ['% thay đổi',c.isAnchor?'0%':(c.delta>0?'+':'')+(c.delta/c.base*100).toFixed(2)+'%'],
        ['Active','✓']]))}
-     ${card('Các khoảng định lượng khác của '+c.name+' (cùng Price Book Entry)', tbl([{t:'Mã'},{t:'Khoảng định lượng (gsm)',num:true},{t:'Định lượng chuẩn'},{t:'Giá lệch',num:true},{t:'Giá áp dụng',num:true}],
+     ${card('Các khoảng định lượng khác của '+c.name+' (cùng Price Book Entry)', tbl([{t:'Mã'},{t:'Định lượng (gsm)',num:true},{t:'Định lượng chuẩn'},{t:'Giá lệch',num:true},{t:'Giá áp dụng',num:true}],
        pbCustoms('M1S').map(x=>['<a data-go="pbec">'+x.id+'</a>',x.gsmLabel,x.isAnchor?'✓':'',x.isAnchor?'—':pbDelta(x.delta),pbFmt(x.custom)])),{n:String(pbCustoms('M1S').length)})}
      </div>
-     ${activity([['📈','Ghi nhận giá theo khoảng định lượng '+c.gsmLabel+' gsm','P.Kế toán'],['₫',c.isAnchor?'Khoảng định lượng chuẩn':'Giá lệch '+(c.delta>0?'+':'')+c.delta+' ₫ so giá chuẩn','']])}
+     ${activity([['📈','Ghi nhận giá theo khoảng định lượng '+c.gsmLabel+' gsm','P.Kế toán'],['₫',c.isAnchor?'Định lượng chuẩn':'Giá lệch '+(c.delta>0?'+':'')+c.delta+' ₫ so giá chuẩn','']])}
    </div>
  </div>`; })();
 function priceChartSVG(plant){
