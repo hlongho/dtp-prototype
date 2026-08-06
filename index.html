@@ -1048,16 +1048,16 @@ function dqDeltaBadge(sel){
   return `<span class="dq-delta-badge ${cls}">${d>0?'+':'-'}${Math.abs(d).toLocaleString('vi-VN')}</span>`;
 }
 function dqPriceRowsHTML(){
-  if(!QSEL.length) return `<tr><td colspan="5" class="wf-muted" style="text-align:center;padding:16px">Chưa chọn sản phẩm — dùng ô tìm kiếm phía trên để thêm sản phẩm vào báo giá.</td></tr>`;
+  if(!QSEL.length) return `<tr><td colspan="6" class="wf-muted" style="text-align:center;padding:16px">Chưa chọn sản phẩm — dùng ô tìm kiếm phía trên để thêm sản phẩm vào báo giá.</td></tr>`;
   return QSEL.map((sel,i)=>{ const p=dqProductByCode(sel.code); const label=sel.gsmFrom===sel.gsmTo?String(sel.gsmFrom):sel.gsmFrom+'–'+sel.gsmTo;
     return `<tr>
-    <td><b>${p.name}</b>
-      <textarea id="dq-note-${i}" class="mass-sel" style="margin-top:4px;font-size:11px;min-height:32px;resize:vertical" placeholder="Ghi chú (hiện trên PDF báo giá)" oninput="dqSetNote(${i},this.value)">${sel.note||''}</textarea></td>
+    <td><b>${p.name}</b></td>
     <td class="num">${label} gsm</td>
     <td class="num">${sel.priceOrig.toLocaleString('vi-VN')}</td>
     <td class="num"><div style="display:flex;align-items:center;justify-content:flex-end">
       <input id="dq-price-${i}" class="mass-sel num" style="width:82px;flex:none" type="number" value="${sel.price}" oninput="dqSetPrice(${i},this.value)" title="Giá gốc theo Bảng giá (định lượng ${label}): ${sel.priceOrig.toLocaleString('vi-VN')} ₫/kg">
       <span id="dq-delta-${i}" class="dq-delta-slot">${dqDeltaBadge(sel)}</span></div></td>
+    <td><textarea id="dq-note-${i}" class="mass-sel" style="font-size:11px;min-height:32px;resize:vertical" placeholder="Ghi chú (hiện trên PDF báo giá)" oninput="dqSetNote(${i},this.value)">${sel.note||''}</textarea></td>
     <td class="num"><button class="btn sm" title="Xoá" onclick="dqRemoveSel(${i})">✕</button></td></tr>`; }).join('');
 }
 function renderDqRows(){ const tb=document.getElementById('dq-tbody'); if(tb) tb.innerHTML=dqPriceRowsHTML(); }
@@ -1133,8 +1133,8 @@ function openQpModal(no){
      </div>
      <div id="dq-pending"></div>
      <div class="tbl-wrap"><table class="tbl" style="table-layout:fixed">
-       <colgroup><col style="width:30%"><col style="width:18%"><col style="width:15%"><col style="width:29%"><col style="width:8%"></colgroup>
-       <thead><tr style="white-space:normal"><th style="white-space:normal">Chủng loại sản phẩm</th><th style="white-space:normal">Định lượng (gsm)</th><th class="num" style="white-space:normal" id="dq-th-x">Giá tháng<br>${qPrevMonthNum(month)}</th><th class="num" style="white-space:normal" id="dq-th-y">Giá tháng<br>${qMonthNum(month)}</th><th></th></tr></thead>
+       <colgroup><col style="width:22%"><col style="width:14%"><col style="width:12%"><col style="width:22%"><col style="width:23%"><col style="width:7%"></colgroup>
+       <thead><tr style="white-space:normal"><th style="white-space:normal">Chủng loại sản phẩm</th><th style="white-space:normal">Định lượng (gsm)</th><th class="num" style="white-space:normal" id="dq-th-x">Giá tháng<br>${qPrevMonthNum(month)}</th><th class="num" style="white-space:normal" id="dq-th-y">Giá tháng<br>${qMonthNum(month)}</th><th style="white-space:normal">Ghi chú</th><th></th></tr></thead>
        <tbody id="dq-tbody">${dqPriceRowsHTML()}</tbody>
      </table></div>`;
   document.getElementById('qpback').classList.add('show');
