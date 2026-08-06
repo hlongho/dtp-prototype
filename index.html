@@ -947,36 +947,60 @@ function renderQuotes(){ const tb=document.getElementById('quotes-tbody'); if(tb
    Mỗi khoảng định lượng do pbCustoms() gộp sẵn (liền kề + đồng giá) nên chọn bằng dropdown — luôn hợp lệ,
    không cần tự nhập/validate định lượng. */
 function dqProductByCode(code){ return PB_PRODUCTS.find(p=>p.code===code); }
-let QSEL=[]; // {code,gsmFrom} — sản phẩm & khoảng định lượng ĐÃ THÊM vào báo giá (code/gsmFrom tra ra từ Bảng giá)
-let DQ_PENDING=null; // {code,gsmFrom} — sản phẩm vừa chọn từ ô tìm kiếm, đang chờ chọn định lượng rồi mới bấm Thêm
-function dqInitSel(){ QSEL=[{code:'TD',gsmFrom:140},{code:'M1S',gsmFrom:100}]; DQ_PENDING=null; }
-function dqRangeFor(sel){ return pbCustoms(sel.code).find(r=>r.gsmFrom===sel.gsmFrom); }
+// Cho phép nhập 1 định lượng cụ thể (VD "150") hoặc 1 khoảng (VD "150-200"/"150 – 200") — trả về null nếu không hợp lệ
+function dqParseGsm(val){
+  const m=String(val||'').trim().match(/^(\d+)\s*(?:[-–]\s*(\d+))?$/);
+  if(!m) return null;
+  const a=Number(m[1]), b=m[2]!==undefined?Number(m[2]):a;
+  if(a>b) return null;
+  return {a,b};
+}
+// Cắt khoảng [a,b] người dùng nhập theo đúng các khoảng giá đã gộp trong Bảng giá custom (pbCustoms) —
+// nếu [a,b] nằm vắt qua NHIỀU khoảng giá khác nhau thì trả về NHIỀU đoạn (segs), mỗi đoạn 1 giá riêng;
+// phần định lượng không có giá (gsm không sản xuất) trả về trong gaps để cảnh báo, không tự bịa giá.
+function dqSplitRange(code,a,b){
+  const ranges=pbCustoms(code).slice().sort((x,y)=>x.gsmFrom-y.gsmFrom);
+  const segs=[];
+  ranges.forEach(r=>{ const from=Math.max(a,r.gsmFrom), to=Math.min(b,r.gsmTo); if(from<=to) segs.push({gsmFrom:from,gsmTo:to,base:r.base,price:r.custom,isAnchor:r.isAnchor}); });
+  segs.sort((x,y)=>x.gsmFrom-y.gsmFrom);
+  const gaps=[]; let cursor=a;
+  segs.forEach(s=>{ if(s.gsmFrom>cursor) gaps.push([cursor,s.gsmFrom-1]); cursor=Math.max(cursor,s.gsmTo+1); });
+  if(cursor<=b) gaps.push([cursor,b]);
+  return {segs,gaps};
+}
+let QSEL=[]; // {code,gsmFrom,gsmTo,base,price,isAnchor} — từng dòng ĐÃ THÊM vào báo giá (giá đã tra sẵn từ Bảng giá)
+let DQ_PENDING=null; // {code,gsmInput} — sản phẩm vừa chọn từ ô tìm kiếm, đang chờ nhập định lượng rồi mới bấm Thêm
+function dqInitSel(){ QSEL=[{code:'TD',gsmFrom:140,gsmTo:150,base:13000,price:13000,isAnchor:true},{code:'M1S',gsmFrom:100,gsmTo:110,base:10400,price:10400,isAnchor:true}]; DQ_PENDING=null; }
 function dqRemoveSel(i){ QSEL.splice(i,1); renderDqRows(); }
-function dqSetRange(i,gsmFrom){ QSEL[i].gsmFrom=Number(gsmFrom); renderDqRows(); } // đổi khoảng định lượng của 1 dòng đã thêm
-// Bước 1: chọn sản phẩm từ gợi ý tìm kiếm — CHƯA thêm vào bảng, chỉ đưa vào khung chờ để chọn định lượng
+// Bước 1: chọn sản phẩm từ gợi ý tìm kiếm — CHƯA thêm vào bảng, chỉ đưa vào khung chờ để nhập định lượng
 function dqPickProduct(code){
-  const ranges=pbCustoms(code);
-  DQ_PENDING={code, gsmFrom: ranges.length?ranges[0].gsmFrom:null};
+  DQ_PENDING={code, gsmInput:''};
   const s=document.getElementById('dq-search'); if(s) s.value='';
   dqSearchInput(); renderDqPending();
 }
-function dqPendingSetRange(gsmFrom){ if(DQ_PENDING) DQ_PENDING.gsmFrom=Number(gsmFrom); }
+function dqPendingInput(val){ if(DQ_PENDING) DQ_PENDING.gsmInput=val; }
 function dqCancelPending(){ DQ_PENDING=null; renderDqPending(); }
-// Bước 2: đã chọn định lượng xong, bấm Thêm mới thực sự đưa xuống bảng báo giá
+// Bước 2: đã nhập định lượng xong, bấm Thêm mới tra giá theo Bảng giá custom rồi đưa xuống bảng báo giá —
+// nếu định lượng nhập vào thuộc nhiều khoảng giá khác nhau thì tách thành nhiều dòng, mỗi dòng 1 giá riêng.
 function dqConfirmPending(){
   if(!DQ_PENDING) return;
-  QSEL.push({code:DQ_PENDING.code, gsmFrom:DQ_PENDING.gsmFrom});
+  const parsed=dqParseGsm(DQ_PENDING.gsmInput);
+  if(!parsed){ toast('Định lượng không hợp lệ — nhập 1 số (VD 150) hoặc 1 khoảng (VD 150-200)'); return; }
+  const {segs,gaps}=dqSplitRange(DQ_PENDING.code, parsed.a, parsed.b);
+  if(!segs.length){ toast('Không tìm thấy giá cho định lượng này trong Bảng giá custom'); return; }
+  segs.forEach(s=>QSEL.push({code:DQ_PENDING.code, gsmFrom:s.gsmFrom, gsmTo:s.gsmTo, base:s.base, price:s.price, isAnchor:s.isAnchor}));
   DQ_PENDING=null;
   renderDqPending(); renderDqRows();
+  if(gaps.length) toast('⚠ Định lượng '+gaps.map(g=>g[0]===g[1]?g[0]:g[0]+'–'+g[1]).join(', ')+' không có giá trong Bảng giá — đã bỏ qua, chỉ thêm '+segs.length+' dòng có giá');
+  else if(segs.length>1) toast('Định lượng thuộc '+segs.length+' khoảng giá khác nhau trong Bảng giá — đã tách thành '+segs.length+' dòng riêng');
 }
 function renderDqPending(){
   const box=document.getElementById('dq-pending'); if(!box) return;
   if(!DQ_PENDING){ box.innerHTML=''; return; }
-  const p=dqProductByCode(DQ_PENDING.code); const ranges=pbCustoms(DQ_PENDING.code);
-  const opts=ranges.map(rr=>`<option value="${rr.gsmFrom}" ${rr.gsmFrom===DQ_PENDING.gsmFrom?'selected':''}>${rr.gsmLabel} gsm${rr.isAnchor?' (chuẩn)':''} — ${rr.custom.toLocaleString('vi-VN')} ₫/kg</option>`).join('');
+  const p=dqProductByCode(DQ_PENDING.code);
   box.innerHTML=`<div class="dq-pending-box">
-    <div><b>${p.name}</b><div class="wf-muted" style="font-size:11px">Nhà máy ${p.plant} — chọn định lượng rồi bấm Thêm</div></div>
-    <select class="mass-sel" style="width:auto;min-width:220px" onchange="dqPendingSetRange(this.value)">${opts}</select>
+    <div><b>${p.name}</b><div class="wf-muted" style="font-size:11px">Nhà máy ${p.plant} — nhập định lượng rồi bấm Thêm (1 số hoặc 1 khoảng, VD 150 hoặc 150-200)</div></div>
+    <input class="mass-sel" style="width:140px" placeholder="VD: 150 hoặc 150-200" value="${DQ_PENDING.gsmInput||''}" oninput="dqPendingInput(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();dqConfirmPending();}">
     <button class="btn sm pri" onclick="dqConfirmPending()">＋ Thêm vào báo giá</button>
     <button class="btn sm" onclick="dqCancelPending()">Hủy</button>
   </div>`;
@@ -993,19 +1017,19 @@ function dqSearchInput(){
 }
 function dqPriceRowsHTML(){
   if(!QSEL.length) return `<tr><td colspan="5" class="wf-muted" style="text-align:center;padding:16px">Chưa chọn sản phẩm — dùng ô tìm kiếm phía trên để thêm sản phẩm vào báo giá.</td></tr>`;
-  return QSEL.map((sel,i)=>{ const p=dqProductByCode(sel.code); const ranges=pbCustoms(sel.code); const r=dqRangeFor(sel)||ranges[0];
-    const opts=ranges.map(rr=>`<option value="${rr.gsmFrom}" ${r&&rr.gsmFrom===r.gsmFrom?'selected':''}>${rr.gsmLabel} gsm${rr.isAnchor?' (chuẩn)':''} — ${rr.custom.toLocaleString('vi-VN')} ₫/kg</option>`).join('');
+  return QSEL.map((sel,i)=>{ const p=dqProductByCode(sel.code); const label=sel.gsmFrom===sel.gsmTo?String(sel.gsmFrom):sel.gsmFrom+'–'+sel.gsmTo;
     return `<tr>
-    <td><b>${p.name}</b><div class="wf-muted" style="font-size:11px">Nhà máy ${p.plant}</div></td>
-    <td><select class="mass-sel" onchange="dqSetRange(${i},this.value)">${opts}</select></td>
-    <td class="num">${r?r.base.toLocaleString('vi-VN'):'—'}</td>
-    <td class="num"><b>${r?r.custom.toLocaleString('vi-VN'):'—'}</b></td>
+    <td><b>${p.name}</b><div class="wf-muted" style="font-size:11px">Nhà máy ${p.plant}${sel.isAnchor?' · định lượng chuẩn':''}</div></td>
+    <td class="num">${label} gsm</td>
+    <td class="num">${sel.base.toLocaleString('vi-VN')}</td>
+    <td class="num"><b>${sel.price.toLocaleString('vi-VN')}</b></td>
     <td class="num"><button class="btn sm" title="Xoá" onclick="dqRemoveSel(${i})">✕</button></td></tr>`; }).join('');
 }
 function renderDqRows(){ const tb=document.getElementById('dq-tbody'); if(tb) tb.innerHTML=dqPriceRowsHTML(); }
 function dqSelectedItems(){
-  return QSEL.map(sel=>{ const p=dqProductByCode(sel.code); const r=dqRangeFor(sel); if(!p||!r) return null;
-    return {code:p.code,name:p.name,plant:p.plant,gsmLabel:r.gsmLabel,base:r.base,price:r.custom,isAnchor:r.isAnchor}; }).filter(Boolean);
+  return QSEL.map(sel=>{ const p=dqProductByCode(sel.code); if(!p) return null;
+    const gsmLabel=sel.gsmFrom===sel.gsmTo?String(sel.gsmFrom):sel.gsmFrom+'–'+sel.gsmTo;
+    return {code:p.code,name:p.name,plant:p.plant,gsmLabel,base:sel.base,price:sel.price,isAnchor:sel.isAnchor}; }).filter(Boolean);
 }
 function qOnMonthChange(){
   const m=document.getElementById('q-month').value;
