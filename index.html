@@ -173,6 +173,7 @@ a:hover{text-decoration:underline}
 .po-qty:focus{outline:none;border-color:var(--sf-blue);box-shadow:0 0 0 2px var(--sf-blue-l)}
 .buy-cb,.buy-row,.pr-row,.pr-all,.lv-row,.lv-all{cursor:pointer;width:15px;height:15px}
 .mass-sel{width:100%;padding:8px 10px;border:1px solid var(--line-2);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card);color:var(--ink);outline:none}
+.mass-sel.input-err{border-color:#c23934;background:#fdf4f3}
 .mass-sel:focus{border-color:var(--sf-blue);box-shadow:0 0 0 2px var(--sf-blue-l)}
 .btn[disabled]{opacity:.45;cursor:not-allowed}
 .lm-head{padding:16px 20px;border-bottom:1px solid var(--line)}
@@ -914,53 +915,76 @@ function quotesRows(){
     <td class="num"><button class="btn sm" title="Xuất báo giá PDF" onclick="exportQuotePDF('${q.no}')">📄 PDF</button></td></tr>`).join('');
 }
 function renderQuotes(){ const tb=document.getElementById('quotes-tbody'); if(tb) tb.innerHTML=quotesRows(); }
-/* Sản phẩm & đơn giá nội địa (₫/kg) — theo Bảng giá T07/2026 */
+/* Sản phẩm & đơn giá nội địa (₫/kg) — theo Bảng giá T07/2026 (file "BG nội địa.docx")
+   priceLast = đơn giá T06/2026 (tháng trước) · price = đơn giá T07/2026 (tháng báo giá hiện tại)
+   avg3m = TB sản lượng ĐKĐH 3 tháng gần nhất của khách hàng (tấn) — dùng làm mốc "số lượng nhận ĐKĐH tối đa" */
 const DQ_PRODUCTS=[
-  {name:'Whitetop (WTN)',        spec:'140 gsm · khổ 1.400–2.400', price:'15.400'},
-  {name:'Whitetop (WTN)',        spec:'150–180 gsm · khổ 1.400–2.400', price:'15.200'},
-  {name:'Testliner (KA)',        spec:'150–200 gsm · khổ 1.400–2.400', price:'13.000'},
-  {name:'Testliner (KAT)',       spec:'150–200 gsm · khổ 1.400–2.400', price:'12.800'},
-  {name:'Testliner (K2E+K3E)',   spec:'150–200 gsm · khổ 1.400–2.400', price:'12.700'},
-  {name:'Testliner (K3Y)',       spec:'150–200 gsm · khổ 1.400–2.400', price:'11.400'},
-  {name:'Medium gia keo (M1S)',  spec:'100–185 gsm · khổ 1.400–2.400', price:'10.200'},
+  {name:'Whitetop (WTN)',        spec:'140 gsm · khổ 1.400–2.400', priceLast:'15.600', price:'15.400', avg3m:35},
+  {name:'Whitetop (WTN)',        spec:'150–180 gsm · khổ 1.400–2.400', priceLast:'15.400', price:'15.200', avg3m:60},
+  {name:'Testliner (KA)',        spec:'150–200 gsm · khổ 1.400–2.400', priceLast:'13.200', price:'13.000', avg3m:80},
+  {name:'Testliner (KAT)',       spec:'150–200 gsm · khổ 1.400–2.400', priceLast:'13.000', price:'12.800', avg3m:50},
+  {name:'Testliner (K2E+K3E)',   spec:'150–200 gsm · khổ 1.400–2.400', priceLast:'12.900', price:'12.700', avg3m:70},
+  {name:'Testliner (K3Y)',       spec:'150–200 gsm · khổ 1.400–2.400', priceLast:'11.600', price:'11.400', avg3m:40},
+  {name:'Medium gia keo (M1S)',  spec:'100–185 gsm · khổ 1.400–2.400', priceLast:'10.400', price:'10.200', avg3m:55},
 ];
 function dqLabel(l){ return l.prod+' — '+l.spec; }
+function dqFind(prod,spec){ return DQ_PRODUCTS.find(p=>p.name===prod&&p.spec===spec); }
 let QLINES=[];
 function qAmt(l){ return parseNum(l.qty)*1000*parseNum(l.price); }
 function qSubtotal(){ return QLINES.reduce((a,l)=>a+qAmt(l),0); }
 function qVat(){ return Math.round(qSubtotal()*0.1); }
 function qGrand(){ return qSubtotal()+qVat(); }
+function qOverLimit(l){ const p=dqFind(l.prod,l.spec); return p && parseNum(l.qty)>p.avg3m; }
 function qLinesRows(){
-  return QLINES.map((l,i)=>`<tr>
-    <td><select class="mass-sel" onchange="qSetProd(${i},this.selectedIndex)">${DQ_PRODUCTS.map((p,pi)=>`<option ${(p.name===l.prod&&p.spec===l.spec)?'selected':''}>${p.name} · ${p.spec}</option>`).join('')}</select></td>
-    <td><input class="mass-sel num" style="width:70px" type="number" value="${l.qty}" oninput="QLINES[${i}].qty=this.value;recalcQuote()"></td>
+  return QLINES.map((l,i)=>{ const p=dqFind(l.prod,l.spec)||{}; const over=qOverLimit(l); return `<tr>
+    <td><select class="mass-sel" onchange="qSetProd(${i},this.selectedIndex)">${DQ_PRODUCTS.map((p2,pi)=>`<option ${(p2.name===l.prod&&p2.spec===l.spec)?'selected':''}>${p2.name} · ${p2.spec}</option>`).join('')}</select>
+      ${p.priceLast?`<div class="wf-muted" style="font-size:10px">Giá T06: ${p.priceLast} → T07: <b>${p.price}</b> ₫/kg</div>`:''}</td>
+    <td><input class="mass-sel num ${over?'input-err':''}" style="width:70px" type="number" value="${l.qty}" oninput="QLINES[${i}].qty=this.value;renderQLines()" title="TB ĐKĐH 3 tháng gần nhất: ${p.avg3m||'—'} tấn">
+      <div class="wf-muted" style="font-size:10px${over?';color:#c23934;font-weight:700':''}">TB 3 tháng: ${p.avg3m||'—'} tấn${over?' ⚠ vượt ĐKĐH tối đa':''}</div></td>
     <td><input class="mass-sel num" style="width:88px" value="${l.price}" oninput="QLINES[${i}].price=this.value;recalcQuote()"></td>
     <td class="num qline-amt">${fmtMoney(qAmt(l))}</td>
-    <td class="num"><button class="btn sm" title="Xoá dòng" onclick="QLINES.splice(${i},1);renderQLines()">✕</button></td></tr>`).join('');
+    <td class="num"><button class="btn sm" title="Xoá dòng" onclick="QLINES.splice(${i},1);renderQLines()">✕</button></td></tr>`; }).join('');
 }
 function qSetProd(i,pi){ const p=DQ_PRODUCTS[pi]; if(p&&QLINES[i]){ QLINES[i].prod=p.name; QLINES[i].spec=p.spec; QLINES[i].price=p.price; } renderQLines(); }
 function renderQLines(){ const tb=document.getElementById('qlines-tbody'); if(tb) tb.innerHTML=qLinesRows(); recalcQuote(); }
 function recalcQuote(){
-  document.querySelectorAll('#qlines-tbody tr').forEach((tr,i)=>{ const c=tr.querySelector('.qline-amt'); if(c&&QLINES[i]) c.textContent=fmtMoney(qAmt(QLINES[i])); });
   const set=(id,v)=>{const e=document.getElementById(id); if(e) e.textContent=v;};
   set('q-subtotal',fmtMoney(qSubtotal())); set('q-vat',fmtMoney(qVat())); set('q-grandtotal',fmtMoney(qGrand()));
 }
 function addQLine(){ const p=DQ_PRODUCTS[0]; QLINES.push({prod:p.name,spec:p.spec,qty:'',price:p.price}); renderQLines(); }
+function qMonthDeadline(m){ // ĐKĐH tháng m phải xác nhận chậm nhất ngày 25 của tháng liền trước
+  const parts=(m||'').split('-'); if(parts.length!==2) return '—';
+  let yy=parseInt(parts[0],10), mm=parseInt(parts[1],10)-1; if(mm<1){mm=12;yy--;}
+  return '25/'+(mm<10?'0':'')+mm+'/'+yy;
+}
+function qMonthExpiry(m){ const parts=(m||'').split('-'); if(parts.length!==2) return '—';
+  const yy=parts[0], mm=parts[1]; const lastDay=new Date(parseInt(yy,10),parseInt(mm,10),0).getDate();
+  return lastDay+'/'+mm+'/'+yy;
+}
+function qOnMonthChange(){
+  const m=document.getElementById('q-month').value;
+  const dl=document.getElementById('q-deadline-val'); if(dl) dl.textContent=qMonthDeadline(m);
+  const exp=document.getElementById('q-exp-disp'); if(exp) exp.value=qMonthExpiry(m);
+}
 function openQuoteModal(){
   const no='QUO-0'+quoteSeq;
+  const month='2026-07';
   QLINES=[{prod:'Whitetop (WTN)',spec:'150–180 gsm · khổ 1.400–2.400',qty:'50',price:'15.200'},{prod:'Testliner (K2E+K3E)',spec:'150–200 gsm · khổ 1.400–2.400',qty:'40',price:'12.700'}];
   document.getElementById('quote-body').innerHTML=
-    `<p class="po-hint">Báo giá nội địa — đơn giá <b>₫/kg</b>, <b>chưa gồm VAT</b>, giao tại kho khách hàng. Theo Bảng giá T07/2026.</p>
+    `<p class="po-hint">Báo giá nội địa — đơn giá <b>₫/kg</b>, <b>chưa gồm VAT</b>, giao tại kho khách hàng (theo file "BG nội địa.docx" · Bảng giá T07/2026).
+       ĐKĐH tháng báo giá phải được 2 bên xác nhận chậm nhất <b id="q-deadline-val">${qMonthDeadline(month)}</b>; đơn hàng chi tiết gửi trước hạn giao gần nhất tối thiểu 07 ngày.
+       Số lượng ĐKĐH tối đa = TB sản lượng 3 tháng trước đó của khách hàng.</p>
      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Số báo giá</label><input id="q-no" class="mass-sel" value="${no}" readonly></div>
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Khách hàng *</label><input id="q-cust" class="mass-sel" value="Cty CP Tân Tấn Lộc"></div>
-       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Hiệu lực đến</label><input id="q-exp" class="mass-sel" type="date"></div>
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Tháng báo giá (áp dụng cho ĐH giao trong tháng)</label><input id="q-month" class="mass-sel" type="month" value="${month}" onchange="qOnMonthChange()"></div>
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Hiệu lực đến (cuối tháng báo giá)</label><input class="mass-sel" value="" id="q-exp-disp" readonly></div>
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Điều khoản TT</label><input id="q-note" class="mass-sel" value="Theo Hợp đồng nguyên tắc"></div>
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Điều khoản giao hàng</label><select id="q-delivery" class="mass-sel"><option>Giao tại kho khách hàng</option><option>Giao tại kho Đồng Tiến (nhận tại xưởng)</option><option>Giao tại cảng (FOB)</option><option>CIF cảng đến</option></select></div>
      </div>
      <div class="wf-muted" style="font-size:12px;font-weight:700;margin-bottom:4px">Dòng sản phẩm</div>
      <div class="tbl-wrap"><table class="tbl">
-       <thead><tr><th>Sản phẩm (định lượng · khổ ghép)</th><th class="num">SL (tấn)</th><th class="num">Đơn giá (₫/kg)</th><th class="num">Thành tiền</th><th></th></tr></thead>
+       <thead><tr><th>Sản phẩm (định lượng · khổ ghép)</th><th class="num">SL ĐKĐH (tấn)</th><th class="num">Đơn giá (₫/kg)</th><th class="num">Thành tiền</th><th></th></tr></thead>
        <tbody id="qlines-tbody">${qLinesRows()}</tbody>
        <tfoot>
          <tr><td colspan="3">Tổng (chưa VAT)</td><td class="num" id="q-subtotal">${fmtMoney(qSubtotal())}</td><td></td></tr>
@@ -969,6 +993,7 @@ function openQuoteModal(){
        </tfoot>
      </table></div>
      <div style="margin-top:8px"><button class="btn sm" onclick="addQLine()">＋ Thêm sản phẩm</button></div>`;
+  document.getElementById('q-exp-disp').value=qMonthExpiry(month);
   document.getElementById('quoteback').classList.add('show');
   document.getElementById('quotemodal').classList.add('show');
 }
@@ -977,10 +1002,12 @@ function confirmQuote(){
   const cust=(document.getElementById('q-cust').value||'').trim();
   if(!cust){ toast('Nhập Khách hàng'); return; }
   if(!QLINES.length){ toast('Thêm ít nhất 1 dòng sản phẩm'); return; }
+  const overLines=QLINES.filter(qOverLimit);
   const no='QUO-0'+(quoteSeq++);
   QUOTES.unshift({no, date:'Hôm nay', total:fmtMoney(qGrand())+' (gồm VAT)', status:'Nháp'});
   renderQuotes(); closeQuoteModal();
-  toast('Đã tạo báo giá '+no+' · '+QLINES.length+' SP · '+fmtMoney(qGrand())+' (gồm VAT)');
+  toast('Đã tạo báo giá '+no+' · '+QLINES.length+' SP · '+fmtMoney(qGrand())+' (gồm VAT)'
+    +(overLines.length?' · ⚠ '+overLines.length+' dòng vượt TB ĐKĐH 3 tháng':''));
 }
 function createContract(){ toast('Đã tạo Hợp đồng nháp từ cơ hội — chuyển sang màn Hợp đồng'); setTimeout(function(){ if(S.contract) go('contract'); }, 700); }
 function createCaseQuick(){ toast('Đã tạo Case khiếu nại từ cơ hội — mở màn Case'); setTimeout(function(){ if(S.case) go('case'); }, 700); }
