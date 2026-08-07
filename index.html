@@ -1101,14 +1101,14 @@ function qOnMonthChange(){
 // giá tháng (theo BG nội địa.docx) — không có trong FSD nhưng cần cho luồng ĐKĐH/hiệu lực/PDF.
 function openQuoteModal(oppName,custName){
   const no='QUO-0'+quoteSeq;
-  const month='2026-07';
+  const month='2026-08'; // tháng hiện tại
   document.getElementById('quote-body').innerHTML=
     `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Số báo giá</label><input id="q-no" class="mass-sel" value="${no}" readonly></div>
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Tên Opportunity</label><input id="q-opp" class="mass-sel" value="${oppName||'Cty Hưng Thịnh — Medium Q3'}" readonly></div>
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Khách hàng (Tên Khách hàng) *</label><input id="q-cust" class="mass-sel" value="${custName||'Cty Hưng Thịnh Phát'}"></div>
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Trạng thái</label><input class="mass-sel" value="Nháp" readonly></div>
-       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Ngày báo giá</label><input id="q-date" class="mass-sel" type="date" value="2026-06-27"></div>
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Ngày báo giá</label><input id="q-date" class="mass-sel" type="date" value="2026-08-07"></div>
        <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Tháng báo giá</label><input id="q-month" class="mass-sel" type="month" value="${month}" onchange="qOnMonthChange()"></div>
      </div>`;
   document.getElementById('quoteback').classList.add('show');
@@ -1135,7 +1135,7 @@ function openQpModal(no){
   QSEL=((q&&q.items)||[]).map(it=>({code:it.code, gsmFrom:it.gsmFrom, gsmTo:it.gsmTo, base:it.base, price:it.price,
     priceOrig:(it.priceOrig!==undefined?it.priceOrig:it.price), isAnchor:it.isAnchor}));
   DQ_PENDING=null;
-  const month=(q&&q.month)||'2026-07';
+  const month=(q&&q.month)||'2026-08';
   const t=document.getElementById('qp-title'); if(t) t.textContent='Quản lý sản phẩm báo giá · '+no;
   document.getElementById('qp-body').innerHTML=
     `<div class="wf-muted" style="font-size:12px;font-weight:700;margin-bottom:4px">Chọn phân nhóm & định lượng (lấy trực tiếp từ Bảng giá chuẩn DTP 2026)</div>
