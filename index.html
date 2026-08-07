@@ -934,10 +934,10 @@ const sampleActivity=[['📞','Gọi xác nhận số lượng đặt hàng','Ng
    dụng, liệt kê ĐẦY ĐỦ bảng giá sản phẩm tháng đó (giống văn bản gốc), không phải bảng dòng SP tự chọn. */
 let QUOTES=[
   {no:'QUO-0451', cust:'Cty Hưng Thịnh Phát', month:'2026-07', sentDate:'12/07/2026', status:'Đã gửi', items:[
-    {code:'WTN', name:'Giấy White Top WTN', plant:'ĐTBD', gsmFrom:140, gsmTo:150, gsmLabel:'140–150', base:15200, price:15200, priceOrig:15200, isAnchor:true, note:''},
-    {code:'TD', name:'Giấy Testliner Loại 1 (TĐ)', plant:'ĐTBD', gsmFrom:160, gsmTo:200, gsmLabel:'160–200', base:13000, price:12900, priceOrig:12900, isAnchor:false, note:''}]},
+    {code:'WTN', name:'Giấy White Top WTN', plant:'ĐTBD', gsmFrom:140, gsmTo:150, gsmLabel:'140–150', base:15200, price:15200, priceOrig:15200, isAnchor:true, note:'Khổ ghép: 1.350-2.400mm / Các tiêu chuẩn khác theo bảng tiêu chuẩn'},
+    {code:'TD', name:'Giấy Testliner Loại 1 (TĐ)', plant:'ĐTBD', gsmFrom:160, gsmTo:200, gsmLabel:'160–200', base:13000, price:12900, priceOrig:12900, isAnchor:false, note:'Khổ ghép: 1.350-2.400mm / Các tiêu chuẩn khác theo bảng tiêu chuẩn'}]},
   {no:'QUO-0448', cust:'Cty Hưng Thịnh Phát', month:'2026-06', sentDate:'05/06/2026', status:'Hết hiệu lực', items:[
-    {code:'M1S', name:'Giấy Medium gia keo (M1S)', plant:'ĐTBD', gsmFrom:90, gsmTo:90, gsmLabel:'90', base:10400, price:10800, priceOrig:10800, isAnchor:false, note:''}]},
+    {code:'M1S', name:'Giấy Medium gia keo (M1S)', plant:'ĐTBD', gsmFrom:90, gsmTo:90, gsmLabel:'90', base:10400, price:10800, priceOrig:10800, isAnchor:false, note:'Khổ ghép: 1.450-2.400mm / Các tiêu chuẩn khác theo bảng tiêu chuẩn'}]},
 ];
 let quoteSeq=452;
 function quoteMonthLabel(m){ const parts=(m||'').split('-'); return parts.length===2 ? 'Tháng '+parts[1]+'/'+parts[0] : '—'; }
@@ -1014,7 +1014,8 @@ function dqConfirmPending(){
     if(!parsed){ errs.push(it.sku+': định lượng không hợp lệ'); return; }
     const {segs,gaps}=dqSplitRange(it.code, parsed.a, parsed.b);
     if(!segs.length){ errs.push(it.sku+': không có giá cho định lượng này'); return; }
-    segs.forEach(s=>QSEL.push({code:it.code, sku:it.sku, gsmFrom:s.gsmFrom, gsmTo:s.gsmTo, base:s.base, price:s.price, priceOrig:s.price, isAnchor:s.isAnchor, note:''}));
+    const defNote=(dqProductByCode(it.code)||{}).note||'';
+    segs.forEach(s=>QSEL.push({code:it.code, sku:it.sku, gsmFrom:s.gsmFrom, gsmTo:s.gsmTo, base:s.base, price:s.price, priceOrig:s.price, isAnchor:s.isAnchor, note:defNote}));
     addedSkus++; addedLines+=segs.length;
     if(gaps.length) errs.push(it.sku+': định lượng '+gaps.map(g=>g[0]===g[1]?g[0]:g[0]+'–'+g[1]).join(', ')+' không có giá — đã bỏ qua');
   });
@@ -4205,27 +4206,35 @@ const PB_GSM_DTBD=[80,90,95,100,105,110,115,120,125,130,140,150,160,170,175,180,
 // group = "Phân nhóm" (theo sheet "Danh mục chi tiết SP" trong BẢNG GIÁ CHUẨN_T7.xlsx) — 1 phân nhóm = 1 mức giá
 // chung, nhưng gồm nhiều "sản phẩm" (mã SP) cụ thể khác nhau cùng dùng chung mức giá đó.
 const PB_PRODUCTS=[
-  {code:'TLR-DTLA',name:'Giấy Testliner (ĐTLA)',group:'Giấy Testliner (ĐTLA)',skus:['Giấy Testliner (ĐTLA)'],plant:'ĐTLA',gsmAxis:PB_GSM_DTLA,anchorGsm:[120,125],base:11500,color:'#1b96ff',
+  {code:'TLR-DTLA',name:'Giấy Testliner (ĐTLA)',group:'Giấy Testliner (ĐTLA)',skus:['Giấy Testliner (ĐTLA)'],plant:'ĐTLA',gsmAxis:PB_GSM_DTLA,anchorGsm:[120,125],base:11500,color:'#1b96ff',note:'',
     deltas:{90:600,95:400,100:200,110:200,140:-100,145:-100}},
   {code:'MM6S',name:'Giấy Medium CLC, xeo dài gia keo (M6S)',group:'Giấy Medium CLC xeo dài (ĐTLA)',skus:['Giấy Medium CLC, xeo dài gia keo (M6S)'],plant:'ĐTLA',gsmAxis:PB_GSM_DTLA,anchorGsm:[100,110],base:10800,color:'#2e844a',
+    note:'Ghép đủ khổ giấy: 4.400-4.600mm',
     deltas:{70:1400,75:1100,80:800,85:600,90:400,95:100,120:-100,125:-100,140:-100,145:-100}},
   {code:'WTN',name:'Giấy White Top WTN',group:'Giấy White Top (WT)',skus:['Giấy White Top WTN'],plant:'ĐTBD',gsmAxis:PB_GSM_DTBD,anchorGsm:[140,150],base:15200,color:'#e5a000',
+    note:'Khổ ghép: 1.350-2.400mm / Các tiêu chuẩn khác theo bảng tiêu chuẩn',
     deltas:{120:300,125:300,130:300,160:-200,170:-200,175:-200,180:-200}},
   {code:'WTE',name:'Giấy White Top WTE',group:'Giấy White Top (WT)',skus:['Giấy White Top WTE'],plant:'ĐTBD',gsmAxis:PB_GSM_DTBD,anchorGsm:[140,150],base:14700,color:'#c77700',
+    note:'Khổ ghép: 1.350-2.400mm / Các tiêu chuẩn khác theo bảng tiêu chuẩn',
     deltas:{120:300,125:300,130:300,160:-200,170:-200,175:-200,180:-200}},
   {code:'TD',name:'Giấy Testliner Loại 1 (TĐ)',group:'Giấy Testliner Loại 1 (TĐ)',
     skus:['Giấy Testliner K1E','Giấy Testliner K2E','Giấy Testliner K3E','Giấy Testliner K3E-S','Giấy Testliner K4E','Giấy Testliner K4E-S','Giấy Testliner K5E','Giấy Testliner KA','Giấy Testliner KAB','Giấy Testliner KAT','Giấy Testliner KQM','Giấy Testliner KT','Giấy Testliner KTB-S','Giấy Testliner KTP','Giấy Testliner KTV'],
     plant:'ĐTBD',gsmAxis:PB_GSM_DTBD,anchorGsm:[140,150],base:13000,color:'#9050e9',
+    note:'Khổ ghép: 1.350-2.400mm / Các tiêu chuẩn khác theo bảng tiêu chuẩn',
     deltas:{120:200,125:200,130:200,160:-100,170:-100,175:-100,180:-100,185:-100,190:-100,195:-100,200:-100}},
   {code:'TT',name:'Giấy Testliner Loại 2 (TT)',group:'Giấy Testliner Loại 2 (TT)',
     skus:['Giấy Testliner K1Y','Giấy Testliner K2Y','Giấy Testliner K3Y','Giấy Testliner K5Y','Giấy Testliner K5Y-S','Giấy Testliner K6Y','Giấy Testliner KDL-S','Giấy Testliner KSOVI-S','Giấy Testliner KT1','Giấy Testliner KT1-S','Giấy Testliner TDT','Giấy Testliner TDT-S','Giấy Testliner KTN-S'],
     plant:'ĐTBD',gsmAxis:PB_GSM_DTBD,anchorGsm:[140,150],base:11000,color:'#d5455e',
+    note:'Khổ ghép: 1.350 - 2.400mm / Các tiêu chuẩn khác theo bảng tiêu chuẩn',
     deltas:{120:200,125:200,130:200,160:-100,170:-100,175:-100,180:-100,185:-100,190:-100,195:-100,200:-100}},
   {code:'M3S',name:'Giấy Medium CLC gia keo (M3S)',group:'Giấy Medium CLC (MĐ)',skus:['Giấy Medium CLC (M3)','Giấy Medium CLC gia keo (M3S)'],plant:'ĐTBD',gsmAxis:PB_GSM_DTBD,anchorGsm:[100,105,110],base:10600,color:'#06a59a',
+    note:'Khổ ghép: 1.800-2.400mm / Các tiêu chuẩn khác theo bảng tiêu chuẩn',
     deltas:{90:400,95:200,115:-100,120:-100,125:-100,130:-100,140:-100,150:-100,160:-100,170:-100,175:-100,180:-100,185:-100,190:-100,195:-100}},
   {code:'M1S',name:'Giấy Medium gia keo (M1S)',group:'Giấy Medium (MT) — gia keo',skus:['Giấy Medium gia keo (M1S)','Giấy Medium gia keo (M2S)'],plant:'ĐTBD',gsmAxis:PB_GSM_DTBD,anchorGsm:[100,105,110],base:10400,color:'#5867e8',
+    note:'Khổ ghép: 1.450-2.400mm / Các tiêu chuẩn khác theo bảng tiêu chuẩn',
     deltas:{90:400,95:200,115:-100,120:-100,125:-100,130:-100,140:-100,150:-100,160:-100,170:-100,175:-100,180:-100,185:-100,190:-100,195:-100}},
-  {code:'M1M3',name:'Giấy Medium M1, M3',group:'Giấy Medium (MT)',skus:['Giấy Medium (M1)','Giấy Medium (M3)'],plant:'ĐTBD',gsmAxis:PB_GSM_DTBD,anchorGsm:[100,105,110],base:10200,color:'#747474',
+  {code:'M1M3',name:'Giấy Medium M1, M3',group:'Giấy Medium (MT)',skus:['Giấy Medium (M1)'],plant:'ĐTBD',gsmAxis:PB_GSM_DTBD,anchorGsm:[100,105,110],base:10200,color:'#747474',
+    note:'Khổ ghép: 1.450-2.400mm / Các tiêu chuẩn khác theo bảng tiêu chuẩn',
     deltas:{90:400,95:200,115:-100,120:-100,125:-100,130:-100,140:-100,150:-100,160:-100,170:-100,175:-100,180:-100,185:-100,190:-100,195:-100}},
 ];
 // Danh sách Phân nhóm — mỗi phân nhóm gồm nhiều sản phẩm (mã SP), mỗi sản phẩm gắn với code Bảng giá riêng
