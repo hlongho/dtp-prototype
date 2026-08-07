@@ -990,50 +990,61 @@ function dqSplitRange(code,a,b){
   return {segs,gaps};
 }
 let QSEL=[]; // {code,gsmFrom,gsmTo,base,price,isAnchor} — từng dòng ĐÃ THÊM vào báo giá (giá đã tra sẵn từ Bảng giá)
-let DQ_PENDING=null; // {code,gsmInput} — sản phẩm vừa chọn từ ô tìm kiếm, đang chờ nhập định lượng rồi mới bấm Thêm
+let DQ_PENDING=null; // {group,items:[{code,sku}],inputs:{idx:gsmText}} — phân nhóm vừa chọn, đang chờ nhập định lượng cho từng sản phẩm trong nhóm
 function dqRemoveSel(i){ QSEL.splice(i,1); renderDqRows(); }
-// Bước 1: chọn sản phẩm từ gợi ý tìm kiếm — CHƯA thêm vào bảng, chỉ đưa vào khung chờ để nhập định lượng
-function dqPickProduct(code){
-  DQ_PENDING={code, gsmInput:''};
+// Bước 1: chọn PHÂN NHÓM từ gợi ý tìm kiếm — hiện ra danh sách sản phẩm (mã SP) thuộc phân nhóm đó, CHƯA thêm
+// gì vào bảng cho tới khi nhập định lượng cho từng sản phẩm rồi bấm Thêm.
+function dqPickGroup(group){
+  const g=pbGroupsList().find(x=>x.group===group); if(!g) return;
+  DQ_PENDING={group, items:g.items, inputs:{}};
   const s=document.getElementById('dq-search'); if(s) s.value='';
   dqSearchInput(); renderDqPending();
 }
-function dqPendingInput(val){ if(DQ_PENDING) DQ_PENDING.gsmInput=val; }
+function dqPendingInput(idx,val){ if(DQ_PENDING) DQ_PENDING.inputs[idx]=val; }
 function dqCancelPending(){ DQ_PENDING=null; renderDqPending(); }
-// Bước 2: đã nhập định lượng xong, bấm Thêm mới tra giá theo Bảng giá custom rồi đưa xuống bảng báo giá —
-// nếu định lượng nhập vào thuộc nhiều khoảng giá khác nhau thì tách thành nhiều dòng, mỗi dòng 1 giá riêng.
+// Bước 2: đã nhập định lượng cho 1 hoặc nhiều sản phẩm trong phân nhóm, bấm Thêm mới tra giá theo Bảng giá
+// custom rồi đưa xuống bảng báo giá — bỏ qua các dòng chưa nhập định lượng; mỗi sản phẩm nếu định lượng nhập
+// vào thuộc nhiều khoảng giá khác nhau thì tự tách thành nhiều dòng riêng.
 function dqConfirmPending(){
   if(!DQ_PENDING) return;
-  const parsed=dqParseGsm(DQ_PENDING.gsmInput);
-  if(!parsed){ toast('Định lượng không hợp lệ — nhập 1 số (VD 150) hoặc 1 khoảng (VD 150-200)'); return; }
-  const {segs,gaps}=dqSplitRange(DQ_PENDING.code, parsed.a, parsed.b);
-  if(!segs.length){ toast('Không tìm thấy giá cho định lượng này trong Bảng giá custom'); return; }
-  segs.forEach(s=>QSEL.push({code:DQ_PENDING.code, gsmFrom:s.gsmFrom, gsmTo:s.gsmTo, base:s.base, price:s.price, priceOrig:s.price, isAnchor:s.isAnchor,
-    note:''}));
+  let addedLines=0, addedSkus=0; const errs=[];
+  DQ_PENDING.items.forEach((it,idx)=>{
+    const raw=(DQ_PENDING.inputs[idx]||'').trim(); if(!raw) return;
+    const parsed=dqParseGsm(raw);
+    if(!parsed){ errs.push(it.sku+': định lượng không hợp lệ'); return; }
+    const {segs,gaps}=dqSplitRange(it.code, parsed.a, parsed.b);
+    if(!segs.length){ errs.push(it.sku+': không có giá cho định lượng này'); return; }
+    segs.forEach(s=>QSEL.push({code:it.code, sku:it.sku, gsmFrom:s.gsmFrom, gsmTo:s.gsmTo, base:s.base, price:s.price, priceOrig:s.price, isAnchor:s.isAnchor, note:''}));
+    addedSkus++; addedLines+=segs.length;
+    if(gaps.length) errs.push(it.sku+': định lượng '+gaps.map(g=>g[0]===g[1]?g[0]:g[0]+'–'+g[1]).join(', ')+' không có giá — đã bỏ qua');
+  });
+  if(!addedLines){ toast('Nhập định lượng cho ít nhất 1 sản phẩm trong phân nhóm'); return; }
   DQ_PENDING=null;
   renderDqPending(); renderDqRows();
-  if(gaps.length) toast('⚠ Định lượng '+gaps.map(g=>g[0]===g[1]?g[0]:g[0]+'–'+g[1]).join(', ')+' không có giá trong Bảng giá — đã bỏ qua, chỉ thêm '+segs.length+' dòng có giá');
-  else if(segs.length>1) toast('Định lượng thuộc '+segs.length+' khoảng giá khác nhau trong Bảng giá — đã tách thành '+segs.length+' dòng riêng');
+  toast('Đã thêm '+addedLines+' dòng ('+addedSkus+' sản phẩm)'+(errs.length?' · ⚠ '+errs.join('; '):''));
 }
 function renderDqPending(){
   const box=document.getElementById('dq-pending'); if(!box) return;
   if(!DQ_PENDING){ box.innerHTML=''; return; }
-  const p=dqProductByCode(DQ_PENDING.code);
-  box.innerHTML=`<div class="dq-pending-box">
-    <div><b>${p.name}</b><div class="wf-muted" style="font-size:11px">Nhà máy ${p.plant} — nhập định lượng rồi bấm Thêm (1 số hoặc 1 khoảng, VD 150 hoặc 150-200)</div></div>
-    <input class="mass-sel" style="width:140px" placeholder="VD: 150 hoặc 150-200" value="${DQ_PENDING.gsmInput||''}" oninput="dqPendingInput(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();dqConfirmPending();}">
-    <button class="btn sm pri" onclick="dqConfirmPending()">＋ Thêm vào báo giá</button>
-    <button class="btn sm" onclick="dqCancelPending()">Hủy</button>
+  const rows=DQ_PENDING.items.map((it,idx)=>`<tr><td>${it.sku}</td>
+    <td><input class="mass-sel" style="width:140px" placeholder="VD: 150 hoặc 150-200" value="${DQ_PENDING.inputs[idx]||''}" oninput="dqPendingInput(${idx},this.value)"></td></tr>`).join('');
+  box.innerHTML=`<div class="dq-pending-box" style="display:block">
+    <div style="margin-bottom:8px"><b>Phân nhóm: ${DQ_PENDING.group}</b><div class="wf-muted" style="font-size:11px">Nhập định lượng cho từng sản phẩm muốn thêm (1 số hoặc 1 khoảng, VD 150 hoặc 150-200) — bỏ trống sản phẩm không cần thêm.</div></div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Sản phẩm</th><th>Định lượng</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div style="margin-top:8px;display:flex;gap:8px">
+      <button class="btn sm pri" onclick="dqConfirmPending()">＋ Thêm vào báo giá</button>
+      <button class="btn sm" onclick="dqCancelPending()">Hủy</button>
+    </div>
   </div>`;
 }
 function dqSearchInput(){
   const box=document.getElementById('dq-suggest'); if(!box) return;
   const q=norm(document.getElementById('dq-search').value||'');
   if(!q){ box.hidden=true; box.innerHTML=''; return; }
-  const matches=PB_PRODUCTS.filter(p=>norm(p.name).includes(q));
+  const matches=pbGroupsList().filter(g=>norm(g.group).includes(q));
   box.innerHTML=matches.length
-    ? matches.slice(0,8).map(p=>`<div class="dq-sugg-item" onclick="dqPickProduct('${p.code}')"><b>${p.name}</b><div class="wf-muted" style="font-size:11px">Nhà máy ${p.plant} · Giá chuẩn ${p.base.toLocaleString('vi-VN')} ₫/kg</div></div>`).join('')
-    : `<div class="dq-sugg-item wf-muted">Không tìm thấy sản phẩm phù hợp</div>`;
+    ? matches.slice(0,8).map(g=>`<div class="dq-sugg-item" onclick="dqPickGroup('${g.group.replace(/'/g,"\\'")}')"><b>${g.group}</b><div class="wf-muted" style="font-size:11px">${g.items.length} sản phẩm</div></div>`).join('')
+    : `<div class="dq-sugg-item wf-muted">Không tìm thấy phân nhóm phù hợp</div>`;
   box.hidden=false;
 }
 // Giá tháng hiện tại (Y) cho phép điều chỉnh tay (VD đàm phán với khách). Không dùng cột riêng để báo đã
@@ -1050,7 +1061,7 @@ function dqPriceRowsHTML(){
   if(!QSEL.length) return `<tr><td colspan="6" class="wf-muted" style="text-align:center;padding:16px">Chưa chọn sản phẩm — dùng ô tìm kiếm phía trên để thêm sản phẩm vào báo giá.</td></tr>`;
   return QSEL.map((sel,i)=>{ const p=dqProductByCode(sel.code); const label=sel.gsmFrom===sel.gsmTo?String(sel.gsmFrom):sel.gsmFrom+'–'+sel.gsmTo;
     return `<tr>
-    <td><b>${p.name}</b></td>
+    <td><b>${sel.sku||p.name}</b></td>
     <td class="num">${label} gsm</td>
     <td class="num">${sel.priceOrig.toLocaleString('vi-VN')}</td>
     <td class="num"><div style="display:flex;align-items:center;justify-content:flex-end">
@@ -1069,7 +1080,7 @@ function dqSetNote(i,val){ QSEL[i].note=val; }
 function dqSelectedItems(){
   return QSEL.map(sel=>{ const p=dqProductByCode(sel.code); if(!p) return null;
     const gsmLabel=sel.gsmFrom===sel.gsmTo?String(sel.gsmFrom):sel.gsmFrom+'–'+sel.gsmTo;
-    return {code:p.code,name:p.name,plant:p.plant,gsmFrom:sel.gsmFrom,gsmTo:sel.gsmTo,gsmLabel,base:sel.base,price:sel.price,priceOrig:sel.priceOrig,isAnchor:sel.isAnchor,note:sel.note||''}; }).filter(Boolean);
+    return {code:p.code,name:sel.sku||p.name,plant:p.plant,gsmFrom:sel.gsmFrom,gsmTo:sel.gsmTo,gsmLabel,base:sel.base,price:sel.price,priceOrig:sel.priceOrig,isAnchor:sel.isAnchor,note:sel.note||''}; }).filter(Boolean);
 }
 function qOnMonthChange(){
   const m=document.getElementById('q-month').value;
@@ -1125,9 +1136,9 @@ function openQpModal(no){
   const month=(q&&q.month)||'2026-07';
   const t=document.getElementById('qp-title'); if(t) t.textContent='Quản lý sản phẩm báo giá · '+no;
   document.getElementById('qp-body').innerHTML=
-    `<div class="wf-muted" style="font-size:12px;font-weight:700;margin-bottom:4px">Chọn sản phẩm & định lượng (lấy trực tiếp từ Bảng giá chuẩn DTP 2026)</div>
+    `<div class="wf-muted" style="font-size:12px;font-weight:700;margin-bottom:4px">Chọn phân nhóm & định lượng (lấy trực tiếp từ Bảng giá chuẩn DTP 2026)</div>
      <div class="dq-search-wrap" style="margin-bottom:10px">
-       <input id="dq-search" class="mass-sel" placeholder="🔍 Tìm sản phẩm theo tên (VD: Testliner, Whitetop, Medium…)" oninput="dqSearchInput()" onfocus="dqSearchInput()">
+       <input id="dq-search" class="mass-sel" placeholder="🔍 Tìm theo phân nhóm (VD: Testliner Loại 1, White Top, Medium…)" oninput="dqSearchInput()" onfocus="dqSearchInput()">
        <div id="dq-suggest" class="dq-suggest" hidden></div>
      </div>
      <div id="dq-pending"></div>
@@ -4191,26 +4202,40 @@ S.contract_list = ()=> appnav('Dữ liệu nền tảng','Hợp đồng',TAB_MD,
    sản phẩm đó KHÔNG sản xuất ở định lượng đó ("–" trong file gốc). */
 const PB_GSM_DTLA=[70,75,80,85,90,95,100,110,120,125,140,145];
 const PB_GSM_DTBD=[80,90,95,100,105,110,115,120,125,130,140,150,160,170,175,180,185,190,195,200];
+// group = "Phân nhóm" (theo sheet "Danh mục chi tiết SP" trong BẢNG GIÁ CHUẨN_T7.xlsx) — 1 phân nhóm = 1 mức giá
+// chung, nhưng gồm nhiều "sản phẩm" (mã SP) cụ thể khác nhau cùng dùng chung mức giá đó.
 const PB_PRODUCTS=[
-  {code:'TLR-DTLA',name:'Giấy Testliner (ĐTLA)',plant:'ĐTLA',gsmAxis:PB_GSM_DTLA,anchorGsm:[120,125],base:11500,color:'#1b96ff',
+  {code:'TLR-DTLA',name:'Giấy Testliner (ĐTLA)',group:'Giấy Testliner (ĐTLA)',skus:['Giấy Testliner (ĐTLA)'],plant:'ĐTLA',gsmAxis:PB_GSM_DTLA,anchorGsm:[120,125],base:11500,color:'#1b96ff',
     deltas:{90:600,95:400,100:200,110:200,140:-100,145:-100}},
-  {code:'MM6S',name:'Giấy Medium CLC, xeo dài gia keo (M6S)',plant:'ĐTLA',gsmAxis:PB_GSM_DTLA,anchorGsm:[100,110],base:10800,color:'#2e844a',
+  {code:'MM6S',name:'Giấy Medium CLC, xeo dài gia keo (M6S)',group:'Giấy Medium CLC xeo dài (ĐTLA)',skus:['Giấy Medium CLC, xeo dài gia keo (M6S)'],plant:'ĐTLA',gsmAxis:PB_GSM_DTLA,anchorGsm:[100,110],base:10800,color:'#2e844a',
     deltas:{70:1400,75:1100,80:800,85:600,90:400,95:100,120:-100,125:-100,140:-100,145:-100}},
-  {code:'WTN',name:'Giấy White Top WTN',plant:'ĐTBD',gsmAxis:PB_GSM_DTBD,anchorGsm:[140,150],base:15200,color:'#e5a000',
+  {code:'WTN',name:'Giấy White Top WTN',group:'Giấy White Top (WT)',skus:['Giấy White Top WTN'],plant:'ĐTBD',gsmAxis:PB_GSM_DTBD,anchorGsm:[140,150],base:15200,color:'#e5a000',
     deltas:{120:300,125:300,130:300,160:-200,170:-200,175:-200,180:-200}},
-  {code:'WTE',name:'Giấy White Top WTE',plant:'ĐTBD',gsmAxis:PB_GSM_DTBD,anchorGsm:[140,150],base:14700,color:'#c77700',
+  {code:'WTE',name:'Giấy White Top WTE',group:'Giấy White Top (WT)',skus:['Giấy White Top WTE'],plant:'ĐTBD',gsmAxis:PB_GSM_DTBD,anchorGsm:[140,150],base:14700,color:'#c77700',
     deltas:{120:300,125:300,130:300,160:-200,170:-200,175:-200,180:-200}},
-  {code:'TD',name:'Giấy Testliner Loại 1 (TĐ)',plant:'ĐTBD',gsmAxis:PB_GSM_DTBD,anchorGsm:[140,150],base:13000,color:'#9050e9',
+  {code:'TD',name:'Giấy Testliner Loại 1 (TĐ)',group:'Giấy Testliner Loại 1 (TĐ)',
+    skus:['Giấy Testliner K1E','Giấy Testliner K2E','Giấy Testliner K3E','Giấy Testliner K3E-S','Giấy Testliner K4E','Giấy Testliner K4E-S','Giấy Testliner K5E','Giấy Testliner KA','Giấy Testliner KAB','Giấy Testliner KAT','Giấy Testliner KQM','Giấy Testliner KT','Giấy Testliner KTB-S','Giấy Testliner KTP','Giấy Testliner KTV'],
+    plant:'ĐTBD',gsmAxis:PB_GSM_DTBD,anchorGsm:[140,150],base:13000,color:'#9050e9',
     deltas:{120:200,125:200,130:200,160:-100,170:-100,175:-100,180:-100,185:-100,190:-100,195:-100,200:-100}},
-  {code:'TT',name:'Giấy Testliner Loại 2 (TT)',plant:'ĐTBD',gsmAxis:PB_GSM_DTBD,anchorGsm:[140,150],base:11000,color:'#d5455e',
+  {code:'TT',name:'Giấy Testliner Loại 2 (TT)',group:'Giấy Testliner Loại 2 (TT)',
+    skus:['Giấy Testliner K1Y','Giấy Testliner K2Y','Giấy Testliner K3Y','Giấy Testliner K5Y','Giấy Testliner K5Y-S','Giấy Testliner K6Y','Giấy Testliner KDL-S','Giấy Testliner KSOVI-S','Giấy Testliner KT1','Giấy Testliner KT1-S','Giấy Testliner TDT','Giấy Testliner TDT-S','Giấy Testliner KTN-S'],
+    plant:'ĐTBD',gsmAxis:PB_GSM_DTBD,anchorGsm:[140,150],base:11000,color:'#d5455e',
     deltas:{120:200,125:200,130:200,160:-100,170:-100,175:-100,180:-100,185:-100,190:-100,195:-100,200:-100}},
-  {code:'M3S',name:'Giấy Medium CLC gia keo (M3S)',plant:'ĐTBD',gsmAxis:PB_GSM_DTBD,anchorGsm:[100,105,110],base:10600,color:'#06a59a',
+  {code:'M3S',name:'Giấy Medium CLC gia keo (M3S)',group:'Giấy Medium CLC (MĐ)',skus:['Giấy Medium CLC (M3)','Giấy Medium CLC gia keo (M3S)'],plant:'ĐTBD',gsmAxis:PB_GSM_DTBD,anchorGsm:[100,105,110],base:10600,color:'#06a59a',
     deltas:{90:400,95:200,115:-100,120:-100,125:-100,130:-100,140:-100,150:-100,160:-100,170:-100,175:-100,180:-100,185:-100,190:-100,195:-100}},
-  {code:'M1S',name:'Giấy Medium gia keo (M1S)',plant:'ĐTBD',gsmAxis:PB_GSM_DTBD,anchorGsm:[100,105,110],base:10400,color:'#5867e8',
+  {code:'M1S',name:'Giấy Medium gia keo (M1S)',group:'Giấy Medium (MT) — gia keo',skus:['Giấy Medium gia keo (M1S)','Giấy Medium gia keo (M2S)'],plant:'ĐTBD',gsmAxis:PB_GSM_DTBD,anchorGsm:[100,105,110],base:10400,color:'#5867e8',
     deltas:{90:400,95:200,115:-100,120:-100,125:-100,130:-100,140:-100,150:-100,160:-100,170:-100,175:-100,180:-100,185:-100,190:-100,195:-100}},
-  {code:'M1M3',name:'Giấy Medium M1, M3',plant:'ĐTBD',gsmAxis:PB_GSM_DTBD,anchorGsm:[100,105,110],base:10200,color:'#747474',
+  {code:'M1M3',name:'Giấy Medium M1, M3',group:'Giấy Medium (MT)',skus:['Giấy Medium (M1)','Giấy Medium (M3)'],plant:'ĐTBD',gsmAxis:PB_GSM_DTBD,anchorGsm:[100,105,110],base:10200,color:'#747474',
     deltas:{90:400,95:200,115:-100,120:-100,125:-100,130:-100,140:-100,150:-100,160:-100,170:-100,175:-100,180:-100,185:-100,190:-100,195:-100}},
 ];
+// Danh sách Phân nhóm — mỗi phân nhóm gồm nhiều sản phẩm (mã SP), mỗi sản phẩm gắn với code Bảng giá riêng
+// (đa số 1 phân nhóm ứng 1 mức giá, riêng White Top có 2 mức giá WTN/WTE trong cùng phân nhóm).
+function pbGroupsList(){
+  const map=new Map();
+  PB_PRODUCTS.forEach(p=>{ if(!map.has(p.group)) map.set(p.group,[]);
+    (p.skus&&p.skus.length?p.skus:[p.name]).forEach(sku=>map.get(p.group).push({code:p.code,sku})); });
+  return [...map.entries()].map(([group,items])=>({group,items}));
+}
 const pbFmt=n=> (typeof n==='number'? n.toLocaleString('vi-VN')+' ₫':'—');
 function pbDelta(d){ return (d>0?'+':'')+d.toLocaleString('vi-VN'); }
 function pbPriceAt(p,gsm){ if(p.anchorGsm.includes(gsm)) return {delta:0,price:p.base}; if(gsm in p.deltas) return {delta:p.deltas[gsm],price:p.base+p.deltas[gsm]}; return null; }
