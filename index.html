@@ -1021,7 +1021,9 @@ function dqConfirmPending(){
     const {segs,gaps}=dqSplitRange(it.code, parsed.a, parsed.b);
     if(!segs.length){ errs.push(it.sku+': không có giá cho định lượng này'); return; }
     const defNote=(dqProductByCode(it.code)||{}).note||'';
-    segs.forEach(s=>QSEL.push({code:it.code, sku:it.sku, gsmFrom:s.gsmFrom, gsmTo:s.gsmTo, base:s.base, price:s.price, priceOrig:s.price, isAnchor:s.isAnchor, note:defNote}));
+    segs.forEach(s=>{ const row={code:it.code, sku:it.sku, gsmFrom:s.gsmFrom, gsmTo:s.gsmTo, base:s.base, price:s.price, priceOrig:s.price, isAnchor:s.isAnchor, note:defNote};
+      if(DQ_NEXT_ON){ row.priceNext=s.price; row.priceNextOrig=s.price; }
+      QSEL.push(row); });
     addedSkus++; addedLines+=segs.length;
     if(gaps.length) errs.push(it.sku+': định lượng '+gaps.map(g=>g[0]===g[1]?g[0]:g[0]+'–'+g[1]).join(', ')+' không có giá — đã bỏ qua');
   });
@@ -1059,21 +1061,25 @@ function dqSearchInput(){
 // KHUNG ĐỊNH LƯỢNG ĐÓ theo Bảng giá (priceOrig) — không so với giá chuẩn chung của sản phẩm (base), vì mỗi
 // khung định lượng có thể có giá khác nhau. Mới load từ Bảng giá (chưa sửa) thì priceOrig===price → không có dấu.
 // Khung chứa dấu +/- có độ rộng CỐ ĐỊNH (dù rỗng) để ô nhập giá luôn thẳng cột, không bị lệch qua lại.
-function dqDeltaBadge(sel){
-  const d=sel.price-sel.priceOrig; if(!d) return '';
+function dqDeltaBadge(price,ref){
+  const d=price-ref; if(!d) return '';
   const cls=d>0?'dq-delta-up':'dq-delta-down';
   return `<span class="dq-delta-badge ${cls}">${d>0?'+':'-'}${Math.abs(d).toLocaleString('vi-VN')}</span>`;
 }
 function dqPriceRowsHTML(){
-  if(!QSEL.length) return `<tr><td colspan="6" class="wf-muted" style="text-align:center;padding:16px">Chưa chọn sản phẩm — dùng ô tìm kiếm phía trên để thêm sản phẩm vào báo giá.</td></tr>`;
+  if(!QSEL.length) return `<tr><td colspan="${DQ_NEXT_ON?7:6}" class="wf-muted" style="text-align:center;padding:16px">Chưa chọn sản phẩm — dùng ô tìm kiếm phía trên để thêm sản phẩm vào báo giá.</td></tr>`;
   return QSEL.map((sel,i)=>{ const p=dqProductByCode(sel.code); const label=sel.gsmFrom===sel.gsmTo?String(sel.gsmFrom):sel.gsmFrom+'–'+sel.gsmTo;
+    const nextCell=DQ_NEXT_ON?`<td class="num"><div style="display:flex;align-items:center;justify-content:flex-end">
+      <span id="dq-deltanext-${i}" class="dq-delta-slot">${dqDeltaBadge(sel.priceNext,sel.priceNextOrig)}</span>
+      <input id="dq-pricenext-${i}" class="mass-sel num" style="width:82px;flex:none" type="number" value="${sel.priceNext}" oninput="dqSetPriceNext(${i},this.value)" title="Giá tháng hiện tại (mốc so sánh): ${sel.priceNextOrig.toLocaleString('vi-VN')} ₫/kg"></div></td>`:'';
     return `<tr>
     <td><b>${sel.sku||p.name}</b></td>
     <td class="num">${label} gsm</td>
     <td class="num">${sel.priceOrig.toLocaleString('vi-VN')}</td>
     <td class="num"><div style="display:flex;align-items:center;justify-content:flex-end">
-      <span id="dq-delta-${i}" class="dq-delta-slot">${dqDeltaBadge(sel)}</span>
+      <span id="dq-delta-${i}" class="dq-delta-slot">${dqDeltaBadge(sel.price,sel.priceOrig)}</span>
       <input id="dq-price-${i}" class="mass-sel num" style="width:82px;flex:none" type="number" value="${sel.price}" oninput="dqSetPrice(${i},this.value)" title="Giá gốc theo Bảng giá (định lượng ${label}): ${sel.priceOrig.toLocaleString('vi-VN')} ₫/kg"></div></td>
+    ${nextCell}
     <td><textarea id="dq-note-${i}" class="mass-sel" style="font-size:11px;min-height:32px;resize:vertical" oninput="dqSetNote(${i},this.value)">${sel.note||''}</textarea></td>
     <td class="num"><button class="btn sm" title="Xoá" onclick="dqRemoveSel(${i})">✕</button></td></tr>`; }).join('');
 }
@@ -1081,13 +1087,19 @@ function renderDqRows(){ const tb=document.getElementById('dq-tbody'); if(tb) tb
 // Chỉ cập nhật giá trị + badge chênh lệch của đúng dòng đang sửa (không render lại cả bảng) để không mất focus khi gõ.
 function dqSetPrice(i,val){
   const n=parseFloat(val); QSEL[i].price=isNaN(n)?0:n;
-  const badge=document.getElementById('dq-delta-'+i); if(badge) badge.innerHTML=dqDeltaBadge(QSEL[i]);
+  const badge=document.getElementById('dq-delta-'+i); if(badge) badge.innerHTML=dqDeltaBadge(QSEL[i].price,QSEL[i].priceOrig);
+}
+function dqSetPriceNext(i,val){
+  const n=parseFloat(val); QSEL[i].priceNext=isNaN(n)?0:n;
+  const badge=document.getElementById('dq-deltanext-'+i); if(badge) badge.innerHTML=dqDeltaBadge(QSEL[i].priceNext,QSEL[i].priceNextOrig);
 }
 function dqSetNote(i,val){ QSEL[i].note=val; }
 function dqSelectedItems(){
   return QSEL.map(sel=>{ const p=dqProductByCode(sel.code); if(!p) return null;
     const gsmLabel=sel.gsmFrom===sel.gsmTo?String(sel.gsmFrom):sel.gsmFrom+'–'+sel.gsmTo;
-    return {code:p.code,name:sel.sku||p.name,plant:p.plant,gsmFrom:sel.gsmFrom,gsmTo:sel.gsmTo,gsmLabel,base:sel.base,price:sel.price,priceOrig:sel.priceOrig,isAnchor:sel.isAnchor,note:sel.note||''}; }).filter(Boolean);
+    const out={code:p.code,name:sel.sku||p.name,plant:p.plant,gsmFrom:sel.gsmFrom,gsmTo:sel.gsmTo,gsmLabel,base:sel.base,price:sel.price,priceOrig:sel.priceOrig,isAnchor:sel.isAnchor,note:sel.note||''};
+    if(sel.priceNext!==undefined){ out.priceNext=sel.priceNext; out.priceNextOrig=sel.priceNextOrig; }
+    return out; }).filter(Boolean);
 }
 function qOnMonthChange(){
   const m=document.getElementById('q-month').value;
@@ -1134,29 +1146,51 @@ function confirmQuote(){
 }
 /* ===== Quản lý sản phẩm báo giá (Quote Line Items) — thêm/sửa sản phẩm cho 1 báo giá ĐÃ TẠO ===== */
 let QP_QUOTE_NO=null;
+let DQ_NEXT_ON=false; // đã bấm "Thêm giá tháng sau" chưa — nếu có thì bảng có thêm 1 cột giá thứ 3
+let QP_MONTH='2026-08';
+function dqTableWrapHTML(){
+  const month=QP_MONTH;
+  const cols=DQ_NEXT_ON
+    ? '<col style="width:19%"><col style="width:12%"><col style="width:10%"><col style="width:16%"><col style="width:16%"><col style="width:20%"><col style="width:7%">'
+    : '<col style="width:22%"><col style="width:14%"><col style="width:12%"><col style="width:22%"><col style="width:23%"><col style="width:7%">';
+  const nextTh=DQ_NEXT_ON?`<th class="num" style="white-space:normal" id="dq-th-z">Giá tháng<br>${qMonthNum(qNextMonthStr(month))}</th>`:'';
+  return `<div class="tbl-wrap"><table class="tbl" style="table-layout:fixed">
+       <colgroup>${cols}</colgroup>
+       <thead><tr style="white-space:normal"><th style="white-space:normal">Chủng loại sản phẩm</th><th style="white-space:normal">Định lượng (gsm)</th><th class="num" style="white-space:normal" id="dq-th-x">Giá tháng<br>${qPrevMonthNum(month)}</th><th class="num" style="white-space:normal" id="dq-th-y">Giá tháng<br>${qMonthNum(month)}</th>${nextTh}<th style="white-space:normal">Ghi chú</th><th></th></tr></thead>
+       <tbody id="dq-tbody">${dqPriceRowsHTML()}</tbody>
+     </table></div>`;
+}
+// Bấm nút "Thêm giá tháng sau" sẽ chèn thêm 1 CỘT giá thứ 3 ngay sau cột Giá tháng hiện tại (không tạo báo
+// giá mới) — mỗi dòng sản phẩm tối đa có 3 giá: giá báo giá trước đó (X, tham khảo) · giá tháng hiện tại (Y,
+// sửa được) · giá tháng sau (Z, sửa được, mặc định copy từ giá tháng hiện tại).
+function dqAddNextMonthColumn(){
+  if(DQ_NEXT_ON) return;
+  DQ_NEXT_ON=true;
+  QSEL.forEach(sel=>{ if(sel.priceNext===undefined){ sel.priceNext=sel.price; sel.priceNextOrig=sel.price; } });
+  const wrap=document.getElementById('dq-table-wrap'); if(wrap) wrap.innerHTML=dqTableWrapHTML();
+  const btn=document.getElementById('dq-addnext-btn'); if(btn) btn.remove();
+}
 function openQpModal(no){
   QP_QUOTE_NO=no;
   const q=QUOTES.find(x=>x.no===no);
-  QSEL=((q&&q.items)||[]).map(it=>({code:it.code, sku:it.name, gsmFrom:it.gsmFrom, gsmTo:it.gsmTo, base:it.base, price:it.price,
-    priceOrig:(it.priceOrig!==undefined?it.priceOrig:it.price), isAnchor:it.isAnchor, note:it.note||''}));
-  DQ_PENDING=null;
-  const month=(q&&q.month)||'2026-08';
+  QSEL=((q&&q.items)||[]).map(it=>{ const row={code:it.code, sku:it.name, gsmFrom:it.gsmFrom, gsmTo:it.gsmTo, base:it.base, price:it.price,
+    priceOrig:(it.priceOrig!==undefined?it.priceOrig:it.price), isAnchor:it.isAnchor, note:it.note||''};
+    if(it.priceNext!==undefined){ row.priceNext=it.priceNext; row.priceNextOrig=it.priceNextOrig; } return row; });
+  DQ_PENDING=null; DQ_NEXT_ON=QSEL.some(sel=>sel.priceNext!==undefined);
+  if(DQ_NEXT_ON) QSEL.forEach(sel=>{ if(sel.priceNext===undefined){ sel.priceNext=sel.price; sel.priceNextOrig=sel.price; } });
+  QP_MONTH=(q&&q.month)||'2026-08';
   const t=document.getElementById('qp-title'); if(t) t.textContent='Quản lý sản phẩm báo giá · '+no;
   document.getElementById('qp-body').innerHTML=
-    `<div style="display:flex;justify-content:flex-end;margin-bottom:10px">
-       <button class="btn sm" onclick="dqCreateNextMonthQuote()">＋ Tạo báo giá Tháng ${qMonthNum(qNextMonthStr(month))} (copy sản phẩm &amp; giá Tháng ${qMonthNum(month)})</button>
-     </div>
+    `${DQ_NEXT_ON?'':`<div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+       <button id="dq-addnext-btn" class="btn sm" onclick="dqAddNextMonthColumn()">＋ Thêm giá Tháng ${qMonthNum(qNextMonthStr(QP_MONTH))}</button>
+     </div>`}
      <div class="wf-muted" style="font-size:12px;font-weight:700;margin-bottom:4px">Chọn phân nhóm & định lượng (lấy trực tiếp từ Bảng giá chuẩn DTP 2026)</div>
      <div class="dq-search-wrap" style="margin-bottom:10px">
        <input id="dq-search" class="mass-sel" placeholder="🔍 Tìm theo phân nhóm (VD: Testliner Loại 1, White Top, Medium…)" oninput="dqSearchInput()" onfocus="dqSearchInput()">
        <div id="dq-suggest" class="dq-suggest" hidden></div>
      </div>
      <div id="dq-pending"></div>
-     <div class="tbl-wrap"><table class="tbl" style="table-layout:fixed">
-       <colgroup><col style="width:22%"><col style="width:14%"><col style="width:12%"><col style="width:22%"><col style="width:23%"><col style="width:7%"></colgroup>
-       <thead><tr style="white-space:normal"><th style="white-space:normal">Chủng loại sản phẩm</th><th style="white-space:normal">Định lượng (gsm)</th><th class="num" style="white-space:normal" id="dq-th-x">Giá tháng<br>${qPrevMonthNum(month)}</th><th class="num" style="white-space:normal" id="dq-th-y">Giá tháng<br>${qMonthNum(month)}</th><th style="white-space:normal">Ghi chú</th><th></th></tr></thead>
-       <tbody id="dq-tbody">${dqPriceRowsHTML()}</tbody>
-     </table></div>`;
+     <div id="dq-table-wrap">${dqTableWrapHTML()}</div>`;
   document.getElementById('qpback').classList.add('show');
   document.getElementById('qpmodal').classList.add('show');
 }
@@ -1170,18 +1204,6 @@ function confirmQp(){
 }
 // Tạo 1 báo giá MỚI cho tháng sau, copy nguyên sản phẩm + định lượng + giá đang có ở báo giá hiện tại —
 // giá tháng sau ban đầu giữ y như tháng hiện tại, sau đó chỉnh sửa được độc lập (giống hệt cơ chế tháng hiện tại).
-function dqCreateNextMonthQuote(){
-  const q=QUOTES.find(x=>x.no===QP_QUOTE_NO); if(!q) return;
-  const items=dqSelectedItems();
-  if(!items.length){ toast('Chưa có sản phẩm nào để copy sang tháng sau'); return; }
-  const nextMonth=qNextMonthStr(q.month||'2026-08');
-  const no='QUO-0'+(quoteSeq++);
-  const newItems=items.map(it=>({...it}));
-  QUOTES.unshift({no, opp:q.opp, cust:q.cust, month:nextMonth, sentDate:'Hôm nay', status:'Nháp', items:newItems});
-  renderQuotes();
-  toast('Đã tạo '+qMonthTitle(nextMonth)+' ('+no+') · copy '+newItems.length+' sản phẩm, giá giữ như '+qMonthTitle(q.month)+' — chỉnh sửa giá ngay bên dưới');
-  openQpModal(no);
-}
 function createContract(){ toast('Đã tạo Hợp đồng nháp từ cơ hội — chuyển sang màn Hợp đồng'); setTimeout(function(){ if(S.contract) go('contract'); }, 700); }
 function createCaseQuick(){ toast('Đã tạo Case khiếu nại từ cơ hội — mở màn Case'); setTimeout(function(){ if(S.case) go('case'); }, 700); }
 function openSampleModal(){
