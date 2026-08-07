@@ -957,6 +957,11 @@ function qPrevMonthNum(m){ const parts=(m||'').split('-'); if(parts.length!==2) 
   let yy=parseInt(parts[0],10), mm=parseInt(parts[1],10)-1; if(mm<1){mm=12;yy--;}
   return (mm<10?'0':'')+mm+'/'+yy;
 }
+function qNextMonthStr(m){ // trả về "YYYY-MM" của tháng liền sau (dùng để tạo báo giá tháng sau)
+  const parts=(m||'').split('-'); if(parts.length!==2) return m;
+  let yy=parseInt(parts[0],10), mm=parseInt(parts[1],10)+1; if(mm>12){mm=1;yy++;}
+  return yy+'-'+(mm<10?'0':'')+mm;
+}
 function quotesRows(){
   return QUOTES.map(q=>`<tr>
     <td><a data-go="quote">${q.no}</a></td><td>${quoteMonthLabel(q.month)}</td><td>${q.sentDate}</td>
@@ -1132,13 +1137,16 @@ let QP_QUOTE_NO=null;
 function openQpModal(no){
   QP_QUOTE_NO=no;
   const q=QUOTES.find(x=>x.no===no);
-  QSEL=((q&&q.items)||[]).map(it=>({code:it.code, gsmFrom:it.gsmFrom, gsmTo:it.gsmTo, base:it.base, price:it.price,
-    priceOrig:(it.priceOrig!==undefined?it.priceOrig:it.price), isAnchor:it.isAnchor}));
+  QSEL=((q&&q.items)||[]).map(it=>({code:it.code, sku:it.name, gsmFrom:it.gsmFrom, gsmTo:it.gsmTo, base:it.base, price:it.price,
+    priceOrig:(it.priceOrig!==undefined?it.priceOrig:it.price), isAnchor:it.isAnchor, note:it.note||''}));
   DQ_PENDING=null;
   const month=(q&&q.month)||'2026-08';
   const t=document.getElementById('qp-title'); if(t) t.textContent='Quản lý sản phẩm báo giá · '+no;
   document.getElementById('qp-body').innerHTML=
-    `<div class="wf-muted" style="font-size:12px;font-weight:700;margin-bottom:4px">Chọn phân nhóm & định lượng (lấy trực tiếp từ Bảng giá chuẩn DTP 2026)</div>
+    `<div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+       <button class="btn sm" onclick="dqCreateNextMonthQuote()">＋ Tạo báo giá Tháng ${qMonthNum(qNextMonthStr(month))} (copy sản phẩm &amp; giá Tháng ${qMonthNum(month)})</button>
+     </div>
+     <div class="wf-muted" style="font-size:12px;font-weight:700;margin-bottom:4px">Chọn phân nhóm & định lượng (lấy trực tiếp từ Bảng giá chuẩn DTP 2026)</div>
      <div class="dq-search-wrap" style="margin-bottom:10px">
        <input id="dq-search" class="mass-sel" placeholder="🔍 Tìm theo phân nhóm (VD: Testliner Loại 1, White Top, Medium…)" oninput="dqSearchInput()" onfocus="dqSearchInput()">
        <div id="dq-suggest" class="dq-suggest" hidden></div>
@@ -1159,6 +1167,20 @@ function confirmQp(){
   closeQpModal();
   toast('Đã lưu '+q.items.length+' sản phẩm cho báo giá '+q.no);
   if(S.quote) go('quote');
+}
+// Tạo 1 báo giá MỚI cho tháng sau, copy nguyên sản phẩm + định lượng + giá đang có ở báo giá hiện tại —
+// giá tháng sau ban đầu giữ y như tháng hiện tại, sau đó chỉnh sửa được độc lập (giống hệt cơ chế tháng hiện tại).
+function dqCreateNextMonthQuote(){
+  const q=QUOTES.find(x=>x.no===QP_QUOTE_NO); if(!q) return;
+  const items=dqSelectedItems();
+  if(!items.length){ toast('Chưa có sản phẩm nào để copy sang tháng sau'); return; }
+  const nextMonth=qNextMonthStr(q.month||'2026-08');
+  const no='QUO-0'+(quoteSeq++);
+  const newItems=items.map(it=>({...it}));
+  QUOTES.unshift({no, opp:q.opp, cust:q.cust, month:nextMonth, sentDate:'Hôm nay', status:'Nháp', items:newItems});
+  renderQuotes();
+  toast('Đã tạo '+qMonthTitle(nextMonth)+' ('+no+') · copy '+newItems.length+' sản phẩm, giá giữ như '+qMonthTitle(q.month)+' — chỉnh sửa giá ngay bên dưới');
+  openQpModal(no);
 }
 function createContract(){ toast('Đã tạo Hợp đồng nháp từ cơ hội — chuyển sang màn Hợp đồng'); setTimeout(function(){ if(S.contract) go('contract'); }, 700); }
 function createCaseQuick(){ toast('Đã tạo Case khiếu nại từ cơ hội — mở màn Case'); setTimeout(function(){ if(S.case) go('case'); }, 700); }
