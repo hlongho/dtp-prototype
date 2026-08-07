@@ -180,6 +180,9 @@ a:hover{text-decoration:underline}
 .dq-sugg-item:last-child{border-bottom:none}
 .dq-sugg-item:hover{background:var(--bg)}
 .dq-pending-box{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;margin-bottom:10px;border:1px solid var(--sf-blue-l);background:var(--sf-blue-l);border-radius:8px}
+.dq-pending-scroll{max-height:280px;overflow-y:auto;border:1px solid var(--line-2);border-radius:6px;background:var(--card);width:100%}
+.dq-pending-scroll table.tbl{border-collapse:separate;border-spacing:0}
+.dq-pending-scroll th{position:sticky;top:0;z-index:2;background:var(--nav)}
 .dq-delta-slot{display:inline-block;width:44px;flex:none;text-align:right;padding-right:4px}
 .dq-delta-badge{font-size:10px;font-weight:700;white-space:nowrap}
 .dq-delta-badge.dq-delta-up{color:#c23934}
@@ -1031,7 +1034,7 @@ function renderDqPending(){
     <td><input class="mass-sel" style="width:140px" placeholder="VD: 150 hoặc 150-200" value="${DQ_PENDING.inputs[idx]||''}" oninput="dqPendingInput(${idx},this.value)"></td></tr>`).join('');
   box.innerHTML=`<div class="dq-pending-box" style="display:block">
     <div style="margin-bottom:8px"><b>Phân nhóm: ${DQ_PENDING.group}</b><div class="wf-muted" style="font-size:11px">Nhập định lượng cho từng sản phẩm muốn thêm (1 số hoặc 1 khoảng, VD 150 hoặc 150-200) — bỏ trống sản phẩm không cần thêm.</div></div>
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Sản phẩm</th><th>Định lượng</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="dq-pending-scroll"><table class="tbl" style="margin:0"><thead><tr><th>Sản phẩm</th><th>Định lượng</th></tr></thead><tbody>${rows}</tbody></table></div>
     <div style="margin-top:8px;display:flex;gap:8px">
       <button class="btn sm pri" onclick="dqConfirmPending()">＋ Thêm vào báo giá</button>
       <button class="btn sm" onclick="dqCancelPending()">Hủy</button>
