@@ -936,7 +936,7 @@ const sampleActivity=[['📞','Gọi xác nhận số lượng đặt hàng','Ng
    hàng đăng ký riêng qua ĐKĐH, giới hạn = TB sản lượng 3 tháng trước). Mỗi báo giá gắn với 1 tháng áp
    dụng, liệt kê ĐẦY ĐỦ bảng giá sản phẩm tháng đó (giống văn bản gốc), không phải bảng dòng SP tự chọn. */
 let QUOTES=[
-  {no:'QUO-0451', cust:'Cty Hưng Thịnh Phát', month:'2026-07', sentDate:'12/07/2026', status:'Đã gửi', items:[]},
+  {no:'QUO-0451', cust:'Cty Hưng Thịnh Phát', month:'2026-08', sentDate:'12/08/2026', status:'Đã gửi', items:[]},
   {no:'QUO-0448', cust:'Cty Hưng Thịnh Phát', month:'2026-06', sentDate:'05/06/2026', status:'Hết hiệu lực', items:[
     {code:'M1S', name:'Giấy Medium gia keo (M1S)', plant:'ĐTBD', gsmFrom:90, gsmTo:90, gsmLabel:'90', base:10400, price:10800, priceOrig:10800, isAnchor:false, note:'Khổ ghép: 1.450-2.400mm / Các tiêu chuẩn khác theo bảng tiêu chuẩn'}]},
 ];
@@ -1251,7 +1251,7 @@ function closeApproveModal(){ const b=document.getElementById('apprback'),m=docu
 function confirmApprove(ok){ const reason=(document.getElementById('appr-reason').value||'').trim(); if(!reason){ toast('Nhập lý do trước khi '+(ok?'phê duyệt':'từ chối')); document.getElementById('appr-reason').focus(); return; } closeApproveModal(); toast((ok?'✓ Đã phê duyệt':'✗ Đã từ chối')+' · Lý do: '+reason); }
 /* --- Trình duyệt Opportunity PO (chọn cấp) --- */
 const OPPO_QUOTES=[
-  {no:'QUO-0451', date:'12/07/2026', val:'1.470.000.000 ₫', st:'Đã gửi'},
+  {no:'QUO-0451', date:'12/08/2026', val:'1.470.000.000 ₫', st:'Đã gửi'},
   {no:'QUO-0448', date:'05/07/2026', val:'1.420.000.000 ₫', st:'Hết hiệu lực'},
 ];
 function closeSubmitModal(){ const b=document.getElementById('submitback'),m=document.getElementById('submitmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
@@ -1595,22 +1595,22 @@ S.quote_list = ()=> appnav('Bán hàng nội địa','Báo giá',TAB_SALES,'Báo
  + `<div class="sf-body">${lv({crumb:'Báo giá',ico:'₫',color:'#0176d3',object:'Báo giá (Quote) — thông báo giá tháng',view:'Báo giá gần đây',views:['Báo giá gần đây','Của tôi','Đã gửi','Tất cả'],count:'37',newLabel:'Báo giá mới',
    cols:[{t:'Số báo giá'},{t:'Khách hàng'},{t:'Tháng báo giá'},{t:'Ngày gửi'},{t:'Trạng thái'}],
    rows:[
-    {go:'quote',cells:['QUO-0451','Cty Hưng Thịnh Phát','Tháng 07/2026','12/07/2026',pill('ok','Đã gửi')]},
+    {go:'quote',cells:['QUO-0451','Cty Hưng Thịnh Phát','Tháng 08/2026','12/08/2026',pill('ok','Đã gửi')]},
     {go:'quote',cells:['QUO-0448','Cty Hưng Thịnh Phát','Tháng 06/2026','05/06/2026',pill('mut','Hết hiệu lực')]},
     {go:'quote',cells:['QUO-0445','Cty CP Minh Khang','Tháng 07/2026','02/07/2026',pill('ok','Đã gửi')]},
     {go:'quote',cells:['QUO-0442','Bao Bì Sông Lam','Tháng 06/2026','28/06/2026',pill('mut','Hết hiệu lực')]}]})}</div>`;
 S.quote = ()=> appnav('Bán hàng nội địa','Cơ hội',TAB_SALES,'Cơ hội')
  + `<div class="sf-body narrow">
-   ${hl({crumb:'<span data-go="opp">Cơ hội</span> &rsaquo; Báo giá',ico:'₫',color:'#0176d3',title:'QUO-0451 · Cty Hưng Thịnh Phát',sub:'BÁO GIÁ THÁNG 07/2026 · đơn giá chưa gồm VAT',
-     fields:[['Tháng báo giá','Tháng 07/2026'],['Trạng thái',pill('ok','Đã gửi')],['Ngày gửi','12/07/2026'],['Hạn xác nhận ĐKĐH','25/06/2026'],['Hiệu lực đến','31/07/2026']],
+   ${hl({crumb:'<span data-go="opp">Cơ hội</span> &rsaquo; Báo giá',ico:'₫',color:'#0176d3',title:'QUO-0451 · Cty Hưng Thịnh Phát',sub:'BÁO GIÁ THÁNG 08/2026 · đơn giá chưa gồm VAT',
+     fields:[['Tháng báo giá','Tháng 08/2026'],['Trạng thái',pill('ok','Đã gửi')],['Ngày gửi','12/08/2026'],['Hạn xác nhận ĐKĐH','25/07/2026'],['Hiệu lực đến','31/08/2026']],
      actions:[{t:'Quản lý sản phẩm',pri:true,fn:"openQpModal('QUO-0451')"},{t:'Xuất PDF',fn:"exportQuotePDF('QUO-0451')"},'Gửi khách','Sửa']})}
    ${path(['Nháp','Gửi khách hàng','Hết hiệu lực'],1)}
    <div class="cols-side act-tab">
      <div>
      ${plLayout([
        plSection('Thông tin báo giá', [['Số báo giá','QUO-0451'],['Cơ hội','Cty Hưng Thịnh — Medium Q3','link','opp'],
-         ['Khách hàng (Kính gửi)','Cty Hưng Thịnh Phát','link','account'],['Tháng báo giá','Tháng 07/2026'],
-         ['Ngày gửi (ĐH/ĐKĐH áp dụng từ ngày này)','12/07/2026'],['Hạn xác nhận ĐKĐH tháng sau','25/06/2026'],['Hiệu lực đến','31/07/2026'],
+         ['Khách hàng (Kính gửi)','Cty Hưng Thịnh Phát','link','account'],['Tháng báo giá','Tháng 08/2026'],
+         ['Ngày gửi (ĐH/ĐKĐH áp dụng từ ngày này)','12/08/2026'],['Hạn xác nhận ĐKĐH tháng sau','25/07/2026'],['Hiệu lực đến','31/08/2026'],
          ['Người lập','Trần Thị B'],
          ['Xử lý bản cứng','<input type="checkbox" style="width:16px;height:16px;vertical-align:middle" onchange="toast(this.checked?\'Đã đánh dấu Xử lý bản cứng\':\'Bỏ đánh dấu Xử lý bản cứng\')">'],
          ['Trạng thái',pill('ok','Đã gửi')]]),
@@ -1621,10 +1621,10 @@ S.quote = ()=> appnav('Bán hàng nội địa','Cơ hội',TAB_SALES,'Cơ hội
          ['3. Giao hàng','Đúng thời hạn đã xác nhận trên ĐKĐH/ĐH'],
          ['4. Điều khoản khác','Theo Hợp đồng Nguyên tắc đã ký kết']])
      ])}
-     ${card('Sản phẩm đã chọn (lấy từ Bảng giá chuẩn DTP 2026)', tbl([{t:'STT'},{t:'Chủng loại sản phẩm'},{t:'Định lượng',num:true},{t:'Giá tháng '+qPrevMonthNum('2026-07'),num:true},{t:'Giá tháng '+qMonthNum('2026-07'),num:true},{t:'Ghi chú'}],
+     ${card('Sản phẩm đã chọn (lấy từ Bảng giá chuẩn DTP 2026)', tbl([{t:'STT'},{t:'Chủng loại sản phẩm'},{t:'Định lượng',num:true},{t:'Giá tháng '+qPrevMonthNum('2026-08'),num:true},{t:'Giá tháng '+qMonthNum('2026-08'),num:true},{t:'Ghi chú'}],
        (QUOTES.find(x=>x.no==='QUO-0451')||{items:[]}).items.map((p,i)=>[String(i+1),p.name,p.gsmLabel+' gsm',p.base.toLocaleString('vi-VN'),'<b>'+p.price.toLocaleString('vi-VN')+'</b>','<span class="wf-muted" style="font-size:11px">'+(p.note||'—')+'</span>'])),{n:String((QUOTES.find(x=>x.no==='QUO-0451')||{items:[]}).items.length)})}
      </div>
-     ${activity([['📤','Gửi báo giá cho khách','Trần Thị B · 12/07/2026'],['✍','Lập báo giá QUO-0451','12/07/2026']])}
+     ${activity([['📤','Gửi báo giá cho khách','Trần Thị B · 12/08/2026'],['✍','Lập báo giá QUO-0451','12/08/2026']])}
    </div>
  </div>`;
 S.sample_list = ()=> appnav('Bán hàng nội địa','Sample Request',TAB_SALES,'Sample Request')
@@ -4079,7 +4079,7 @@ S.oppo = ()=> appnav('Bán hàng nội địa','Opportunity PO',TAB_SALES,'Oppor
    <div class="cols-side act-tab">
      <div>
      ${card('Báo giá', tbl([{t:'Số báo giá'},{t:'Tháng báo giá'},{t:'Ngày gửi'},{t:'Trạng thái'}],[
-       ['<a data-go="quote">QUO-0451</a>','Tháng 07/2026','12/07/2026',pill('ok','Đã gửi')],
+       ['<a data-go="quote">QUO-0451</a>','Tháng 08/2026','12/08/2026',pill('ok','Đã gửi')],
        ['<a data-go="quote">QUO-0448</a>','Tháng 06/2026','05/06/2026',pill('mut','Hết hiệu lực')]]),{n:'2',r:'<button class="btn sm" onclick="openQuoteModal(\'Cty Hưng Thịnh — PO Medium Q3\',\'Cty Hưng Thịnh Phát\')">＋ Báo giá mới</button>'})}
      ${card('Chi tiết Opportunity PO', fg([['Tên Opportunity','Cty Hưng Thịnh — PO Medium Q3'],
        ['Khách hàng','Cty Hưng Thịnh Phát','link','account'],['Mã PO khách','PO-KH-8842'],
