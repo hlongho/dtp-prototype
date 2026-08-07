@@ -1395,24 +1395,30 @@ function pbGroupQuoteItemsForPDF(list){
   const groups=[];
   list.forEach(it=>{
     const g=groups.find(g=>g.name===it.name && g.price===it.price);
-    if(g){ g.gsmLabels.push(it.gsmLabel); g.priceOrigs.push(it.priceOrig); if(it.note && !g.notes.includes(it.note)) g.notes.push(it.note); }
-    else groups.push({name:it.name, price:it.price, gsmLabels:[it.gsmLabel], priceOrigs:[it.priceOrig], notes:it.note?[it.note]:[]});
+    if(g){ g.gsmLabels.push(it.gsmLabel); g.priceOrigs.push(it.priceOrig); g.priceNexts.push(it.priceNext); if(it.note && !g.notes.includes(it.note)) g.notes.push(it.note); }
+    else groups.push({name:it.name, price:it.price, gsmLabels:[it.gsmLabel], priceOrigs:[it.priceOrig], priceNexts:[it.priceNext], notes:it.note?[it.note]:[]});
   });
-  return groups.map(g=>({
-    name:g.name, price:g.price, gsmLabel:g.gsmLabels.join(', '),
-    priceOrig:g.priceOrigs.every(p=>p===g.priceOrigs[0])?g.priceOrigs[0]:g.priceOrigs.join(' / '),
-    note:g.notes.join(' · '),
-  }));
+  return groups.map(g=>{
+    const hasNext=g.priceNexts.some(p=>p!==undefined);
+    return {
+      name:g.name, price:g.price, gsmLabel:g.gsmLabels.join(', '),
+      priceOrig:g.priceOrigs.every(p=>p===g.priceOrigs[0])?g.priceOrigs[0]:g.priceOrigs.join(' / '),
+      priceNext:hasNext?(g.priceNexts.every(p=>p===g.priceNexts[0])?g.priceNexts[0]:g.priceNexts.filter(p=>p!==undefined).join(' / ')):undefined,
+      note:g.notes.join(' · '),
+    }; });
 }
 function exportQuotePDF(no){
   const q=QUOTES.find(x=>x.no===no)||QUOTES[0];
   const w=window.open('','_blank');
   if(!w){ toast('Trình duyệt chặn cửa sổ — cho phép popup để xuất PDF'); return; }
   const list=pbGroupQuoteItemsForPDF((q.items&&q.items.length)?q.items:[]);
+  const hasNext=list.some(p=>p.priceNext!==undefined);
+  const nextTh=hasNext?`<th>Đơn giá T${qMonthNum(qNextMonthStr(q.month))}</th>`:'';
   const rows=list.map((p,i)=>`<tr><td class="num">${i+1}</td><td>${p.name} / Định lượng: ${p.gsmLabel} g/m2.</td>
     <td class="num">${typeof p.priceOrig==='number'?p.priceOrig.toLocaleString('vi-VN'):p.priceOrig}</td><td class="num"><b>${p.price.toLocaleString('vi-VN')}</b></td>
+    ${hasNext?`<td class="num">${p.priceNext!==undefined?'<b>'+(typeof p.priceNext==='number'?p.priceNext.toLocaleString('vi-VN'):p.priceNext)+'</b>':'—'}</td>`:''}
     <td>${p.note||''}</td></tr>`).join('')
-    || `<tr><td colspan="5" class="muted" style="text-align:center">Chưa có sản phẩm — vào "Quản lý sản phẩm" để thêm</td></tr>`;
+    || `<tr><td colspan="${hasNext?6:5}" class="muted" style="text-align:center">Chưa có sản phẩm — vào "Quản lý sản phẩm" để thêm</td></tr>`;
   w.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>${qMonthTitle(q.month)}</title>
     <style>
     @page{margin:16mm 14mm 20mm 14mm}
@@ -1435,7 +1441,7 @@ function exportQuotePDF(no){
       <p style="text-indent:0">Kính gửi : <b>${(q.cust||'').toUpperCase()}</b></p>
       <p>Trước hết, chúng tôi xin chân thành cảm ơn sự hợp tác và hỗ trợ quý báu mà Quý công ty đã dành cho công ty chúng tôi và rất mong tiếp tục nhận được sự ủng hộ trong thời gian tới.</p>
       <p>Căn cứ vào diễn biến phức tạp của thị trường nguyên liệu giấy trong thời gian gần đây, sau khi cân nhắc thận trọng trên tinh thần chia sẻ cùng khách hàng, chúng tôi xin thông báo về việc điều chỉnh giá bán sản phẩm giấy cuộn cho các ĐH/ĐKĐH được gửi tới chúng tôi xác nhận từ ngày ${q.sentDate} (thời điểm nhận được báo giá) và giao hàng trong tháng ${qMonthNum(q.month)}. Cụ thể như sau:</p>
-      <table><thead><tr><th>STT</th><th>Chủng loại sản phẩm</th><th>Đơn giá T${qPrevMonthNum(q.month)}</th><th>Đơn giá T${qMonthNum(q.month)}</th><th>Ghi chú</th></tr></thead>
+      <table><thead><tr><th>STT</th><th>Chủng loại sản phẩm</th><th>Đơn giá T${qPrevMonthNum(q.month)}</th><th>Đơn giá T${qMonthNum(q.month)}</th>${nextTh}<th>Ghi chú</th></tr></thead>
         <tbody>${rows}</tbody></table>
       <p>Số lượng nhận ĐKĐH: tối đa bằng trung bình sản lượng 3 tháng trước đó.</p>
       <ol>
@@ -1680,8 +1686,16 @@ S.quote = ()=> appnav('Bán hàng nội địa','Cơ hội',TAB_SALES,'Cơ hội
          ['3. Giao hàng','Đúng thời hạn đã xác nhận trên ĐKĐH/ĐH'],
          ['4. Điều khoản khác','Theo Hợp đồng Nguyên tắc đã ký kết']])
      ])}
-     ${card('Sản phẩm đã chọn (lấy từ Bảng giá chuẩn DTP 2026)', tbl([{t:'STT'},{t:'Chủng loại sản phẩm'},{t:'Định lượng',num:true},{t:'Giá tháng '+qPrevMonthNum('2026-08'),num:true},{t:'Giá tháng '+qMonthNum('2026-08'),num:true},{t:'Ghi chú'}],
-       (QUOTES.find(x=>x.no==='QUO-0451')||{items:[]}).items.map((p,i)=>[String(i+1),p.name,p.gsmLabel+' gsm',p.base.toLocaleString('vi-VN'),'<b>'+p.price.toLocaleString('vi-VN')+'</b>','<span class="wf-muted" style="font-size:11px">'+(p.note||'—')+'</span>'])),{n:String((QUOTES.find(x=>x.no==='QUO-0451')||{items:[]}).items.length)})}
+     ${(()=>{ const q=QUOTES.find(x=>x.no==='QUO-0451')||{items:[],month:'2026-08'};
+       const hasNext=q.items.some(p=>p.priceNext!==undefined);
+       const cols=[{t:'STT'},{t:'Chủng loại sản phẩm'},{t:'Định lượng',num:true},{t:'Giá tháng '+qPrevMonthNum(q.month),num:true},{t:'Giá tháng '+qMonthNum(q.month),num:true}];
+       if(hasNext) cols.push({t:'Giá tháng '+qMonthNum(qNextMonthStr(q.month)),num:true});
+       cols.push({t:'Ghi chú'});
+       const rows=q.items.map((p,i)=>{ const r=[String(i+1),p.name,p.gsmLabel+' gsm',p.base.toLocaleString('vi-VN'),'<b>'+p.price.toLocaleString('vi-VN')+'</b>'];
+         if(hasNext) r.push(p.priceNext!==undefined?'<b>'+p.priceNext.toLocaleString('vi-VN')+'</b>':'—');
+         r.push('<span class="wf-muted" style="font-size:11px">'+(p.note||'—')+'</span>');
+         return r; });
+       return card('Sản phẩm đã chọn (lấy từ Bảng giá chuẩn DTP 2026)', tbl(cols,rows), {n:String(q.items.length)}); })()}
      </div>
      ${activity([['📤','Gửi báo giá cho khách','Trần Thị B · 12/08/2026'],['✍','Lập báo giá QUO-0451','12/08/2026']])}
    </div>
