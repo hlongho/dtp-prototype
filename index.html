@@ -1345,13 +1345,28 @@ function qDateLong(d){ // "DD/MM/YYYY" -> "ngày DD tháng MM năm YYYY" (đúng
   return 'ngày '+parts[0]+' tháng '+parts[1]+' năm '+parts[2];
 }
 // Xuất PDF đúng theo mẫu văn bản "BG nội địa.docx" — thư thông báo giá tháng, không phải phiếu báo giá SL/thành tiền.
+// Cùng 1 sản phẩm (name) mà sau khi điều chỉnh tay có GIÁ THÁNG HIỆN TẠI bằng nhau thì gộp thành 1 dòng khi
+// xuất PDF (gộp các khoảng định lượng lại), dù trên màn Quản lý sản phẩm vẫn giữ riêng từng dòng để dễ sửa.
+function pbGroupQuoteItemsForPDF(list){
+  const groups=[];
+  list.forEach(it=>{
+    const g=groups.find(g=>g.name===it.name && g.price===it.price);
+    if(g){ g.gsmLabels.push(it.gsmLabel); g.priceOrigs.push(it.priceOrig); if(it.note && !g.notes.includes(it.note)) g.notes.push(it.note); }
+    else groups.push({name:it.name, price:it.price, gsmLabels:[it.gsmLabel], priceOrigs:[it.priceOrig], notes:it.note?[it.note]:[]});
+  });
+  return groups.map(g=>({
+    name:g.name, price:g.price, gsmLabel:g.gsmLabels.join(', '),
+    priceOrig:g.priceOrigs.every(p=>p===g.priceOrigs[0])?g.priceOrigs[0]:g.priceOrigs.join(' / '),
+    note:g.notes.join(' · '),
+  }));
+}
 function exportQuotePDF(no){
   const q=QUOTES.find(x=>x.no===no)||QUOTES[0];
   const w=window.open('','_blank');
   if(!w){ toast('Trình duyệt chặn cửa sổ — cho phép popup để xuất PDF'); return; }
-  const list=(q.items&&q.items.length)?q.items:[];
+  const list=pbGroupQuoteItemsForPDF((q.items&&q.items.length)?q.items:[]);
   const rows=list.map((p,i)=>`<tr><td class="num">${i+1}</td><td>${p.name} / Định lượng: ${p.gsmLabel} g/m2.</td>
-    <td class="num">${p.priceOrig.toLocaleString('vi-VN')}</td><td class="num"><b>${p.price.toLocaleString('vi-VN')}</b></td>
+    <td class="num">${typeof p.priceOrig==='number'?p.priceOrig.toLocaleString('vi-VN'):p.priceOrig}</td><td class="num"><b>${p.price.toLocaleString('vi-VN')}</b></td>
     <td>${p.note||''}</td></tr>`).join('')
     || `<tr><td colspan="5" class="muted" style="text-align:center">Chưa có sản phẩm — vào "Quản lý sản phẩm" để thêm</td></tr>`;
   w.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>${qMonthTitle(q.month)}</title>
