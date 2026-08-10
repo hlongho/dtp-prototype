@@ -1696,10 +1696,10 @@ S.quote = ()=> appnav('Bán hàng nội địa','Cơ hội',TAB_SALES,'Cơ hội
      ])}
      ${(()=>{ const q=QUOTES.find(x=>x.no==='QUO-0451')||{items:[],month:'2026-08'};
        const hasNext=q.items.some(p=>p.priceNext!==undefined);
-       const cols=[{t:'STT'},{t:'Chủng loại sản phẩm'},{t:'Định lượng',num:true},{t:'Giá tháng '+qPrevMonthNum(q.month),num:true},{t:'Giá tháng '+qMonthNum(q.month),num:true}];
+       const cols=[{t:'STT'},{t:'Chủng loại sản phẩm'},{t:'Định lượng',num:true},{t:'Giá tháng '+qPrevMonthNum(q.month),num:true},{t:'Giá tháng '+qMonthNum(q.month),num:true},{t:'Chênh lệch',num:true}];
        if(hasNext) cols.push({t:'Giá tháng '+qMonthNum(qNextMonthStr(q.month)),num:true});
        cols.push({t:'Ghi chú'});
-       const rows=q.items.map((p,i)=>{ const r=[String(i+1),p.name,p.gsmLabel+' gsm',p.base.toLocaleString('vi-VN'),'<b>'+p.price.toLocaleString('vi-VN')+'</b>'];
+       const rows=q.items.map((p,i)=>{ const r=[String(i+1),p.name,p.gsmLabel+' gsm',p.base.toLocaleString('vi-VN'),'<b>'+p.price.toLocaleString('vi-VN')+'</b>',dqDeltaBadge(p.price,p.base)||'<span class="wf-muted">—</span>'];
          if(hasNext) r.push(p.priceNext!==undefined?'<b>'+p.priceNext.toLocaleString('vi-VN')+'</b>':'—');
          r.push('<span class="wf-muted" style="font-size:11px">'+(p.note||'—')+'</span>');
          return r; });
