@@ -2983,8 +2983,8 @@ function logisDetailFormHTML(){
        <div style="font-weight:600;margin-bottom:6px">Tổng chi phí <span class="wf-muted" style="font-size:10px;font-weight:400">(chỉ tính các khoản đã tick ✓ ở trên)</span></div>
        <table class="tbl sm"><thead><tr><th></th><th class="num">USD/CONT</th><th class="num">VND/CONT</th><th class="num">USD/Tấn</th><th class="num">VNĐ/Tấn</th></tr></thead><tbody>
          <tr><td>Tổng chi phí EWS <span class="wf-muted" style="font-size:10px">(Phí nội địa)</span></td><td class="num" id="ld-tot-ews">0</td><td class="num" id="ld-tot-ews-vnd">0 ₫</td><td class="num" id="ld-tot-ews-ton">0</td><td class="num" id="ld-tot-ews-ton-vnd">0 ₫</td></tr>
-         <tr><td>Tổng chi phí FOB <span class="wf-muted" style="font-size:10px">(EWS + Phí Dịch vụ)</span></td><td class="num" id="ld-tot-fob">0</td><td class="num" id="ld-tot-fob-vnd">0 ₫</td><td class="num" id="ld-tot-fob-ton">0</td><td class="num" id="ld-tot-fob-ton-vnd">0 ₫</td></tr>
-         <tr><td>Tổng chi phí CIF <span class="wf-muted" style="font-size:10px">(FOB + NCC agency)</span></td><td class="num" id="ld-tot-cif">0</td><td class="num" id="ld-tot-cif-vnd">0 ₫</td><td class="num" id="ld-tot-cif-ton">0</td><td class="num" id="ld-tot-cif-ton-vnd">0 ₫</td></tr>
+         <tr><td>Tổng chi phí FOB <span class="wf-muted" style="font-size:10px">(Phí Dịch vụ)</span></td><td class="num" id="ld-tot-fob">0</td><td class="num" id="ld-tot-fob-vnd">0 ₫</td><td class="num" id="ld-tot-fob-ton">0</td><td class="num" id="ld-tot-fob-ton-vnd">0 ₫</td></tr>
+         <tr><td>Tổng chi phí CIF <span class="wf-muted" style="font-size:10px">(NCC agency)</span></td><td class="num" id="ld-tot-cif">0</td><td class="num" id="ld-tot-cif-vnd">0 ₫</td><td class="num" id="ld-tot-cif-ton">0</td><td class="num" id="ld-tot-cif-ton-vnd">0 ₫</td></tr>
        </tbody></table>
        <div style="margin-top:10px"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Note</label><textarea id="ld-note" class="mass-sel" rows="2" placeholder="Ghi chú sẽ hiển thị trong báo giá chung"></textarea></div>
      </div>`;
@@ -3002,10 +3002,10 @@ function recalcLogisDetail(){
   const hangtauTotal=ldHtFinalTotal();
   setText('ld-ht-sub-usd-final', hangtauTotal.toLocaleString('en-US'));
   setText('ld-ht-sub-vnd-final', fmtMoney(Math.round(hangtauTotal*rate)));
-  // Phí nội địa (đã chọn) -> EWS; Phí Dịch vụ -> FOB (= EWS + Dịch vụ); NCC (agency) -> CIF (= FOB + NCC)
+  // Phí nào ra phí đó, không cộng dồn sang nhau: Phí nội địa -> EWS; Phí Dịch vụ -> FOB; NCC (agency) -> CIF
   const ews=noidiaTotal;
-  const fob=ews+dichvuTotal;
-  const cif=fob+hangtauTotal;
+  const fob=dichvuTotal;
+  const cif=hangtauTotal;
   const contQty=ldContQty(), tonQty=ldTonQty();
   const setTier=(usd,idBase)=>{
     const usdPerTon=tonQty>0?(usd*contQty)/tonQty:0;
@@ -3037,10 +3037,10 @@ function confirmLogisDetail(){
   const dichvuTotal=dichvu.filter(x=>x.included).reduce((s,x)=>s+x.usd,0)+dichvuExtra.filter(x=>x.included).reduce((s,x)=>s+x.usd,0);
   const nccOptions=LD_HT_SELECTED.map(n=>({ncc:n,total:ldHangtauColumnTotal(n)}));
   const hangtauTotal=ldHtFinalTotal();
-  // Phí nội địa -> EWS; Phí Dịch vụ -> FOB (= EWS + Dịch vụ); NCC (agency) -> CIF (= FOB + NCC)
+  // Phí nào ra phí đó, không cộng dồn sang nhau: Phí nội địa -> EWS; Phí Dịch vụ -> FOB; NCC (agency) -> CIF
   const ews=noidiaTotal;
-  const fob=ews+dichvuTotal;
-  const cif=fob+hangtauTotal;
+  const fob=dichvuTotal;
+  const cif=hangtauTotal;
   const mkTier=usd=>({usd,vnd:Math.round(usd*exrate),usdPerTon:tonQty>0?(usd*contQty)/tonQty:0});
   const tiers={EWS:mkTier(ews),FOB:mkTier(fob),CIF:mkTier(cif)};
   const note=(document.getElementById('ld-note').value||'').trim();
