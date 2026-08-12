@@ -2813,6 +2813,7 @@ const NCC_LOGIS_MASTER={
 };
 let LOGIS_DETAILS=[];
 function ldNum(id){ const el=document.getElementById(id); return el?(+el.value||0):0; }
+function ldChecked(id){ const el=document.getElementById(id); return !!(el&&el.checked); }
 function ldCurSel(id,cls,extraOn){ return `<select id="${id}" class="mass-sel ${cls||''}" onchange="${extraOn||'recalcLogisDetail()'}"><option value="USD">USD</option><option value="VNĐ">VNĐ</option></select>`; }
 function ldUnitSel(id,sel){ return `<select id="${id}" class="mass-sel" onchange="recalcLogisDetail()"><option value="Cont"${sel==='Cont'?' selected':''}>Cont</option><option value="Lô hàng"${sel==='Lô hàng'?' selected':''}>Lô hàng</option></select>`; }
 function ldExRate(){ return ldNum('ld-exrate')||LOGIS_EXRATE_DEFAULT; }
@@ -2825,24 +2826,10 @@ function ldValUSD(amtId,curId,unitId){
   if(unitId){ const unitEl=document.getElementById(unitId); if(unitEl && unitEl.value==='Lô hàng') usd=usd/ldContQty(); }
   return usd;
 }
-// Mỗi khoản phí được GÁN vào 1 nhóm Tổng chi phí (EWS/FOB/CIF) thay vì cộng cứng theo vai trò cố định.
-// Theo thứ tự Incoterms (EWS ⊂ FOB ⊂ CIF): 1 khoản gán nhóm X sẽ được cộng vào TẤT CẢ các dòng tổng >= X.
-const LD_TIERS=['EWS','FOB','CIF'];
-function ldTierRank(g){ return LD_TIERS.indexOf(g); }
-function ldGroupSel(id){
-  return `<select id="${id}" class="mass-sel" onchange="recalcLogisDetail()" style="width:auto;min-width:118px">
-    <option value="">— (không tính)</option>
-    <option value="EWS">EWS</option>
-    <option value="FOB">FOB</option>
-    <option value="CIF">CIF</option>
-  </select>`;
-}
-function ldGroupVal(id){ const el=document.getElementById(id); return el?el.value:''; }
-function ldTierUSD(amtId,curId,unitId,grpId,tier){
-  const r=ldTierRank(ldGroupVal(grpId));
-  if(r<0) return 0;
-  return r<=ldTierRank(tier) ? ldValUSD(amtId,curId,unitId) : 0;
-}
+// Mỗi khoản phí có 1 checkbox chọn có tính vào Tổng chi phí hay không (khoản nào không tick sẽ không cộng vào FOB/CIF).
+// Vai trò của từng khoản trong công thức FOB/CIF vẫn giữ nguyên theo logic gốc: TTHQ+CO thuộc FOB, Bảo hiểm+NCC(agency) cộng thêm vào CIF.
+function ldIncludedUSD(amtId,curId,unitId,incId){ return ldChecked(incId) ? ldValUSD(amtId,curId,unitId) : 0; }
+function ldIncCb(id,checked){ return `<input type="checkbox" id="${id}" ${checked?'checked':''} onchange="recalcLogisDetail()" title="Tính vào Tổng chi phí">`; }
 let LD_EXTRA_IDS={noidia:[],dichvu:[],hangtau:[]};
 const LD_CUR_ID={noidia:'ld-noidia-cur',dichvu:'ld-dichvu-cur',hangtau:'ld-ht-cur'};
 function ldAddExtraRow(section){
@@ -2856,22 +2843,20 @@ function ldAddExtraRow(section){
   const rowId='ld-'+section+'-x'+LD_EXTRA_IDS[section].length;
   LD_EXTRA_IDS[section].push(rowId);
   const nameCell=`<input class="mass-sel" id="${rowId}-name" placeholder="Nhập tên phí">`;
-  const html=`<tr><td>${ldGroupSel(rowId+'-grp')}</td><td>${nameCell}</td><td class="num"><input type="number" min="0" class="mass-sel" id="${rowId}-val" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel(rowId+'-unit','Cont')}</td></tr>`;
+  const html=`<tr><td>${ldIncCb(rowId+'-inc',false)}</td><td>${nameCell}</td><td class="num"><input type="number" min="0" class="mass-sel" id="${rowId}-val" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel(rowId+'-unit','Cont')}</td></tr>`;
   tbody.insertAdjacentHTML('beforeend',html);
   recalcLogisDetail();
 }
-function ldExtraSectionTierTotal(section,tier){
+function ldExtraSectionTotal(section){
   const curId=LD_CUR_ID[section];
   return LD_EXTRA_IDS[section].reduce((s,rowId)=>{
-    const amtId=section==='hangtau'?rowId+'-final':rowId+'-val';
-    return s+ldTierUSD(amtId,curId,rowId+'-unit',rowId+'-grp',tier);
+    return s+ldIncludedUSD(rowId+'-val',curId,rowId+'-unit',rowId+'-inc');
   },0);
 }
 function ldExtraSectionData(section){
   const curId=LD_CUR_ID[section]; const cur=document.getElementById(curId).value;
   return LD_EXTRA_IDS[section].map(rowId=>{
-    const amtId=section==='hangtau'?rowId+'-final':rowId+'-val';
-    return {name:(document.getElementById(rowId+'-name').value||'').trim()||'(chưa đặt tên)',value:ldNum(amtId),cur,unit:document.getElementById(rowId+'-unit').value,usd:ldValUSD(amtId,curId,rowId+'-unit'),group:ldGroupVal(rowId+'-grp')};
+    return {name:(document.getElementById(rowId+'-name').value||'').trim()||'(chưa đặt tên)',value:ldNum(rowId+'-val'),cur,unit:document.getElementById(rowId+'-unit').value,usd:ldValUSD(rowId+'-val',curId,rowId+'-unit'),included:ldChecked(rowId+'-inc')};
   });
 }
 /* --- NCC (agency): so sánh nhiều NCC, mỗi NCC 1 cột, cộng cột Final giá để deal lại --- */
@@ -2893,14 +2878,8 @@ function ldHangtauColumnTotal(ncc){
 }
 function ldHtFinalTotal(){
   let total=0;
-  LOGIS_FEE_HANGTAU.forEach((_,i)=>{ if(i===0||i===1) return; total+=ldValUSD('ld-ht-'+i+'-final','ld-ht-cur','ld-ht-unit-'+i); });
-  LD_EXTRA_IDS.hangtau.forEach(rowId=>{ total+=ldValUSD(rowId+'-final','ld-ht-cur',rowId+'-unit'); });
-  return total;
-}
-function ldHangtauTierTotal(tier){
-  let total=0;
-  LOGIS_FEE_HANGTAU.forEach((_,i)=>{ if(i===0||i===1) return; total+=ldTierUSD('ld-ht-'+i+'-final','ld-ht-cur','ld-ht-unit-'+i,'ld-ht-'+i+'-grp',tier); });
-  total+=ldExtraSectionTierTotal('hangtau',tier);
+  LOGIS_FEE_HANGTAU.forEach((_,i)=>{ if(i===0||i===1) return; total+=ldIncludedUSD('ld-ht-'+i+'-final','ld-ht-cur','ld-ht-unit-'+i,'ld-ht-'+i+'-inc'); });
+  LD_EXTRA_IDS.hangtau.forEach(rowId=>{ total+=ldIncludedUSD(rowId+'-final','ld-ht-cur',rowId+'-unit',rowId+'-inc'); });
   return total;
 }
 function ldHtCopyToFinal(ncc){
@@ -2931,12 +2910,12 @@ function ldHangtauTableHTML(){
     const finalCell=isNote
       ? `<td><input type="text" id="ld-ht-${i}-final" class="mass-sel" placeholder="Ghi chú" oninput="recalcLogisDetail()"></td>`
       : `<td class="num"><input type="number" ${isOF?'':'min="0"'} id="ld-ht-${i}-final" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td>`;
-    const grpCell=(isOF||isNote) ? `<td></td>` : `<td>${ldGroupSel('ld-ht-'+i+'-grp')}</td>`;
-    return `<tr>${grpCell}<td>${name}</td>${cells}${finalCell}<td>${ldUnitSel('ld-ht-unit-'+i,unit)}</td></tr>`;
+    const incCell=(isOF||isNote) ? `<td></td>` : `<td>${ldIncCb('ld-ht-'+i+'-inc',false)}</td>`;
+    return `<tr>${incCell}<td>${name}</td>${cells}${finalCell}<td>${ldUnitSel('ld-ht-unit-'+i,unit)}</td></tr>`;
   }).join('');
   const extraRows=LD_EXTRA_IDS.hangtau.map(rowId=>{
     const cells=LD_HT_SELECTED.map(ncc=>`<td class="num"><input type="number" min="0" id="${rowId}-${ldSlug(ncc)}" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td>`).join('');
-    return `<tr><td>${ldGroupSel(rowId+'-grp')}</td><td><input class="mass-sel" id="${rowId}-name" placeholder="Nhập tên phí"></td>${cells}<td class="num"><input type="number" min="0" id="${rowId}-final" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel(rowId+'-unit','Cont')}</td></tr>`;
+    return `<tr><td>${ldIncCb(rowId+'-inc',false)}</td><td><input class="mass-sel" id="${rowId}-name" placeholder="Nhập tên phí"></td>${cells}<td class="num"><input type="number" min="0" id="${rowId}-final" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel(rowId+'-unit','Cont')}</td></tr>`;
   }).join('');
   const copyRow=`<tr><td></td><td class="wf-muted" style="font-size:11px">Chọn NCC làm gốc → Final giá</td>${LD_HT_SELECTED.map(n=>`<td class="num"><input type="radio" name="ld-ht-base-radio" onchange="ldHtCopyToFinal('${n.replace(/'/g,"\\'")}')"></td>`).join('')}<td></td><td></td></tr>`;
   const footUsd=LD_HT_SELECTED.map(n=>`<td class="num" id="ld-ht-sub-usd-${ldSlug(n)}">0</td>`).join('');
@@ -2946,7 +2925,7 @@ function ldHangtauTableHTML(){
       <tr style="font-weight:700"><td></td><td>Tổng (USD/CONT)</td>${footUsd}<td class="num" id="ld-ht-sub-usd-final">0</td><td></td></tr>
       <tr style="font-weight:700"><td></td><td>Tổng (VND/CONT)</td>${footVnd}<td class="num" id="ld-ht-sub-vnd-final">0 ₫</td><td></td></tr>
     </tfoot></table></div>
-    <div class="wf-muted" style="font-size:11px;margin-top:4px">Chọn 1 NCC ở dòng "Chọn NCC làm gốc" để copy giá của NCC đó sang cột "Final giá" — sau đó vẫn có thể sửa tay theo giá deal thực tế. Gán nhóm EWS/FOB/CIF ở đầu dòng để khoản phí đó được cộng vào (các) dòng Tổng chi phí tương ứng (riêng O/F và ghi chú Note 2 không tham gia Tổng chi phí).</div>`;
+    <div class="wf-muted" style="font-size:11px;margin-top:4px">Chọn 1 NCC ở dòng "Chọn NCC làm gốc" để copy giá của NCC đó sang cột "Final giá" — sau đó vẫn có thể sửa tay theo giá deal thực tế. Tick chọn ✓ ở đầu dòng để tính khoản phí đó vào Tổng chi phí CIF (riêng O/F và ghi chú Note 2 không tham gia Tổng chi phí).</div>`;
 }
 function ldHtSyncValues(){
   const wrap=document.getElementById('ld-ht-table-wrap'); const map={}; if(!wrap) return map;
@@ -2975,8 +2954,8 @@ function ldSectionHead(title,curId,extra){
   </div>`;
 }
 function logisDetailFormHTML(){
-  const noidiaRows=LOGIS_FEE_NOIDIA.map(([name,unit],i)=>`<tr><td>${ldGroupSel('ld-noidia-'+i+'-grp')}</td><td>${name}</td><td class="num"><input type="number" min="0" id="ld-noidia-${i}" class="mass-sel" placeholder="Giá" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel('ld-noidia-unit-'+i,unit)}</td></tr>`).join('');
-  const dichvuRows=LOGIS_FEE_DICHVU.map(([name,unit],i)=>`<tr><td>${ldGroupSel('ld-dichvu-'+i+'-grp')}</td><td>${name}</td><td class="num"><input type="number" min="0" id="ld-dichvu-${i}" class="mass-sel" placeholder="Giá" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel('ld-dichvu-unit-'+i,unit)}</td></tr>`).join('');
+  const noidiaRows=LOGIS_FEE_NOIDIA.map(([name,unit],i)=>`<tr><td>${ldIncCb('ld-noidia-'+i+'-inc',false)}</td><td>${name}</td><td class="num"><input type="number" min="0" id="ld-noidia-${i}" class="mass-sel" placeholder="Giá" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel('ld-noidia-unit-'+i,unit)}</td></tr>`).join('');
+  const dichvuRows=LOGIS_FEE_DICHVU.map(([name,unit],i)=>`<tr><td>${ldIncCb('ld-dichvu-'+i+'-inc',false)}</td><td>${name}</td><td class="num"><input type="number" min="0" id="ld-dichvu-${i}" class="mass-sel" placeholder="Giá" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel('ld-dichvu-unit-'+i,unit)}</td></tr>`).join('');
   return `<div style="margin-bottom:14px">
        <div class="ptf-row" style="align-items:baseline">
          <div class="ptf-f" style="flex:1"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Số lượng Cont / lô hàng *</label><input type="number" id="ld-contqty" class="mass-sel" value="1" min="1" oninput="recalcLogisDetail()"></div>
@@ -2986,12 +2965,12 @@ function logisDetailFormHTML(){
      </div>
      <div style="margin-bottom:14px">
        ${ldSectionHead('Phí nội địa','ld-noidia-cur')}
-       <table class="tbl sm"><thead><tr><th>Nhóm</th><th>Tên phí</th><th class="num">Giá</th><th>Đơn vị tính</th></tr></thead><tbody id="ld-noidia-tbody">${noidiaRows}</tbody></table>
+       <table class="tbl sm"><thead><tr><th></th><th>Tên phí</th><th class="num">Giá</th><th>Đơn vị tính</th></tr></thead><tbody id="ld-noidia-tbody">${noidiaRows}</tbody></table>
        <button class="btn sm" style="margin-top:6px" onclick="ldAddExtraRow('noidia')">＋ Thêm giá</button>
      </div>
      <div style="margin-bottom:14px">
        ${ldSectionHead('Phí Dịch vụ','ld-dichvu-cur')}
-       <table class="tbl sm"><thead><tr><th>Nhóm</th><th>Tên phí</th><th class="num">Giá</th><th>Đơn vị tính</th></tr></thead><tbody id="ld-dichvu-tbody">${dichvuRows}</tbody></table>
+       <table class="tbl sm"><thead><tr><th></th><th>Tên phí</th><th class="num">Giá</th><th>Đơn vị tính</th></tr></thead><tbody id="ld-dichvu-tbody">${dichvuRows}</tbody></table>
        <button class="btn sm" style="margin-top:6px" onclick="ldAddExtraRow('dichvu')">＋ Thêm giá</button>
      </div>
      <div style="margin-bottom:14px">
@@ -3001,23 +2980,21 @@ function logisDetailFormHTML(){
        <button class="btn sm" style="margin-top:6px" onclick="ldAddExtraRow('hangtau')">＋ Thêm giá</button>
      </div>
      <div class="ptf-item" style="background:var(--bg)">
-       <div style="font-weight:600;margin-bottom:6px">Tổng chi phí <span class="wf-muted" style="font-size:10px;font-weight:400">(gán nhóm EWS/FOB/CIF cho từng khoản phí ở trên — chưa gán sẽ không tính vào dòng nào)</span></div>
+       <div style="font-weight:600;margin-bottom:6px">Tổng chi phí <span class="wf-muted" style="font-size:10px;font-weight:400">(chỉ tính các khoản đã tick ✓ ở trên)</span></div>
        <table class="tbl sm"><thead><tr><th></th><th class="num">USD/CONT</th><th class="num">VND/CONT</th><th class="num">USD/Tấn</th><th class="num">VNĐ/Tấn</th></tr></thead><tbody>
-         <tr><td>Tổng chi phí EWS</td><td class="num" id="ld-tot-usd-cont-EWS">0</td><td class="num" id="ld-tot-vnd-cont-EWS">0 ₫</td><td class="num" id="ld-tot-usd-ton-EWS">0</td><td class="num" id="ld-tot-vnd-ton-EWS">0 ₫</td></tr>
-         <tr><td>Tổng chi phí FOB</td><td class="num" id="ld-tot-usd-cont-FOB">0</td><td class="num" id="ld-tot-vnd-cont-FOB">0 ₫</td><td class="num" id="ld-tot-usd-ton-FOB">0</td><td class="num" id="ld-tot-vnd-ton-FOB">0 ₫</td></tr>
-         <tr><td>Tổng chi phí CIF</td><td class="num" id="ld-tot-usd-cont-CIF">0</td><td class="num" id="ld-tot-vnd-cont-CIF">0 ₫</td><td class="num" id="ld-tot-usd-ton-CIF">0</td><td class="num" id="ld-tot-vnd-ton-CIF">0 ₫</td></tr>
+         <tr><td>Tổng chi phí EWS</td><td class="num" id="ld-tot-ews">0</td><td class="num" id="ld-tot-ews-vnd">0 ₫</td><td class="num" id="ld-tot-ews-ton">0</td><td class="num" id="ld-tot-ews-ton-vnd">0 ₫</td></tr>
+         <tr><td>Tổng chi phí FOB <span class="wf-muted" style="font-size:10px">(Có C/O)</span></td><td class="num" id="ld-tot-fob">0</td><td class="num" id="ld-tot-fob-vnd">0 ₫</td><td class="num" id="ld-tot-fob-ton">0</td><td class="num" id="ld-tot-fob-ton-vnd">0 ₫</td></tr>
+         <tr><td>Tổng chi phí CIF</td><td class="num" id="ld-tot-cif">0</td><td class="num" id="ld-tot-cif-vnd">0 ₫</td><td class="num" id="ld-tot-cif-ton">0</td><td class="num" id="ld-tot-cif-ton-vnd">0 ₫</td></tr>
        </tbody></table>
        <div style="margin-top:10px"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Note</label><textarea id="ld-note" class="mass-sel" rows="2" placeholder="Ghi chú sẽ hiển thị trong báo giá chung"></textarea></div>
      </div>`;
 }
-function ldTierTotalUSD(tier){
-  const noidiaTotal=LOGIS_FEE_NOIDIA.reduce((s,_,i)=>s+ldTierUSD('ld-noidia-'+i,'ld-noidia-cur','ld-noidia-unit-'+i,'ld-noidia-'+i+'-grp',tier),0)+ldExtraSectionTierTotal('noidia',tier);
-  const dichvuTotal=LOGIS_FEE_DICHVU.reduce((s,_,i)=>s+ldTierUSD('ld-dichvu-'+i,'ld-dichvu-cur','ld-dichvu-unit-'+i,'ld-dichvu-'+i+'-grp',tier),0)+ldExtraSectionTierTotal('dichvu',tier);
-  return noidiaTotal+dichvuTotal+ldHangtauTierTotal(tier);
-}
 function recalcLogisDetail(){
   const rate=ldExRate();
   const setText=(id,txt)=>{const e=document.getElementById(id); if(e) e.textContent=txt;};
+  const noidiaTotal=LOGIS_FEE_NOIDIA.reduce((s,_,i)=>s+ldIncludedUSD('ld-noidia-'+i,'ld-noidia-cur','ld-noidia-unit-'+i,'ld-noidia-'+i+'-inc'),0)+ldExtraSectionTotal('noidia');
+  const tthq=ldIncludedUSD('ld-dichvu-0','ld-dichvu-cur','ld-dichvu-unit-0','ld-dichvu-0-inc'), co=ldIncludedUSD('ld-dichvu-1','ld-dichvu-cur','ld-dichvu-unit-1','ld-dichvu-1-inc'), baohiem=ldIncludedUSD('ld-dichvu-2','ld-dichvu-cur','ld-dichvu-unit-2','ld-dichvu-2-inc');
+  const dichvuExtraTotal=ldExtraSectionTotal('dichvu');
   LD_HT_SELECTED.forEach(ncc=>{
     const slug=ldSlug(ncc), tot=ldHangtauColumnTotal(ncc);
     setText('ld-ht-sub-usd-'+slug, tot.toLocaleString('en-US'));
@@ -3026,15 +3003,20 @@ function recalcLogisDetail(){
   const hangtauTotal=ldHtFinalTotal();
   setText('ld-ht-sub-usd-final', hangtauTotal.toLocaleString('en-US'));
   setText('ld-ht-sub-vnd-final', fmtMoney(Math.round(hangtauTotal*rate)));
+  const ews=0;
+  const fob=noidiaTotal+tthq+co+dichvuExtraTotal;
+  const cif=fob+baohiem+hangtauTotal;
   const contQty=ldContQty(), tonQty=ldTonQty();
-  LD_TIERS.forEach(tier=>{
-    const totalUsdPerCont=ldTierTotalUSD(tier);
-    const usdPerTon=tonQty>0?(totalUsdPerCont*contQty)/tonQty:0;
-    setText('ld-tot-usd-cont-'+tier, totalUsdPerCont.toLocaleString('en-US'));
-    setText('ld-tot-vnd-cont-'+tier, fmtMoney(Math.round(totalUsdPerCont*rate)));
-    setText('ld-tot-usd-ton-'+tier, usdPerTon.toLocaleString('en-US'));
-    setText('ld-tot-vnd-ton-'+tier, fmtMoney(Math.round(usdPerTon*rate)));
-  });
+  const setTier=(usd,idBase)=>{
+    const usdPerTon=tonQty>0?(usd*contQty)/tonQty:0;
+    setText(idBase, usd.toLocaleString('en-US'));
+    setText(idBase+'-vnd', fmtMoney(Math.round(usd*rate)));
+    setText(idBase+'-ton', usdPerTon.toLocaleString('en-US'));
+    setText(idBase+'-ton-vnd', fmtMoney(Math.round(usdPerTon*rate)));
+  };
+  setTier(ews,'ld-tot-ews');
+  setTier(fob,'ld-tot-fob');
+  setTier(cif,'ld-tot-cif');
 }
 function openLogisDetailModal(){
   LD_EXTRA_IDS={noidia:[],dichvu:[],hangtau:[]};
@@ -3048,19 +3030,24 @@ function closeLogisDetailModal(){ const b=document.getElementById('ldback'),m=do
 function confirmLogisDetail(){
   const noidiaCur=document.getElementById('ld-noidia-cur').value, dichvuCur=document.getElementById('ld-dichvu-cur').value;
   const contQty=ldContQty(), tonQty=ldTonQty(), exrate=ldExRate();
-  const noidia=LOGIS_FEE_NOIDIA.map(([name],i)=>({name,value:ldNum('ld-noidia-'+i),cur:noidiaCur,unit:document.getElementById('ld-noidia-unit-'+i).value,usd:ldValUSD('ld-noidia-'+i,'ld-noidia-cur','ld-noidia-unit-'+i),group:ldGroupVal('ld-noidia-'+i+'-grp')}));
-  const dichvu=LOGIS_FEE_DICHVU.map(([name],i)=>({name,value:ldNum('ld-dichvu-'+i),cur:dichvuCur,unit:document.getElementById('ld-dichvu-unit-'+i).value,usd:ldValUSD('ld-dichvu-'+i,'ld-dichvu-cur','ld-dichvu-unit-'+i),group:ldGroupVal('ld-dichvu-'+i+'-grp')}));
+  const noidia=LOGIS_FEE_NOIDIA.map(([name],i)=>({name,value:ldNum('ld-noidia-'+i),cur:noidiaCur,unit:document.getElementById('ld-noidia-unit-'+i).value,usd:ldValUSD('ld-noidia-'+i,'ld-noidia-cur','ld-noidia-unit-'+i),included:ldChecked('ld-noidia-'+i+'-inc')}));
+  const dichvu=LOGIS_FEE_DICHVU.map(([name],i)=>({name,value:ldNum('ld-dichvu-'+i),cur:dichvuCur,unit:document.getElementById('ld-dichvu-unit-'+i).value,usd:ldValUSD('ld-dichvu-'+i,'ld-dichvu-cur','ld-dichvu-unit-'+i),included:ldChecked('ld-dichvu-'+i+'-inc')}));
   const noidiaExtra=ldExtraSectionData('noidia'), dichvuExtra=ldExtraSectionData('dichvu');
+  const noidiaTotal=noidia.filter(x=>x.included).reduce((s,x)=>s+x.usd,0)+noidiaExtra.filter(x=>x.included).reduce((s,x)=>s+x.usd,0);
+  const tthq=dichvu[0].included?dichvu[0].usd:0, co=dichvu[1].included?dichvu[1].usd:0, baohiem=dichvu[2].included?dichvu[2].usd:0;
+  const dichvuExtraTotal=dichvuExtra.filter(x=>x.included).reduce((s,x)=>s+x.usd,0);
   const nccOptions=LD_HT_SELECTED.map(n=>({ncc:n,total:ldHangtauColumnTotal(n)}));
-  const tiers={}; LD_TIERS.forEach(tier=>{
-    const usd=ldTierTotalUSD(tier);
-    tiers[tier]={usd,vnd:Math.round(usd*exrate),usdPerTon:tonQty>0?(usd*contQty)/tonQty:0};
-  });
+  const hangtauTotal=ldHtFinalTotal();
+  const ews=0;
+  const fob=noidiaTotal+tthq+co+dichvuExtraTotal;
+  const cif=fob+baohiem+hangtauTotal;
+  const mkTier=usd=>({usd,vnd:Math.round(usd*exrate),usdPerTon:tonQty>0?(usd*contQty)/tonQty:0});
+  const tiers={EWS:mkTier(ews),FOB:mkTier(fob),CIF:mkTier(cif)};
   const note=(document.getElementById('ld-note').value||'').trim();
   const nccLabel=LD_HT_SELECTED.length?LD_HT_SELECTED.join(', '):'—';
   LOGIS_DETAILS.unshift({ncc:nccLabel,nccOptions,noidia:noidia.concat(noidiaExtra),dichvu:dichvu.concat(dichvuExtra),contQty,tonQty,exrate,tiers,note,createdAt:'Hôm nay'});
   closeLogisDetailModal(); renderLogisDetails();
-  toast('✓ Đã lưu báo giá Logistics chi tiết · NCC '+nccLabel+' · FOB $'+tiers.FOB.usd.toLocaleString('en-US')+'/cont · CIF $'+tiers.CIF.usd.toLocaleString('en-US')+'/cont');
+  toast('✓ Đã lưu báo giá Logistics chi tiết · NCC '+nccLabel+' · FOB $'+fob.toLocaleString('en-US')+'/cont · CIF $'+cif.toLocaleString('en-US')+'/cont');
 }
 function logisDetailRows(){
   return LOGIS_DETAILS.map(q=>`<tr><td>${q.ncc}</td><td class="num">$${q.tiers.FOB.usd.toLocaleString('en-US')}</td><td class="num">$${q.tiers.CIF.usd.toLocaleString('en-US')}</td><td class="num">${fmtMoney(q.tiers.CIF.vnd)}</td><td class="num">$${q.tiers.CIF.usdPerTon.toLocaleString('en-US')}</td><td>${q.note?`<span title="${q.note.replace(/"/g,'&quot;')}">${q.note}</span>`:'—'}</td><td>${q.createdAt}</td></tr>`).join('');
