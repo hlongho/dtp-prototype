@@ -2963,7 +2963,7 @@ function ldHangtauColumnTotal(ncc){
 }
 function ldHtFinalTotal(){
   let total=0;
-  LOGIS_FEE_HANGTAU.forEach((_,i)=>{ total+=ldValUSD('ld-ht-'+i+'-final','ld-ht-'+i+'-cur','ld-ht-unit-'+i); });
+  LOGIS_FEE_HANGTAU.forEach((_,i)=>{ if(i===1) return; total+=ldValUSD('ld-ht-'+i+'-final','ld-ht-'+i+'-cur','ld-ht-unit-'+i); });
   LD_EXTRA_IDS.hangtau.forEach(rowId=>{ total+=ldValUSD(rowId+'-final',rowId+'-cur',rowId+'-unit'); });
   return total;
 }
@@ -2993,10 +2993,12 @@ function ldHangtauTableHTML(){
         ? `<td><input type="text" id="ld-ht-${i}-${ldSlug(ncc)}" class="mass-sel" value="${base}" placeholder="Ghi chú" oninput="recalcLogisDetail()"></td>`
         : `<td class="num"><input type="number" ${isOF?'':'min="0"'} id="ld-ht-${i}-${ldSlug(ncc)}" class="mass-sel" value="${base||0}" oninput="recalcLogisDetail()" style="text-align:right"></td>`;
     }).join('');
-    const finalCell=`<td class="num"><input type="number" ${isOF?'':'min="0"'} id="ld-ht-${i}-final" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td>`;
+    const finalCell=isNote
+      ? `<td><input type="text" id="ld-ht-${i}-final" class="mass-sel" placeholder="Ghi chú" oninput="recalcLogisDetail()"></td>`
+      : `<td class="num"><input type="number" ${isOF?'':'min="0"'} id="ld-ht-${i}-final" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td>`;
     const customCell=`<td>${ldCustomNameInput('ld-ht-'+i+'-custom')}</td>`;
-    const curCell=`<td>${ldCurSel('ld-ht-'+i+'-cur')}</td>`;
-    return `<tr><td>${name}</td>${customCell}${cells}${finalCell}<td>${ldUnitSel('ld-ht-unit-'+i,unit)}</td>${curCell}<td>${ldDelBtn("ldRemoveMainRow('hangtau',"+i+")")}</td></tr>`;
+    const curCell=isNote ? `<td></td>` : `<td>${ldCurSel('ld-ht-'+i+'-cur')}</td>`;
+    return `<tr><td>${name}</td>${customCell}${cells}${finalCell}<td>${isNote?'':ldUnitSel('ld-ht-unit-'+i,unit)}</td>${curCell}<td>${ldDelBtn("ldRemoveMainRow('hangtau',"+i+")")}</td></tr>`;
   }).join('');
   const extraRows=LD_EXTRA_IDS.hangtau.map(rowId=>{
     const cells=LD_HT_SELECTED.map(ncc=>`<td class="num"><input type="number" min="0" id="${rowId}-${ldSlug(ncc)}" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td>`).join('');
@@ -3043,11 +3045,11 @@ function logisDetailFormHTML(){
      </div>
      <div style="margin-bottom:14px">
        ${ldSectionHead('NCC (agency)')}
-       <div style="margin-bottom:6px" id="ld-ht-ncc-chips">${ldHtChipsHTML()}</div>
        <div class="dq-search-wrap" style="margin-bottom:8px;max-width:360px">
          <input id="ld-ht-ncc-search" class="mass-sel" placeholder="🔍 Tìm & chọn NCC (agency)..." oninput="ldHtSearchInput()" onfocus="ldHtSearchInput()">
          <div id="ld-ht-ncc-suggest" class="dq-suggest" hidden></div>
        </div>
+       <div style="margin-bottom:6px" id="ld-ht-ncc-chips">${ldHtChipsHTML()}</div>
        <div id="ld-ht-table-wrap">${ldHangtauTableHTML()}</div>
        <button class="btn sm" style="margin-top:6px" onclick="ldAddExtraRow('hangtau')">＋ Thêm giá</button>
      </div>
@@ -3087,6 +3089,7 @@ function ldAllLineItems(){
     items.push({key:'dichvu:'+rowId, label:name, section:'Phí Dịch vụ', usd:ldValUSD(rowId+'-val',rowId+'-cur',rowId+'-unit')});
   });
   LOGIS_FEE_HANGTAU.forEach(([name],i)=>{
+    if(i===1) return; // O/F Include là ghi chú, không phải giá — không đưa vào Tổng chi phí
     if(LD_HIDDEN.hangtau.has(i)) return;
     const custom=(document.getElementById('ld-ht-'+i+'-custom')||{}).value||'';
     items.push({key:'hangtau:'+i, label:name+(custom?' — '+custom:''), section:'NCC (agency)', usd:ldValUSD('ld-ht-'+i+'-final','ld-ht-'+i+'-cur','ld-ht-unit-'+i)});
