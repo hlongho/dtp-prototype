@@ -2834,12 +2834,13 @@ function confirmFee(){
 const LOGIS_FEE_NOIDIA=[['TRUCKING','Cont'],['HẠ CONT + CƠ SỞ HẠ TẦNG','Cont']];
 const LOGIS_FEE_DICHVU=[['TTHQ','Lô hàng'],['CHI PHÍ C/O','Lô hàng'],['CHI PHÍ BẢO HIỂM','Lô hàng']];
 // Dòng 0 (Ocean Freight) là phí gốc, không có checkbox chọn vào Tổng chi phí (luôn tách riêng).
-const LOGIS_FEE_HANGTAU=[['Ocean Freight','Cont'],['Outbound Documentation Fee','Lô hàng'],['TELEX','Lô hàng'],['High Security Seal Charge','Cont'],['CIC','Cont'],['ISOCC/LSS','Cont'],['RR','Cont'],['BAF','Cont'],['AMS','Lô hàng'],['PSS','Cont'],['Terminal Handling Charge at Origin','Cont']];
+// Dòng 1 (O/F Include) nằm ngay dưới Ocean Freight — là ghi chú dạng text riêng cho từng hãng tàu (NCC), không phải giá.
+const LOGIS_FEE_HANGTAU=[['Ocean Freight','Cont'],['O/F Include','Cont'],['Outbound Documentation Fee','Lô hàng'],['TELEX','Lô hàng'],['High Security Seal Charge','Cont'],['CIC','Cont'],['ISOCC/LSS','Cont'],['RR','Cont'],['BAF','Cont'],['AMS','Lô hàng'],['PSS','Cont'],['Terminal Handling Charge at Origin','Cont']];
 const LOGIS_EXRATE_DEFAULT=26000;
 const NCC_LOGIS_MASTER={
-  'ONE Line': {'Ocean Freight':850,'Outbound Documentation Fee':35,'TELEX':30,'High Security Seal Charge':15,'CIC':80,'ISOCC/LSS':40,'RR':20,'BAF':60,'AMS':25,'PSS':10,'Terminal Handling Charge at Origin':120},
-  'Maersk': {'Ocean Freight':880,'Outbound Documentation Fee':40,'TELEX':30,'High Security Seal Charge':15,'CIC':85,'ISOCC/LSS':45,'RR':20,'BAF':65,'AMS':25,'PSS':10,'Terminal Handling Charge at Origin':125},
-  'Evergreen': {'Ocean Freight':835,'Outbound Documentation Fee':35,'TELEX':30,'High Security Seal Charge':15,'CIC':75,'ISOCC/LSS':35,'RR':20,'BAF':55,'AMS':25,'PSS':10,'Terminal Handling Charge at Origin':115},
+  'ONE Line': {'Ocean Freight':850,'O/F Include':'','Outbound Documentation Fee':35,'TELEX':30,'High Security Seal Charge':15,'CIC':80,'ISOCC/LSS':40,'RR':20,'BAF':60,'AMS':25,'PSS':10,'Terminal Handling Charge at Origin':120},
+  'Maersk': {'Ocean Freight':880,'O/F Include':'','Outbound Documentation Fee':40,'TELEX':30,'High Security Seal Charge':15,'CIC':85,'ISOCC/LSS':45,'RR':20,'BAF':65,'AMS':25,'PSS':10,'Terminal Handling Charge at Origin':125},
+  'Evergreen': {'Ocean Freight':835,'O/F Include':'','Outbound Documentation Fee':35,'TELEX':30,'High Security Seal Charge':15,'CIC':75,'ISOCC/LSS':35,'RR':20,'BAF':55,'AMS':25,'PSS':10,'Terminal Handling Charge at Origin':115},
 };
 let LOGIS_DETAILS=[];
 function ldNum(id){ const el=document.getElementById(id); return el?(+el.value||0):0; }
@@ -2956,19 +2957,20 @@ function ldHtPickNcc(ncc){
 }
 function ldHangtauColumnTotal(ncc){
   const slug=ldSlug(ncc); let total=0;
-  LOGIS_FEE_HANGTAU.forEach(([name],i)=>{ total+=ldValUSD('ld-ht-'+i+'-'+slug,'ld-ht-'+i+'-cur','ld-ht-unit-'+i); });
+  LOGIS_FEE_HANGTAU.forEach(([name],i)=>{ if(i===1) return; total+=ldValUSD('ld-ht-'+i+'-'+slug,'ld-ht-'+i+'-cur','ld-ht-unit-'+i); });
   LD_EXTRA_IDS.hangtau.forEach(rowId=>{ total+=ldValUSD(rowId+'-'+slug,rowId+'-cur',rowId+'-unit'); });
   return total;
 }
 function ldHtFinalTotal(){
   let total=0;
-  LOGIS_FEE_HANGTAU.forEach((_,i)=>{ if(i===0) return; total+=ldValUSD('ld-ht-'+i+'-final','ld-ht-'+i+'-cur','ld-ht-unit-'+i); });
+  LOGIS_FEE_HANGTAU.forEach((_,i)=>{ if(i===0||i===1) return; total+=ldValUSD('ld-ht-'+i+'-final','ld-ht-'+i+'-cur','ld-ht-unit-'+i); });
   LD_EXTRA_IDS.hangtau.forEach(rowId=>{ total+=ldValUSD(rowId+'-final',rowId+'-cur',rowId+'-unit'); });
   return total;
 }
 function ldHtCopyToFinal(ncc){
   const slug=ldSlug(ncc);
   LOGIS_FEE_HANGTAU.forEach(([name],i)=>{
+    if(i===1) return; // O/F Include là ghi chú riêng từng hãng tàu, không copy sang Final
     const src=document.getElementById('ld-ht-'+i+'-'+slug), dst=document.getElementById('ld-ht-'+i+'-final');
     if(src&&dst) dst.value=src.value;
   });
@@ -2984,15 +2986,19 @@ function ldHangtauTableHTML(){
   const header=`<tr><th>Tên phí</th><th>Tên tùy chỉnh</th>${LD_HT_SELECTED.map(n=>`<th class="num">${n}</th>`).join('')}${finalCol}<th>Đơn vị tính</th><th>Tiền tệ</th><th></th></tr>`;
   const rows=LOGIS_FEE_HANGTAU.map(([name,unit],i)=>{
     if(LD_HIDDEN.hangtau.has(i)) return '';
-    const isOF=i===0;
+    const isOF=i===0, isNote=i===1;
     const cells=LD_HT_SELECTED.map(ncc=>{
       const base=(NCC_LOGIS_MASTER[ncc]||{})[name]??0;
-      return `<td class="num"><input type="number" ${isOF?'':'min="0"'} id="ld-ht-${i}-${ldSlug(ncc)}" class="mass-sel" value="${base||0}" oninput="recalcLogisDetail()" style="text-align:right"></td>`;
+      return isNote
+        ? `<td><input type="text" id="ld-ht-${i}-${ldSlug(ncc)}" class="mass-sel" value="${base}" placeholder="Ghi chú" oninput="recalcLogisDetail()"></td>`
+        : `<td class="num"><input type="number" ${isOF?'':'min="0"'} id="ld-ht-${i}-${ldSlug(ncc)}" class="mass-sel" value="${base||0}" oninput="recalcLogisDetail()" style="text-align:right"></td>`;
     }).join('');
-    const finalCell=`<td class="num"><input type="number" ${isOF?'':'min="0"'} id="ld-ht-${i}-final" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td>`;
+    const finalCell=isNote
+      ? `<td></td>`
+      : `<td class="num"><input type="number" ${isOF?'':'min="0"'} id="ld-ht-${i}-final" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td>`;
     const customCell=`<td>${ldCustomNameInput('ld-ht-'+i+'-custom')}</td>`;
-    const curCell=`<td>${ldCurSel('ld-ht-'+i+'-cur')}</td>`;
-    return `<tr><td>${name}</td>${customCell}${cells}${finalCell}<td>${ldUnitSel('ld-ht-unit-'+i,unit)}</td>${curCell}<td>${ldDelBtn("ldRemoveMainRow('hangtau',"+i+")")}</td></tr>`;
+    const curCell=isNote ? `<td></td>` : `<td>${ldCurSel('ld-ht-'+i+'-cur')}</td>`;
+    return `<tr><td>${name}</td>${customCell}${cells}${finalCell}<td>${isNote?'':ldUnitSel('ld-ht-unit-'+i,unit)}</td>${curCell}<td>${ldDelBtn("ldRemoveMainRow('hangtau',"+i+")")}</td></tr>`;
   }).join('');
   const extraRows=LD_EXTRA_IDS.hangtau.map(rowId=>{
     const cells=LD_HT_SELECTED.map(ncc=>`<td class="num"><input type="number" min="0" id="${rowId}-${ldSlug(ncc)}" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td>`).join('');
@@ -3083,7 +3089,7 @@ function ldAllLineItems(){
     items.push({key:'dichvu:'+rowId, label:name, section:'Phí Dịch vụ', usd:ldValUSD(rowId+'-val',rowId+'-cur',rowId+'-unit')});
   });
   LOGIS_FEE_HANGTAU.forEach(([name],i)=>{
-    if(i===0) return;
+    if(i===0||i===1) return;
     if(LD_HIDDEN.hangtau.has(i)) return;
     const custom=(document.getElementById('ld-ht-'+i+'-custom')||{}).value||'';
     items.push({key:'hangtau:'+i, label:name+(custom?' — '+custom:''), section:'NCC (agency)', usd:ldValUSD('ld-ht-'+i+'-final','ld-ht-'+i+'-cur','ld-ht-unit-'+i)});
