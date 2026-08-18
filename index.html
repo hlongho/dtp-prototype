@@ -2833,7 +2833,7 @@ function confirmFee(){
 /* --- Tạo báo giá Logistics chi tiết (Phí nội địa / Phí Dịch vụ / NCC (agency)) --- */
 const LOGIS_FEE_NOIDIA=[['TRUCKING','Cont'],['HẠ CONT + CƠ SỞ HẠ TẦNG','Cont']];
 const LOGIS_FEE_DICHVU=[['TTHQ','Lô hàng'],['CHI PHÍ C/O','Lô hàng'],['CHI PHÍ BẢO HIỂM','Lô hàng']];
-// Dòng 0 (Ocean Freight) là phí gốc, không có checkbox chọn vào Tổng chi phí (luôn tách riêng).
+// Dòng 0 (Ocean Freight) cho phép nhập số âm (giảm giá/deal), vẫn tính vào Tổng chi phí như các dòng khác.
 // Dòng 1 (O/F Include) nằm ngay dưới Ocean Freight — là ghi chú dạng text riêng cho từng hãng tàu (NCC), không phải giá.
 const LOGIS_FEE_HANGTAU=[['Ocean Freight','Cont'],['O/F Include','Cont'],['Outbound Documentation Fee','Lô hàng'],['TELEX','Lô hàng'],['High Security Seal Charge','Cont'],['CIC','Cont'],['ISOCC/LSS','Cont'],['RR','Cont'],['BAF','Cont'],['AMS','Lô hàng'],['PSS','Cont'],['Terminal Handling Charge at Origin','Cont']];
 const LOGIS_EXRATE_DEFAULT=26000;
@@ -2963,7 +2963,7 @@ function ldHangtauColumnTotal(ncc){
 }
 function ldHtFinalTotal(){
   let total=0;
-  LOGIS_FEE_HANGTAU.forEach((_,i)=>{ if(i===0||i===1) return; total+=ldValUSD('ld-ht-'+i+'-final','ld-ht-'+i+'-cur','ld-ht-unit-'+i); });
+  LOGIS_FEE_HANGTAU.forEach((_,i)=>{ total+=ldValUSD('ld-ht-'+i+'-final','ld-ht-'+i+'-cur','ld-ht-unit-'+i); });
   LD_EXTRA_IDS.hangtau.forEach(rowId=>{ total+=ldValUSD(rowId+'-final',rowId+'-cur',rowId+'-unit'); });
   return total;
 }
@@ -2993,12 +2993,10 @@ function ldHangtauTableHTML(){
         ? `<td><input type="text" id="ld-ht-${i}-${ldSlug(ncc)}" class="mass-sel" value="${base}" placeholder="Ghi chú" oninput="recalcLogisDetail()"></td>`
         : `<td class="num"><input type="number" ${isOF?'':'min="0"'} id="ld-ht-${i}-${ldSlug(ncc)}" class="mass-sel" value="${base||0}" oninput="recalcLogisDetail()" style="text-align:right"></td>`;
     }).join('');
-    const finalCell=isNote
-      ? `<td></td>`
-      : `<td class="num"><input type="number" ${isOF?'':'min="0"'} id="ld-ht-${i}-final" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td>`;
+    const finalCell=`<td class="num"><input type="number" ${isOF?'':'min="0"'} id="ld-ht-${i}-final" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td>`;
     const customCell=`<td>${ldCustomNameInput('ld-ht-'+i+'-custom')}</td>`;
-    const curCell=isNote ? `<td></td>` : `<td>${ldCurSel('ld-ht-'+i+'-cur')}</td>`;
-    return `<tr><td>${name}</td>${customCell}${cells}${finalCell}<td>${isNote?'':ldUnitSel('ld-ht-unit-'+i,unit)}</td>${curCell}<td>${ldDelBtn("ldRemoveMainRow('hangtau',"+i+")")}</td></tr>`;
+    const curCell=`<td>${ldCurSel('ld-ht-'+i+'-cur')}</td>`;
+    return `<tr><td>${name}</td>${customCell}${cells}${finalCell}<td>${ldUnitSel('ld-ht-unit-'+i,unit)}</td>${curCell}<td>${ldDelBtn("ldRemoveMainRow('hangtau',"+i+")")}</td></tr>`;
   }).join('');
   const extraRows=LD_EXTRA_IDS.hangtau.map(rowId=>{
     const cells=LD_HT_SELECTED.map(ncc=>`<td class="num"><input type="number" min="0" id="${rowId}-${ldSlug(ncc)}" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td>`).join('');
@@ -3066,7 +3064,7 @@ function logisDetailFormHTML(){
        <div style="margin-top:10px"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Note</label><textarea id="ld-note" class="mass-sel" rows="2" placeholder="Ghi chú sẽ hiển thị trong báo giá chung"></textarea></div>
      </div>`;
 }
-// Danh sách toàn bộ khoản phí đã khai báo ở 3 mục trên (trừ Ocean Freight — luôn tách riêng, không vào Tổng chi phí)
+// Danh sách toàn bộ khoản phí đã khai báo ở 3 mục trên
 // dùng để hiển thị trong bảng chọn của từng dòng Tổng chi phí (EWS/FOB/CIF).
 function ldAllLineItems(){
   const items=[];
@@ -3089,7 +3087,6 @@ function ldAllLineItems(){
     items.push({key:'dichvu:'+rowId, label:name, section:'Phí Dịch vụ', usd:ldValUSD(rowId+'-val',rowId+'-cur',rowId+'-unit')});
   });
   LOGIS_FEE_HANGTAU.forEach(([name],i)=>{
-    if(i===0||i===1) return;
     if(LD_HIDDEN.hangtau.has(i)) return;
     const custom=(document.getElementById('ld-ht-'+i+'-custom')||{}).value||'';
     items.push({key:'hangtau:'+i, label:name+(custom?' — '+custom:''), section:'NCC (agency)', usd:ldValUSD('ld-ht-'+i+'-final','ld-ht-'+i+'-cur','ld-ht-unit-'+i)});
