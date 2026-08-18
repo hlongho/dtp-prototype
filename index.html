@@ -2896,10 +2896,10 @@ function ldExtraSectionData(section){
   });
 }
 function ldNoidiaRowHTML(name,unit,i){
-  return `<tr><td>${name}</td><td>${ldCustomNameInput('ld-noidia-'+i+'-custom')}</td><td class="num"><input type="number" min="0" id="ld-noidia-${i}" class="mass-sel" placeholder="Giá" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel('ld-noidia-unit-'+i,unit)}</td><td>${ldCurSel('ld-noidia-'+i+'-cur')}</td><td>${ldDelBtn("ldRemoveMainRow('noidia',"+i+")")}</td></tr>`;
+  return `<tr><td>${name}</td><td>${ldCustomNameInput('ld-noidia-'+i+'-custom')}</td><td class="num"><input type="number" min="0" id="ld-noidia-${i}" class="mass-sel" placeholder="Giá" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel('ld-noidia-unit-'+i,unit)}</td><td>${ldCurSel('ld-noidia-'+i+'-cur')}</td><td>${ldDelBtn("ldRemoveMainRow('noidia',"+i+")")}</td></tr>`;
 }
 function ldNoidiaExtraRowHTML(rowId){
-  return `<tr><td colspan="2"><input class="mass-sel" id="${rowId}-name" placeholder="Nhập tên phí"></td><td class="num"><input type="number" min="0" class="mass-sel" id="${rowId}-val" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel(rowId+'-unit','Cont')}</td><td>${ldCurSel(rowId+'-cur')}</td><td>${ldDelBtn("ldRemoveExtraRow('noidia','"+rowId+"')")}</td></tr>`;
+  return `<tr><td colspan="2"><input class="mass-sel" id="${rowId}-name" placeholder="Nhập tên phí"></td><td class="num"><input type="number" min="0" class="mass-sel" id="${rowId}-val" placeholder="Giá" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel(rowId+'-unit','Cont')}</td><td>${ldCurSel(rowId+'-cur')}</td><td>${ldDelBtn("ldRemoveExtraRow('noidia','"+rowId+"')")}</td></tr>`;
 }
 function ldNoidiaRowsHTML(){
   const main=LOGIS_FEE_NOIDIA.map(([name,unit],i)=> LD_HIDDEN.noidia.has(i)?'':ldNoidiaRowHTML(name,unit,i)).join('');
@@ -2911,10 +2911,10 @@ function ldRenderNoidiaTable(){
   ldApplyValues('ld-noidia-tbody',saved);
 }
 function ldDichvuRowHTML(name,unit,i){
-  return `<tr><td>${name}</td><td>${ldCustomNameInput('ld-dichvu-'+i+'-custom')}</td><td class="num"><input type="number" min="0" id="ld-dichvu-${i}" class="mass-sel" placeholder="Giá" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel('ld-dichvu-unit-'+i,unit)}</td><td>${ldCurSel('ld-dichvu-'+i+'-cur')}</td><td>${ldDelBtn("ldRemoveMainRow('dichvu',"+i+")")}</td></tr>`;
+  return `<tr><td>${name}</td><td>${ldCustomNameInput('ld-dichvu-'+i+'-custom')}</td><td class="num"><input type="number" min="0" id="ld-dichvu-${i}" class="mass-sel" placeholder="Giá" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel('ld-dichvu-unit-'+i,unit)}</td><td>${ldCurSel('ld-dichvu-'+i+'-cur')}</td><td>${ldDelBtn("ldRemoveMainRow('dichvu',"+i+")")}</td></tr>`;
 }
 function ldDichvuExtraRowHTML(rowId){
-  return `<tr><td colspan="2"><input class="mass-sel" id="${rowId}-name" placeholder="Nhập tên phí"></td><td class="num"><input type="number" min="0" class="mass-sel" id="${rowId}-val" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel(rowId+'-unit','Cont')}</td><td>${ldCurSel(rowId+'-cur')}</td><td>${ldDelBtn("ldRemoveExtraRow('dichvu','"+rowId+"')")}</td></tr>`;
+  return `<tr><td colspan="2"><input class="mass-sel" id="${rowId}-name" placeholder="Nhập tên phí"></td><td class="num"><input type="number" min="0" class="mass-sel" id="${rowId}-val" placeholder="Giá" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel(rowId+'-unit','Cont')}</td><td>${ldCurSel(rowId+'-cur')}</td><td>${ldDelBtn("ldRemoveExtraRow('dichvu','"+rowId+"')")}</td></tr>`;
 }
 function ldDichvuRowsHTML(){
   const main=LOGIS_FEE_DICHVU.map(([name,unit],i)=> LD_HIDDEN.dichvu.has(i)?'':ldDichvuRowHTML(name,unit,i)).join('');
@@ -2995,14 +2995,14 @@ function ldHangtauTableHTML(){
     }).join('');
     const finalCell=isNote
       ? `<td><input type="text" id="ld-ht-${i}-final" class="mass-sel" placeholder="Ghi chú" oninput="recalcLogisDetail()"></td>`
-      : `<td class="num"><input type="number" ${isOF?'':'min="0"'} id="ld-ht-${i}-final" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td>`;
+      : `<td class="num"><input type="number" ${isOF?'':'min="0"'} id="ld-ht-${i}-final" class="mass-sel" placeholder="Final giá" oninput="recalcLogisDetail()" style="text-align:right"></td>`;
     const customCell=`<td>${ldCustomNameInput('ld-ht-'+i+'-custom')}</td>`;
     const curCell=isNote ? `<td></td>` : `<td>${ldCurSel('ld-ht-'+i+'-cur')}</td>`;
     return `<tr><td>${name}</td>${customCell}${cells}${finalCell}<td>${isNote?'':ldUnitSel('ld-ht-unit-'+i,unit)}</td>${curCell}<td>${ldDelBtn("ldRemoveMainRow('hangtau',"+i+")")}</td></tr>`;
   }).join('');
   const extraRows=LD_EXTRA_IDS.hangtau.map(rowId=>{
-    const cells=LD_HT_SELECTED.map(ncc=>`<td class="num"><input type="number" min="0" id="${rowId}-${ldSlug(ncc)}" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td>`).join('');
-    return `<tr><td colspan="2"><input class="mass-sel" id="${rowId}-name" placeholder="Nhập tên phí"></td>${cells}<td class="num"><input type="number" min="0" id="${rowId}-final" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel(rowId+'-unit','Cont')}</td><td>${ldCurSel(rowId+'-cur')}</td><td>${ldDelBtn("ldRemoveExtraRow('hangtau','"+rowId+"')")}</td></tr>`;
+    const cells=LD_HT_SELECTED.map(ncc=>`<td class="num"><input type="number" min="0" id="${rowId}-${ldSlug(ncc)}" class="mass-sel" oninput="recalcLogisDetail()" style="text-align:right"></td>`).join('');
+    return `<tr><td colspan="2"><input class="mass-sel" id="${rowId}-name" placeholder="Nhập tên phí"></td>${cells}<td class="num"><input type="number" min="0" id="${rowId}-final" class="mass-sel" placeholder="Final giá" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel(rowId+'-unit','Cont')}</td><td>${ldCurSel(rowId+'-cur')}</td><td>${ldDelBtn("ldRemoveExtraRow('hangtau','"+rowId+"')")}</td></tr>`;
   }).join('');
   const copyRow=`<tr><td colspan="2" class="wf-muted" style="font-size:11px">Chọn NCC làm gốc → Final giá</td>${LD_HT_SELECTED.map(n=>`<td class="num"><input type="radio" name="ld-ht-base-radio" onchange="ldHtCopyToFinal('${n.replace(/'/g,"\\'")}')"></td>`).join('')}<td></td><td></td><td></td><td></td></tr>`;
   const footUsd=LD_HT_SELECTED.map(n=>`<td class="num" id="ld-ht-sub-usd-${ldSlug(n)}">0</td>`).join('');
@@ -3070,33 +3070,41 @@ function logisDetailFormHTML(){
 }
 // Danh sách toàn bộ khoản phí đã khai báo ở 3 mục trên
 // dùng để hiển thị trong bảng chọn của từng dòng Tổng chi phí (EWS/FOB/CIF).
+// Chỉ những khoản phí đã thực sự được nhập giá trị (không để trống) mới hiện ra trong bảng chọn Tổng chi phí.
+function ldHasVal(id){ const el=document.getElementById(id); return !!(el && el.value!==''); }
 function ldAllLineItems(){
   const items=[];
   LOGIS_FEE_NOIDIA.forEach(([name],i)=>{
     if(LD_HIDDEN.noidia.has(i)) return;
+    if(!ldHasVal('ld-noidia-'+i)) return;
     const custom=(document.getElementById('ld-noidia-'+i+'-custom')||{}).value||'';
     items.push({key:'noidia:'+i, label:name+(custom?' — '+custom:''), section:'Phí nội địa', usd:ldValUSD('ld-noidia-'+i,'ld-noidia-'+i+'-cur','ld-noidia-unit-'+i)});
   });
   LD_EXTRA_IDS.noidia.forEach(rowId=>{
+    if(!ldHasVal(rowId+'-val')) return;
     const name=(document.getElementById(rowId+'-name')||{}).value||'(chưa đặt tên)';
     items.push({key:'noidia:'+rowId, label:name, section:'Phí nội địa', usd:ldValUSD(rowId+'-val',rowId+'-cur',rowId+'-unit')});
   });
   LOGIS_FEE_DICHVU.forEach(([name],i)=>{
     if(LD_HIDDEN.dichvu.has(i)) return;
+    if(!ldHasVal('ld-dichvu-'+i)) return;
     const custom=(document.getElementById('ld-dichvu-'+i+'-custom')||{}).value||'';
     items.push({key:'dichvu:'+i, label:name+(custom?' — '+custom:''), section:'Phí Dịch vụ', usd:ldValUSD('ld-dichvu-'+i,'ld-dichvu-'+i+'-cur','ld-dichvu-unit-'+i)});
   });
   LD_EXTRA_IDS.dichvu.forEach(rowId=>{
+    if(!ldHasVal(rowId+'-val')) return;
     const name=(document.getElementById(rowId+'-name')||{}).value||'(chưa đặt tên)';
     items.push({key:'dichvu:'+rowId, label:name, section:'Phí Dịch vụ', usd:ldValUSD(rowId+'-val',rowId+'-cur',rowId+'-unit')});
   });
   LOGIS_FEE_HANGTAU.forEach(([name],i)=>{
     if(i===1) return; // O/F Include là ghi chú, không phải giá — không đưa vào Tổng chi phí
     if(LD_HIDDEN.hangtau.has(i)) return;
+    if(!ldHasVal('ld-ht-'+i+'-final')) return;
     const custom=(document.getElementById('ld-ht-'+i+'-custom')||{}).value||'';
     items.push({key:'hangtau:'+i, label:name+(custom?' — '+custom:''), section:'NCC (agency)', usd:ldValUSD('ld-ht-'+i+'-final','ld-ht-'+i+'-cur','ld-ht-unit-'+i)});
   });
   LD_EXTRA_IDS.hangtau.forEach(rowId=>{
+    if(!ldHasVal(rowId+'-final')) return;
     const name=(document.getElementById(rowId+'-name')||{}).value||'(chưa đặt tên)';
     items.push({key:'hangtau:'+rowId, label:name, section:'NCC (agency)', usd:ldValUSD(rowId+'-final',rowId+'-cur',rowId+'-unit')});
   });
