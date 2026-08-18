@@ -2843,7 +2843,6 @@ const NCC_LOGIS_MASTER={
 };
 let LOGIS_DETAILS=[];
 function ldNum(id){ const el=document.getElementById(id); return el?(+el.value||0):0; }
-function ldChecked(id){ const el=document.getElementById(id); return !!(el&&el.checked); }
 function ldCurSel(id,cls,extraOn){ return `<select id="${id}" class="mass-sel ${cls||''}" onchange="${extraOn||'recalcLogisDetail()'}"><option value="USD">USD</option><option value="VNĐ">VNĐ</option></select>`; }
 function ldUnitSel(id,sel){ return `<select id="${id}" class="mass-sel" onchange="recalcLogisDetail()"><option value="Cont"${sel==='Cont'?' selected':''}>Cont</option><option value="Lô hàng"${sel==='Lô hàng'?' selected':''}>Lô hàng</option></select>`; }
 function ldExRate(){ return ldNum('ld-exrate')||LOGIS_EXRATE_DEFAULT; }
@@ -2856,43 +2855,78 @@ function ldValUSD(amtId,curId,unitId){
   if(unitId){ const unitEl=document.getElementById(unitId); if(unitEl && unitEl.value==='Lô hàng') usd=usd/ldContQty(); }
   return usd;
 }
-// Mỗi khoản phí có 1 checkbox chọn có tính vào Tổng chi phí hay không (khoản nào không tick sẽ không cộng vào FOB/CIF).
-// Vai trò của từng khoản trong công thức FOB/CIF vẫn giữ nguyên theo logic gốc: TTHQ+CO thuộc FOB, Bảo hiểm+NCC(agency) cộng thêm vào CIF.
-function ldIncludedUSD(amtId,curId,unitId,incId){ return ldChecked(incId) ? ldValUSD(amtId,curId,unitId) : 0; }
-function ldIncCb(id,checked){ return `<input type="checkbox" id="${id}" ${checked?'checked':''} onchange="recalcLogisDetail()" title="Tính vào Tổng chi phí">`; }
 function ldCustomNameInput(id){ return `<input class="mass-sel" id="${id}" placeholder="Tên tùy chỉnh (tùy chọn)">`; }
-let LD_EXTRA_IDS={noidia:[],dichvu:[],hangtau:[]};
-function ldAddExtraRow(section){
-  if(section==='hangtau'){
-    const rowId='ld-hangtau-x'+LD_EXTRA_IDS.hangtau.length;
-    LD_EXTRA_IDS.hangtau.push(rowId);
-    ldRenderHangtauTable(); recalcLogisDetail();
-    return;
-  }
-  const tbody=document.getElementById('ld-'+section+'-tbody'); if(!tbody) return;
-  const rowId='ld-'+section+'-x'+LD_EXTRA_IDS[section].length;
-  LD_EXTRA_IDS[section].push(rowId);
-  const nameCell=`<input class="mass-sel" id="${rowId}-name" placeholder="Nhập tên phí">`;
-  const html=`<tr><td>${ldIncCb(rowId+'-inc',false)}</td><td>${nameCell}</td><td></td><td class="num"><input type="number" min="0" class="mass-sel" id="${rowId}-val" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel(rowId+'-unit','Cont')}</td><td>${ldCurSel(rowId+'-cur')}</td></tr>`;
-  tbody.insertAdjacentHTML('beforeend',html);
-  recalcLogisDetail();
+function ldDelBtn(fn){ return `<button class="btn sm" title="Xóa dòng" onclick="${fn}">✕</button>`; }
+function ldSyncValues(containerId){
+  const wrap=document.getElementById(containerId); const map={}; if(!wrap) return map;
+  wrap.querySelectorAll('input,select,textarea').forEach(el=>{ if(!el.id) return; map[el.id]=el.type==='checkbox'?el.checked:el.value; });
+  return map;
 }
-function ldExtraSectionTotal(section){
-  return LD_EXTRA_IDS[section].reduce((s,rowId)=>{
-    const amtId=section==='hangtau'?rowId+'-final':rowId+'-val';
-    return s+ldIncludedUSD(amtId,rowId+'-cur',rowId+'-unit',rowId+'-inc');
-  },0);
+function ldApplyValues(containerId,map){
+  const wrap=document.getElementById(containerId); if(!wrap) return;
+  Object.keys(map).forEach(k=>{ const el=document.getElementById(k); if(!el) return; if(el.type==='checkbox') el.checked=map[k]; else el.value=map[k]; });
+}
+let LD_EXTRA_IDS={noidia:[],dichvu:[],hangtau:[]};
+let LD_EXTRA_SEQ={noidia:0,dichvu:0,hangtau:0};
+let LD_HIDDEN={noidia:new Set(),dichvu:new Set(),hangtau:new Set()};
+function ldRenderSection(section){
+  if(section==='noidia') ldRenderNoidiaTable();
+  else if(section==='dichvu') ldRenderDichvuTable();
+  else ldRenderHangtauTable();
+}
+function ldAddExtraRow(section){
+  const rowId='ld-'+section+'-x'+(LD_EXTRA_SEQ[section]++);
+  LD_EXTRA_IDS[section].push(rowId);
+  ldRenderSection(section); recalcLogisDetail();
+}
+function ldRemoveMainRow(section,i){
+  LD_HIDDEN[section].add(i);
+  ldRenderSection(section); recalcLogisDetail();
+}
+function ldRemoveExtraRow(section,rowId){
+  LD_EXTRA_IDS[section]=LD_EXTRA_IDS[section].filter(id=>id!==rowId);
+  ldRenderSection(section); recalcLogisDetail();
 }
 function ldExtraSectionData(section){
   return LD_EXTRA_IDS[section].map(rowId=>{
     const amtId=section==='hangtau'?rowId+'-final':rowId+'-val';
     const cur=document.getElementById(rowId+'-cur').value;
-    const customEl=document.getElementById(rowId+'-custom');
-    return {name:(document.getElementById(rowId+'-name').value||'').trim()||'(chưa đặt tên)',custom:customEl?(customEl.value||'').trim():'',value:ldNum(amtId),cur,unit:document.getElementById(rowId+'-unit').value,usd:ldValUSD(amtId,rowId+'-cur',rowId+'-unit'),included:ldChecked(rowId+'-inc')};
+    return {name:(document.getElementById(rowId+'-name').value||'').trim()||'(chưa đặt tên)',custom:'',value:ldNum(amtId),cur,unit:document.getElementById(rowId+'-unit').value,usd:ldValUSD(amtId,rowId+'-cur',rowId+'-unit')};
   });
+}
+function ldNoidiaRowHTML(name,unit,i){
+  return `<tr><td>${name}</td><td>${ldCustomNameInput('ld-noidia-'+i+'-custom')}</td><td class="num"><input type="number" min="0" id="ld-noidia-${i}" class="mass-sel" placeholder="Giá" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel('ld-noidia-unit-'+i,unit)}</td><td>${ldCurSel('ld-noidia-'+i+'-cur')}</td><td>${ldDelBtn("ldRemoveMainRow('noidia',"+i+")")}</td></tr>`;
+}
+function ldNoidiaExtraRowHTML(rowId){
+  return `<tr><td colspan="2"><input class="mass-sel" id="${rowId}-name" placeholder="Nhập tên phí"></td><td class="num"><input type="number" min="0" class="mass-sel" id="${rowId}-val" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel(rowId+'-unit','Cont')}</td><td>${ldCurSel(rowId+'-cur')}</td><td>${ldDelBtn("ldRemoveExtraRow('noidia','"+rowId+"')")}</td></tr>`;
+}
+function ldNoidiaRowsHTML(){
+  const main=LOGIS_FEE_NOIDIA.map(([name,unit],i)=> LD_HIDDEN.noidia.has(i)?'':ldNoidiaRowHTML(name,unit,i)).join('');
+  return main+LD_EXTRA_IDS.noidia.map(ldNoidiaExtraRowHTML).join('');
+}
+function ldRenderNoidiaTable(){
+  const saved=ldSyncValues('ld-noidia-tbody');
+  document.getElementById('ld-noidia-tbody').innerHTML=ldNoidiaRowsHTML();
+  ldApplyValues('ld-noidia-tbody',saved);
+}
+function ldDichvuRowHTML(name,unit,i){
+  return `<tr><td>${name}</td><td>${ldCustomNameInput('ld-dichvu-'+i+'-custom')}</td><td class="num"><input type="number" min="0" id="ld-dichvu-${i}" class="mass-sel" placeholder="Giá" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel('ld-dichvu-unit-'+i,unit)}</td><td>${ldCurSel('ld-dichvu-'+i+'-cur')}</td><td>${ldDelBtn("ldRemoveMainRow('dichvu',"+i+")")}</td></tr>`;
+}
+function ldDichvuExtraRowHTML(rowId){
+  return `<tr><td colspan="2"><input class="mass-sel" id="${rowId}-name" placeholder="Nhập tên phí"></td><td class="num"><input type="number" min="0" class="mass-sel" id="${rowId}-val" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel(rowId+'-unit','Cont')}</td><td>${ldCurSel(rowId+'-cur')}</td><td>${ldDelBtn("ldRemoveExtraRow('dichvu','"+rowId+"')")}</td></tr>`;
+}
+function ldDichvuRowsHTML(){
+  const main=LOGIS_FEE_DICHVU.map(([name,unit],i)=> LD_HIDDEN.dichvu.has(i)?'':ldDichvuRowHTML(name,unit,i)).join('');
+  return main+LD_EXTRA_IDS.dichvu.map(ldDichvuExtraRowHTML).join('');
+}
+function ldRenderDichvuTable(){
+  const saved=ldSyncValues('ld-dichvu-tbody');
+  document.getElementById('ld-dichvu-tbody').innerHTML=ldDichvuRowsHTML();
+  ldApplyValues('ld-dichvu-tbody',saved);
 }
 /* --- NCC (agency): tìm & chọn NCC để so sánh, mỗi NCC 1 cột, cộng cột Final giá để deal lại --- */
 let LD_HT_SELECTED=[];
+let LD_TIER_SEL={EWS:new Set(),FOB:new Set(),CIF:new Set()};
 function ldSlug(s){ return s.replace(/[^a-zA-Z0-9]/g,'_'); }
 function ldHtToggleNcc(ncc){
   const i=LD_HT_SELECTED.indexOf(ncc);
@@ -2928,8 +2962,8 @@ function ldHangtauColumnTotal(ncc){
 }
 function ldHtFinalTotal(){
   let total=0;
-  LOGIS_FEE_HANGTAU.forEach((_,i)=>{ if(i===0) return; total+=ldIncludedUSD('ld-ht-'+i+'-final','ld-ht-'+i+'-cur','ld-ht-unit-'+i,'ld-ht-'+i+'-inc'); });
-  LD_EXTRA_IDS.hangtau.forEach(rowId=>{ total+=ldIncludedUSD(rowId+'-final',rowId+'-cur',rowId+'-unit',rowId+'-inc'); });
+  LOGIS_FEE_HANGTAU.forEach((_,i)=>{ if(i===0) return; total+=ldValUSD('ld-ht-'+i+'-final','ld-ht-'+i+'-cur','ld-ht-unit-'+i); });
+  LD_EXTRA_IDS.hangtau.forEach(rowId=>{ total+=ldValUSD(rowId+'-final',rowId+'-cur',rowId+'-unit'); });
   return total;
 }
 function ldHtCopyToFinal(ncc){
@@ -2947,52 +2981,38 @@ function ldHtCopyToFinal(ncc){
 function ldHangtauTableHTML(){
   const finalCol=`<th class="num">Final giá</th>`;
   if(!LD_HT_SELECTED.length) return '<p class="wf-muted" style="font-size:12px">Tìm & chọn ít nhất 1 NCC ở trên để nhập/so sánh bảng giá (vẫn có thể tự nhập Final giá bên dưới).</p>';
-  const header=`<tr><th></th><th>Tên phí</th><th>Tên tùy chỉnh</th>${LD_HT_SELECTED.map(n=>`<th class="num">${n}</th>`).join('')}${finalCol}<th>Đơn vị tính</th><th>Tiền tệ</th></tr>`;
+  const header=`<tr><th>Tên phí</th><th>Tên tùy chỉnh</th>${LD_HT_SELECTED.map(n=>`<th class="num">${n}</th>`).join('')}${finalCol}<th>Đơn vị tính</th><th>Tiền tệ</th><th></th></tr>`;
   const rows=LOGIS_FEE_HANGTAU.map(([name,unit],i)=>{
+    if(LD_HIDDEN.hangtau.has(i)) return '';
     const isOF=i===0;
     const cells=LD_HT_SELECTED.map(ncc=>{
       const base=(NCC_LOGIS_MASTER[ncc]||{})[name]??0;
       return `<td class="num"><input type="number" ${isOF?'':'min="0"'} id="ld-ht-${i}-${ldSlug(ncc)}" class="mass-sel" value="${base||0}" oninput="recalcLogisDetail()" style="text-align:right"></td>`;
     }).join('');
     const finalCell=`<td class="num"><input type="number" ${isOF?'':'min="0"'} id="ld-ht-${i}-final" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td>`;
-    const incCell=isOF ? `<td></td>` : `<td>${ldIncCb('ld-ht-'+i+'-inc',false)}</td>`;
     const customCell=`<td>${ldCustomNameInput('ld-ht-'+i+'-custom')}</td>`;
     const curCell=`<td>${ldCurSel('ld-ht-'+i+'-cur')}</td>`;
-    return `<tr>${incCell}<td>${name}</td>${customCell}${cells}${finalCell}<td>${ldUnitSel('ld-ht-unit-'+i,unit)}</td>${curCell}</tr>`;
+    return `<tr><td>${name}</td>${customCell}${cells}${finalCell}<td>${ldUnitSel('ld-ht-unit-'+i,unit)}</td>${curCell}<td>${ldDelBtn("ldRemoveMainRow('hangtau',"+i+")")}</td></tr>`;
   }).join('');
   const extraRows=LD_EXTRA_IDS.hangtau.map(rowId=>{
     const cells=LD_HT_SELECTED.map(ncc=>`<td class="num"><input type="number" min="0" id="${rowId}-${ldSlug(ncc)}" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td>`).join('');
-    return `<tr><td>${ldIncCb(rowId+'-inc',false)}</td><td><input class="mass-sel" id="${rowId}-name" placeholder="Nhập tên phí"></td><td></td>${cells}<td class="num"><input type="number" min="0" id="${rowId}-final" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel(rowId+'-unit','Cont')}</td><td>${ldCurSel(rowId+'-cur')}</td></tr>`;
+    return `<tr><td colspan="2"><input class="mass-sel" id="${rowId}-name" placeholder="Nhập tên phí"></td>${cells}<td class="num"><input type="number" min="0" id="${rowId}-final" class="mass-sel" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel(rowId+'-unit','Cont')}</td><td>${ldCurSel(rowId+'-cur')}</td><td>${ldDelBtn("ldRemoveExtraRow('hangtau','"+rowId+"')")}</td></tr>`;
   }).join('');
-  const copyRow=`<tr><td></td><td class="wf-muted" style="font-size:11px">Chọn NCC làm gốc → Final giá</td><td></td>${LD_HT_SELECTED.map(n=>`<td class="num"><input type="radio" name="ld-ht-base-radio" onchange="ldHtCopyToFinal('${n.replace(/'/g,"\\'")}')"></td>`).join('')}<td></td><td></td><td></td></tr>`;
+  const copyRow=`<tr><td colspan="2" class="wf-muted" style="font-size:11px">Chọn NCC làm gốc → Final giá</td>${LD_HT_SELECTED.map(n=>`<td class="num"><input type="radio" name="ld-ht-base-radio" onchange="ldHtCopyToFinal('${n.replace(/'/g,"\\'")}')"></td>`).join('')}<td></td><td></td><td></td><td></td></tr>`;
   const footUsd=LD_HT_SELECTED.map(n=>`<td class="num" id="ld-ht-sub-usd-${ldSlug(n)}">0</td>`).join('');
   const footVnd=LD_HT_SELECTED.map(n=>`<td class="num" id="ld-ht-sub-vnd-${ldSlug(n)}">0 ₫</td>`).join('');
   return `<div class="tbl-wrap"><table class="tbl sm"><thead>${header}</thead><tbody>${rows}${extraRows}${copyRow}</tbody>
     <tfoot>
-      <tr style="font-weight:700"><td></td><td>Tổng (USD/CONT)</td><td></td>${footUsd}<td class="num" id="ld-ht-sub-usd-final">0</td><td></td><td></td></tr>
-      <tr style="font-weight:700"><td></td><td>Tổng (VND/CONT)</td><td></td>${footVnd}<td class="num" id="ld-ht-sub-vnd-final">0 ₫</td><td></td><td></td></tr>
+      <tr style="font-weight:700"><td colspan="2">Tổng (USD/CONT)</td>${footUsd}<td class="num" id="ld-ht-sub-usd-final">0</td><td></td><td></td><td></td></tr>
+      <tr style="font-weight:700"><td colspan="2">Tổng (VND/CONT)</td>${footVnd}<td class="num" id="ld-ht-sub-vnd-final">0 ₫</td><td></td><td></td><td></td></tr>
     </tfoot></table></div>
-    <div class="wf-muted" style="font-size:11px;margin-top:4px">Chọn 1 NCC ở dòng "Chọn NCC làm gốc" để copy giá của NCC đó sang cột "Final giá" — sau đó vẫn có thể sửa tay theo giá deal thực tế. Tick chọn ✓ ở đầu dòng để tính khoản phí đó vào Tổng chi phí CIF (riêng O/F không tham gia Tổng chi phí).</div>`;
-}
-function ldHtSyncValues(){
-  const wrap=document.getElementById('ld-ht-table-wrap'); const map={}; if(!wrap) return map;
-  wrap.querySelectorAll('input,select').forEach(el=>{ if(!el.id) return; map[el.id]=el.type==='checkbox'?el.checked:el.value; if(el.dataset.touched) map[el.id+'__touched']=el.dataset.touched; });
-  return map;
-}
-function ldHtApplyValues(map){
-  const wrap=document.getElementById('ld-ht-table-wrap'); if(!wrap) return;
-  Object.keys(map).forEach(k=>{
-    if(k.endsWith('__touched')) return;
-    const el=document.getElementById(k); if(!el) return;
-    if(el.type==='checkbox') el.checked=map[k]; else el.value=map[k];
-    if(map[k+'__touched']) el.dataset.touched=map[k+'__touched'];
-  });
+    <div class="wf-muted" style="font-size:11px;margin-top:4px">Chọn 1 NCC ở dòng "Chọn NCC làm gốc" để copy giá của NCC đó sang cột "Final giá" — sau đó vẫn có thể sửa tay theo giá deal thực tế.</div>`;
 }
 function ldRenderHangtauTable(){
   const c=document.getElementById('ld-ht-table-wrap'); if(!c) return;
-  const saved=ldHtSyncValues();
+  const saved=ldSyncValues('ld-ht-table-wrap');
   c.innerHTML=ldHangtauTableHTML();
-  ldHtApplyValues(saved);
+  ldApplyValues('ld-ht-table-wrap',saved);
 }
 function ldSectionHead(title,extra){
   return `<div class="ptf-row" style="margin-bottom:8px;align-items:center">
@@ -3000,8 +3020,6 @@ function ldSectionHead(title,extra){
   </div>`;
 }
 function logisDetailFormHTML(){
-  const noidiaRows=LOGIS_FEE_NOIDIA.map(([name,unit],i)=>`<tr><td>${ldIncCb('ld-noidia-'+i+'-inc',false)}</td><td>${name}</td><td>${ldCustomNameInput('ld-noidia-'+i+'-custom')}</td><td class="num"><input type="number" min="0" id="ld-noidia-${i}" class="mass-sel" placeholder="Giá" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel('ld-noidia-unit-'+i,unit)}</td><td>${ldCurSel('ld-noidia-'+i+'-cur')}</td></tr>`).join('');
-  const dichvuRows=LOGIS_FEE_DICHVU.map(([name,unit],i)=>`<tr><td>${ldIncCb('ld-dichvu-'+i+'-inc',false)}</td><td>${name}</td><td>${ldCustomNameInput('ld-dichvu-'+i+'-custom')}</td><td class="num"><input type="number" min="0" id="ld-dichvu-${i}" class="mass-sel" placeholder="Giá" value="0" oninput="recalcLogisDetail()" style="text-align:right"></td><td>${ldUnitSel('ld-dichvu-unit-'+i,unit)}</td><td>${ldCurSel('ld-dichvu-'+i+'-cur')}</td></tr>`).join('');
   return `<div style="margin-bottom:14px">
        <div class="ptf-row" style="align-items:baseline">
          <div class="ptf-f" style="flex:1"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Số lượng Cont / lô hàng *</label><input type="number" id="ld-contqty" class="mass-sel" value="1" min="1" oninput="recalcLogisDetail()"></div>
@@ -3011,12 +3029,12 @@ function logisDetailFormHTML(){
      </div>
      <div style="margin-bottom:14px">
        ${ldSectionHead('Phí nội địa')}
-       <table class="tbl sm"><thead><tr><th></th><th>Tên phí</th><th>Tên tùy chỉnh</th><th class="num">Giá</th><th>Đơn vị tính</th><th>Tiền tệ</th></tr></thead><tbody id="ld-noidia-tbody">${noidiaRows}</tbody></table>
+       <table class="tbl sm"><thead><tr><th>Tên phí</th><th>Tên tùy chỉnh</th><th class="num">Giá</th><th>Đơn vị tính</th><th>Tiền tệ</th><th></th></tr></thead><tbody id="ld-noidia-tbody">${ldNoidiaRowsHTML()}</tbody></table>
        <button class="btn sm" style="margin-top:6px" onclick="ldAddExtraRow('noidia')">＋ Thêm giá</button>
      </div>
      <div style="margin-bottom:14px">
        ${ldSectionHead('Phí Dịch vụ')}
-       <table class="tbl sm"><thead><tr><th></th><th>Tên phí</th><th>Tên tùy chỉnh</th><th class="num">Giá</th><th>Đơn vị tính</th><th>Tiền tệ</th></tr></thead><tbody id="ld-dichvu-tbody">${dichvuRows}</tbody></table>
+       <table class="tbl sm"><thead><tr><th>Tên phí</th><th>Tên tùy chỉnh</th><th class="num">Giá</th><th>Đơn vị tính</th><th>Tiền tệ</th><th></th></tr></thead><tbody id="ld-dichvu-tbody">${ldDichvuRowsHTML()}</tbody></table>
        <button class="btn sm" style="margin-top:6px" onclick="ldAddExtraRow('dichvu')">＋ Thêm giá</button>
      </div>
      <div style="margin-bottom:14px">
@@ -3030,20 +3048,77 @@ function logisDetailFormHTML(){
        <button class="btn sm" style="margin-top:6px" onclick="ldAddExtraRow('hangtau')">＋ Thêm giá</button>
      </div>
      <div class="ptf-item" style="background:var(--bg)">
-       <div style="font-weight:600;margin-bottom:6px">Tổng chi phí <span class="wf-muted" style="font-size:10px;font-weight:400">(chỉ tính các khoản đã tick ✓ ở trên)</span></div>
+       <div style="font-weight:600;margin-bottom:6px">Tổng chi phí <span class="wf-muted" style="font-size:10px;font-weight:400">(nhấn vào 1 dòng để chọn những khoản phí đã khai báo ở trên tính vào dòng đó)</span></div>
        <table class="tbl sm"><thead><tr><th></th><th class="num">USD/CONT</th><th class="num">VND/CONT</th><th class="num">USD/Tấn</th><th class="num">VNĐ/Tấn</th></tr></thead><tbody>
-         <tr><td>Tổng chi phí EWS <span class="wf-muted" style="font-size:10px">(Phí nội địa)</span></td><td class="num" id="ld-tot-ews">0</td><td class="num" id="ld-tot-ews-vnd">0 ₫</td><td class="num" id="ld-tot-ews-ton">0</td><td class="num" id="ld-tot-ews-ton-vnd">0 ₫</td></tr>
-         <tr><td>Tổng chi phí FOB <span class="wf-muted" style="font-size:10px">(Phí Dịch vụ)</span></td><td class="num" id="ld-tot-fob">0</td><td class="num" id="ld-tot-fob-vnd">0 ₫</td><td class="num" id="ld-tot-fob-ton">0</td><td class="num" id="ld-tot-fob-ton-vnd">0 ₫</td></tr>
-         <tr><td>Tổng chi phí CIF <span class="wf-muted" style="font-size:10px">(NCC agency)</span></td><td class="num" id="ld-tot-cif">0</td><td class="num" id="ld-tot-cif-vnd">0 ₫</td><td class="num" id="ld-tot-cif-ton">0</td><td class="num" id="ld-tot-cif-ton-vnd">0 ₫</td></tr>
+         <tr style="cursor:pointer" onclick="ldToggleTierPanel('EWS')"><td>Tổng chi phí EWS ▾</td><td class="num" id="ld-tot-ews">0</td><td class="num" id="ld-tot-ews-vnd">0 ₫</td><td class="num" id="ld-tot-ews-ton">0</td><td class="num" id="ld-tot-ews-ton-vnd">0 ₫</td></tr>
+         <tr id="ld-tier-panel-EWS" style="display:none"><td colspan="5"><div id="ld-tier-panel-body-EWS"></div></td></tr>
+         <tr style="cursor:pointer" onclick="ldToggleTierPanel('FOB')"><td>Tổng chi phí FOB ▾</td><td class="num" id="ld-tot-fob">0</td><td class="num" id="ld-tot-fob-vnd">0 ₫</td><td class="num" id="ld-tot-fob-ton">0</td><td class="num" id="ld-tot-fob-ton-vnd">0 ₫</td></tr>
+         <tr id="ld-tier-panel-FOB" style="display:none"><td colspan="5"><div id="ld-tier-panel-body-FOB"></div></td></tr>
+         <tr style="cursor:pointer" onclick="ldToggleTierPanel('CIF')"><td>Tổng chi phí CIF ▾</td><td class="num" id="ld-tot-cif">0</td><td class="num" id="ld-tot-cif-vnd">0 ₫</td><td class="num" id="ld-tot-cif-ton">0</td><td class="num" id="ld-tot-cif-ton-vnd">0 ₫</td></tr>
+         <tr id="ld-tier-panel-CIF" style="display:none"><td colspan="5"><div id="ld-tier-panel-body-CIF"></div></td></tr>
        </tbody></table>
        <div style="margin-top:10px"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Note</label><textarea id="ld-note" class="mass-sel" rows="2" placeholder="Ghi chú sẽ hiển thị trong báo giá chung"></textarea></div>
      </div>`;
 }
+// Danh sách toàn bộ khoản phí đã khai báo ở 3 mục trên (trừ O/F — luôn tách riêng, không vào Tổng chi phí)
+// dùng để hiển thị trong bảng chọn của từng dòng Tổng chi phí (EWS/FOB/CIF).
+function ldAllLineItems(){
+  const items=[];
+  LOGIS_FEE_NOIDIA.forEach(([name],i)=>{
+    if(LD_HIDDEN.noidia.has(i)) return;
+    const custom=(document.getElementById('ld-noidia-'+i+'-custom')||{}).value||'';
+    items.push({key:'noidia:'+i, label:name+(custom?' — '+custom:''), section:'Phí nội địa', usd:ldValUSD('ld-noidia-'+i,'ld-noidia-'+i+'-cur','ld-noidia-unit-'+i)});
+  });
+  LD_EXTRA_IDS.noidia.forEach(rowId=>{
+    const name=(document.getElementById(rowId+'-name')||{}).value||'(chưa đặt tên)';
+    items.push({key:'noidia:'+rowId, label:name, section:'Phí nội địa', usd:ldValUSD(rowId+'-val',rowId+'-cur',rowId+'-unit')});
+  });
+  LOGIS_FEE_DICHVU.forEach(([name],i)=>{
+    if(LD_HIDDEN.dichvu.has(i)) return;
+    const custom=(document.getElementById('ld-dichvu-'+i+'-custom')||{}).value||'';
+    items.push({key:'dichvu:'+i, label:name+(custom?' — '+custom:''), section:'Phí Dịch vụ', usd:ldValUSD('ld-dichvu-'+i,'ld-dichvu-'+i+'-cur','ld-dichvu-unit-'+i)});
+  });
+  LD_EXTRA_IDS.dichvu.forEach(rowId=>{
+    const name=(document.getElementById(rowId+'-name')||{}).value||'(chưa đặt tên)';
+    items.push({key:'dichvu:'+rowId, label:name, section:'Phí Dịch vụ', usd:ldValUSD(rowId+'-val',rowId+'-cur',rowId+'-unit')});
+  });
+  LOGIS_FEE_HANGTAU.forEach(([name],i)=>{
+    if(i===0) return;
+    if(LD_HIDDEN.hangtau.has(i)) return;
+    const custom=(document.getElementById('ld-ht-'+i+'-custom')||{}).value||'';
+    items.push({key:'hangtau:'+i, label:name+(custom?' — '+custom:''), section:'NCC (agency)', usd:ldValUSD('ld-ht-'+i+'-final','ld-ht-'+i+'-cur','ld-ht-unit-'+i)});
+  });
+  LD_EXTRA_IDS.hangtau.forEach(rowId=>{
+    const name=(document.getElementById(rowId+'-name')||{}).value||'(chưa đặt tên)';
+    items.push({key:'hangtau:'+rowId, label:name, section:'NCC (agency)', usd:ldValUSD(rowId+'-final',rowId+'-cur',rowId+'-unit')});
+  });
+  return items;
+}
+function ldTierTotalUSD(tier){
+  const sel=LD_TIER_SEL[tier];
+  return ldAllLineItems().filter(it=>sel.has(it.key)).reduce((s,it)=>s+it.usd,0);
+}
+function ldTierPickerHTML(tier){
+  const items=ldAllLineItems();
+  if(!items.length) return '<div class="wf-muted" style="font-size:12px;padding:6px 2px">Chưa có khoản phí nào được khai báo ở trên.</div>';
+  const sel=LD_TIER_SEL[tier];
+  const rows=items.map(it=>`<label style="display:flex;align-items:center;gap:8px;padding:4px 2px;font-weight:400;border-bottom:1px solid var(--line-2)"><input type="checkbox" ${sel.has(it.key)?'checked':''} onchange="ldTierToggleItem('${tier}','${it.key}')"><span style="flex:1">${it.label}</span><span class="wf-muted" style="font-size:11px">${it.section}</span><span style="min-width:90px;text-align:right">${it.usd.toLocaleString('en-US')} USD/cont</span></label>`).join('');
+  return `<div style="max-height:220px;overflow-y:auto;border:1px solid var(--line-2);border-radius:6px;padding:2px 10px;background:var(--card)">${rows}</div>`;
+}
+function ldToggleTierPanel(tier){
+  const row=document.getElementById('ld-tier-panel-'+tier); if(!row) return;
+  const opening=row.style.display==='none'||!row.style.display;
+  if(opening){ document.getElementById('ld-tier-panel-body-'+tier).innerHTML=ldTierPickerHTML(tier); row.style.display='table-row'; }
+  else row.style.display='none';
+}
+function ldTierToggleItem(tier,key){
+  const sel=LD_TIER_SEL[tier];
+  if(sel.has(key)) sel.delete(key); else sel.add(key);
+  recalcLogisDetail();
+}
 function recalcLogisDetail(){
   const rate=ldExRate();
   const setText=(id,txt)=>{const e=document.getElementById(id); if(e) e.textContent=txt;};
-  const noidiaTotal=LOGIS_FEE_NOIDIA.reduce((s,_,i)=>s+ldIncludedUSD('ld-noidia-'+i,'ld-noidia-'+i+'-cur','ld-noidia-unit-'+i,'ld-noidia-'+i+'-inc'),0)+ldExtraSectionTotal('noidia');
-  const dichvuTotal=LOGIS_FEE_DICHVU.reduce((s,_,i)=>s+ldIncludedUSD('ld-dichvu-'+i,'ld-dichvu-'+i+'-cur','ld-dichvu-unit-'+i,'ld-dichvu-'+i+'-inc'),0)+ldExtraSectionTotal('dichvu');
   LD_HT_SELECTED.forEach(ncc=>{
     const slug=ldSlug(ncc), tot=ldHangtauColumnTotal(ncc);
     setText('ld-ht-sub-usd-'+slug, tot.toLocaleString('en-US'));
@@ -3052,10 +3127,6 @@ function recalcLogisDetail(){
   const hangtauTotal=ldHtFinalTotal();
   setText('ld-ht-sub-usd-final', hangtauTotal.toLocaleString('en-US'));
   setText('ld-ht-sub-vnd-final', fmtMoney(Math.round(hangtauTotal*rate)));
-  // Phí nào ra phí đó, không cộng dồn sang nhau: Phí nội địa -> EWS; Phí Dịch vụ -> FOB; NCC (agency) -> CIF
-  const ews=noidiaTotal;
-  const fob=dichvuTotal;
-  const cif=hangtauTotal;
   const contQty=ldContQty(), tonQty=ldTonQty();
   const setTier=(usd,idBase)=>{
     const usdPerTon=tonQty>0?(usd*contQty)/tonQty:0;
@@ -3064,13 +3135,16 @@ function recalcLogisDetail(){
     setText(idBase+'-ton', usdPerTon.toLocaleString('en-US'));
     setText(idBase+'-ton-vnd', fmtMoney(Math.round(usdPerTon*rate)));
   };
-  setTier(ews,'ld-tot-ews');
-  setTier(fob,'ld-tot-fob');
-  setTier(cif,'ld-tot-cif');
+  setTier(ldTierTotalUSD('EWS'),'ld-tot-ews');
+  setTier(ldTierTotalUSD('FOB'),'ld-tot-fob');
+  setTier(ldTierTotalUSD('CIF'),'ld-tot-cif');
 }
 function openLogisDetailModal(){
   LD_EXTRA_IDS={noidia:[],dichvu:[],hangtau:[]};
+  LD_EXTRA_SEQ={noidia:0,dichvu:0,hangtau:0};
+  LD_HIDDEN={noidia:new Set(),dichvu:new Set(),hangtau:new Set()};
   LD_HT_SELECTED=[];
+  LD_TIER_SEL={EWS:new Set(),FOB:new Set(),CIF:new Set()};
   document.getElementById('ld-body').innerHTML=logisDetailFormHTML();
   document.getElementById('ldback').classList.add('show');
   document.getElementById('ldmodal').classList.add('show');
@@ -3079,24 +3153,17 @@ function openLogisDetailModal(){
 function closeLogisDetailModal(){ const b=document.getElementById('ldback'),m=document.getElementById('ldmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
 function confirmLogisDetail(){
   const contQty=ldContQty(), tonQty=ldTonQty(), exrate=ldExRate();
-  const noidia=LOGIS_FEE_NOIDIA.map(([name],i)=>({name,custom:(document.getElementById('ld-noidia-'+i+'-custom').value||'').trim(),value:ldNum('ld-noidia-'+i),cur:document.getElementById('ld-noidia-'+i+'-cur').value,unit:document.getElementById('ld-noidia-unit-'+i).value,usd:ldValUSD('ld-noidia-'+i,'ld-noidia-'+i+'-cur','ld-noidia-unit-'+i),included:ldChecked('ld-noidia-'+i+'-inc')}));
-  const dichvu=LOGIS_FEE_DICHVU.map(([name],i)=>({name,custom:(document.getElementById('ld-dichvu-'+i+'-custom').value||'').trim(),value:ldNum('ld-dichvu-'+i),cur:document.getElementById('ld-dichvu-'+i+'-cur').value,unit:document.getElementById('ld-dichvu-unit-'+i).value,usd:ldValUSD('ld-dichvu-'+i,'ld-dichvu-'+i+'-cur','ld-dichvu-unit-'+i),included:ldChecked('ld-dichvu-'+i+'-inc')}));
+  const noidia=LOGIS_FEE_NOIDIA.map(([name],i)=> LD_HIDDEN.noidia.has(i)?null:({name,custom:(document.getElementById('ld-noidia-'+i+'-custom').value||'').trim(),value:ldNum('ld-noidia-'+i),cur:document.getElementById('ld-noidia-'+i+'-cur').value,unit:document.getElementById('ld-noidia-unit-'+i).value,usd:ldValUSD('ld-noidia-'+i,'ld-noidia-'+i+'-cur','ld-noidia-unit-'+i)})).filter(Boolean);
+  const dichvu=LOGIS_FEE_DICHVU.map(([name],i)=> LD_HIDDEN.dichvu.has(i)?null:({name,custom:(document.getElementById('ld-dichvu-'+i+'-custom').value||'').trim(),value:ldNum('ld-dichvu-'+i),cur:document.getElementById('ld-dichvu-'+i+'-cur').value,unit:document.getElementById('ld-dichvu-unit-'+i).value,usd:ldValUSD('ld-dichvu-'+i,'ld-dichvu-'+i+'-cur','ld-dichvu-unit-'+i)})).filter(Boolean);
   const noidiaExtra=ldExtraSectionData('noidia'), dichvuExtra=ldExtraSectionData('dichvu');
-  const noidiaTotal=noidia.filter(x=>x.included).reduce((s,x)=>s+x.usd,0)+noidiaExtra.filter(x=>x.included).reduce((s,x)=>s+x.usd,0);
-  const dichvuTotal=dichvu.filter(x=>x.included).reduce((s,x)=>s+x.usd,0)+dichvuExtra.filter(x=>x.included).reduce((s,x)=>s+x.usd,0);
   const nccOptions=LD_HT_SELECTED.map(n=>({ncc:n,total:ldHangtauColumnTotal(n)}));
-  const hangtauTotal=ldHtFinalTotal();
-  // Phí nào ra phí đó, không cộng dồn sang nhau: Phí nội địa -> EWS; Phí Dịch vụ -> FOB; NCC (agency) -> CIF
-  const ews=noidiaTotal;
-  const fob=dichvuTotal;
-  const cif=hangtauTotal;
   const mkTier=usd=>({usd,vnd:Math.round(usd*exrate),usdPerTon:tonQty>0?(usd*contQty)/tonQty:0});
-  const tiers={EWS:mkTier(ews),FOB:mkTier(fob),CIF:mkTier(cif)};
+  const tiers={EWS:mkTier(ldTierTotalUSD('EWS')),FOB:mkTier(ldTierTotalUSD('FOB')),CIF:mkTier(ldTierTotalUSD('CIF'))};
   const note=(document.getElementById('ld-note').value||'').trim();
   const nccLabel=LD_HT_SELECTED.length?LD_HT_SELECTED.join(', '):'—';
   LOGIS_DETAILS.unshift({ncc:nccLabel,nccOptions,noidia:noidia.concat(noidiaExtra),dichvu:dichvu.concat(dichvuExtra),contQty,tonQty,exrate,tiers,note,createdAt:'Hôm nay'});
   closeLogisDetailModal(); renderLogisDetails();
-  toast('✓ Đã lưu báo giá Logistics chi tiết · NCC '+nccLabel+' · FOB $'+fob.toLocaleString('en-US')+'/cont · CIF $'+cif.toLocaleString('en-US')+'/cont');
+  toast('✓ Đã lưu báo giá Logistics chi tiết · NCC '+nccLabel+' · FOB $'+tiers.FOB.usd.toLocaleString('en-US')+'/cont · CIF $'+tiers.CIF.usd.toLocaleString('en-US')+'/cont');
 }
 function logisDetailRows(){
   return LOGIS_DETAILS.map(q=>`<tr><td>${q.ncc}</td><td class="num">$${q.tiers.FOB.usd.toLocaleString('en-US')}</td><td class="num">$${q.tiers.CIF.usd.toLocaleString('en-US')}</td><td class="num">${fmtMoney(q.tiers.CIF.vnd)}</td><td class="num">$${q.tiers.CIF.usdPerTon.toLocaleString('en-US')}</td><td>${q.note?`<span title="${q.note.replace(/"/g,'&quot;')}">${q.note}</span>`:'—'}</td><td>${q.createdAt}</td></tr>`).join('');
