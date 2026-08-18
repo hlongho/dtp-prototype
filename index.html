@@ -3154,6 +3154,14 @@ function recalcLogisDetail(){
   setTier(ldTierTotalUSD('EWS'),'ld-tot-ews');
   setTier(ldTierTotalUSD('FOB'),'ld-tot-fob');
   setTier(ldTierTotalUSD('CIF'),'ld-tot-cif');
+  // Nếu bảng chọn của 1 dòng Tổng chi phí đang mở, tự load lại danh sách ngay khi phí ở trên thay đổi
+  // (không cần đóng/mở lại panel mới thấy khoản phí mới nhập).
+  ['EWS','FOB','CIF'].forEach(tier=>{
+    const row=document.getElementById('ld-tier-panel-'+tier);
+    if(row && row.style.display==='table-row'){
+      document.getElementById('ld-tier-panel-body-'+tier).innerHTML=ldTierPickerHTML(tier);
+    }
+  });
 }
 function openLogisDetailModal(){
   LD_EXTRA_IDS={noidia:[],dichvu:[],hangtau:[]};
