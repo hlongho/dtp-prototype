@@ -3049,13 +3049,13 @@ function logisDetailFormHTML(){
      </div>
      <div class="ptf-item" style="background:var(--bg)">
        <div style="font-weight:600;margin-bottom:6px">Tổng chi phí <span class="wf-muted" style="font-size:10px;font-weight:400">(nhấn vào 1 dòng để chọn những khoản phí đã khai báo ở trên tính vào dòng đó)</span></div>
-       <table class="tbl sm"><thead><tr><th></th><th class="num">USD/CONT</th><th class="num">VND/CONT</th><th class="num">USD/Tấn</th><th class="num">VNĐ/Tấn</th></tr></thead><tbody>
-         <tr style="cursor:pointer" onclick="ldToggleTierPanel('EWS')"><td>Tổng chi phí EWS ▾</td><td class="num" id="ld-tot-ews">0</td><td class="num" id="ld-tot-ews-vnd">0 ₫</td><td class="num" id="ld-tot-ews-ton">0</td><td class="num" id="ld-tot-ews-ton-vnd">0 ₫</td></tr>
-         <tr id="ld-tier-panel-EWS" style="display:none"><td colspan="5"><div id="ld-tier-panel-body-EWS"></div></td></tr>
-         <tr style="cursor:pointer" onclick="ldToggleTierPanel('FOB')"><td>Tổng chi phí FOB ▾</td><td class="num" id="ld-tot-fob">0</td><td class="num" id="ld-tot-fob-vnd">0 ₫</td><td class="num" id="ld-tot-fob-ton">0</td><td class="num" id="ld-tot-fob-ton-vnd">0 ₫</td></tr>
-         <tr id="ld-tier-panel-FOB" style="display:none"><td colspan="5"><div id="ld-tier-panel-body-FOB"></div></td></tr>
-         <tr style="cursor:pointer" onclick="ldToggleTierPanel('CIF')"><td>Tổng chi phí CIF ▾</td><td class="num" id="ld-tot-cif">0</td><td class="num" id="ld-tot-cif-vnd">0 ₫</td><td class="num" id="ld-tot-cif-ton">0</td><td class="num" id="ld-tot-cif-ton-vnd">0 ₫</td></tr>
-         <tr id="ld-tier-panel-CIF" style="display:none"><td colspan="5"><div id="ld-tier-panel-body-CIF"></div></td></tr>
+       <table class="tbl sm"><thead><tr><th></th><th>Additional Charges</th><th class="num">USD/CONT</th><th class="num">VND/CONT</th><th class="num">USD/Tấn</th><th class="num">VNĐ/Tấn</th></tr></thead><tbody>
+         <tr><td style="cursor:pointer" onclick="ldToggleTierPanel('EWS')">Tổng chi phí EWS ▾</td><td><input class="mass-sel" id="ld-tot-ews-addl" placeholder="Additional Charges"></td><td class="num" id="ld-tot-ews">0</td><td class="num" id="ld-tot-ews-vnd">0 ₫</td><td class="num" id="ld-tot-ews-ton">0</td><td class="num" id="ld-tot-ews-ton-vnd">0 ₫</td></tr>
+         <tr id="ld-tier-panel-EWS" style="display:none"><td colspan="6"><div id="ld-tier-panel-body-EWS"></div></td></tr>
+         <tr><td style="cursor:pointer" onclick="ldToggleTierPanel('FOB')">Tổng chi phí FOB ▾</td><td><input class="mass-sel" id="ld-tot-fob-addl" placeholder="Additional Charges"></td><td class="num" id="ld-tot-fob">0</td><td class="num" id="ld-tot-fob-vnd">0 ₫</td><td class="num" id="ld-tot-fob-ton">0</td><td class="num" id="ld-tot-fob-ton-vnd">0 ₫</td></tr>
+         <tr id="ld-tier-panel-FOB" style="display:none"><td colspan="6"><div id="ld-tier-panel-body-FOB"></div></td></tr>
+         <tr><td style="cursor:pointer" onclick="ldToggleTierPanel('CIF')">Tổng chi phí CIF ▾</td><td><input class="mass-sel" id="ld-tot-cif-addl" placeholder="Additional Charges"></td><td class="num" id="ld-tot-cif">0</td><td class="num" id="ld-tot-cif-vnd">0 ₫</td><td class="num" id="ld-tot-cif-ton">0</td><td class="num" id="ld-tot-cif-ton-vnd">0 ₫</td></tr>
+         <tr id="ld-tier-panel-CIF" style="display:none"><td colspan="6"><div id="ld-tier-panel-body-CIF"></div></td></tr>
        </tbody></table>
        <div style="margin-top:10px"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Note</label><textarea id="ld-note" class="mass-sel" rows="2" placeholder="Ghi chú sẽ hiển thị trong báo giá chung"></textarea></div>
      </div>`;
@@ -3157,8 +3157,8 @@ function confirmLogisDetail(){
   const dichvu=LOGIS_FEE_DICHVU.map(([name],i)=> LD_HIDDEN.dichvu.has(i)?null:({name,custom:(document.getElementById('ld-dichvu-'+i+'-custom').value||'').trim(),value:ldNum('ld-dichvu-'+i),cur:document.getElementById('ld-dichvu-'+i+'-cur').value,unit:document.getElementById('ld-dichvu-unit-'+i).value,usd:ldValUSD('ld-dichvu-'+i,'ld-dichvu-'+i+'-cur','ld-dichvu-unit-'+i)})).filter(Boolean);
   const noidiaExtra=ldExtraSectionData('noidia'), dichvuExtra=ldExtraSectionData('dichvu');
   const nccOptions=LD_HT_SELECTED.map(n=>({ncc:n,total:ldHangtauColumnTotal(n)}));
-  const mkTier=usd=>({usd,vnd:Math.round(usd*exrate),usdPerTon:tonQty>0?(usd*contQty)/tonQty:0});
-  const tiers={EWS:mkTier(ldTierTotalUSD('EWS')),FOB:mkTier(ldTierTotalUSD('FOB')),CIF:mkTier(ldTierTotalUSD('CIF'))};
+  const mkTier=(usd,tier)=>({usd,vnd:Math.round(usd*exrate),usdPerTon:tonQty>0?(usd*contQty)/tonQty:0,addl:(document.getElementById('ld-tot-'+tier.toLowerCase()+'-addl').value||'').trim()});
+  const tiers={EWS:mkTier(ldTierTotalUSD('EWS'),'EWS'),FOB:mkTier(ldTierTotalUSD('FOB'),'FOB'),CIF:mkTier(ldTierTotalUSD('CIF'),'CIF')};
   const note=(document.getElementById('ld-note').value||'').trim();
   const nccLabel=LD_HT_SELECTED.length?LD_HT_SELECTED.join(', '):'—';
   LOGIS_DETAILS.unshift({ncc:nccLabel,nccOptions,noidia:noidia.concat(noidiaExtra),dichvu:dichvu.concat(dichvuExtra),contQty,tonQty,exrate,tiers,note,createdAt:'Hôm nay'});
