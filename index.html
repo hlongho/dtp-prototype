@@ -183,6 +183,7 @@ a:hover{text-decoration:underline}
 .dq-pending-scroll{max-height:280px;overflow-y:auto;border:1px solid var(--line-2);border-radius:6px;background:var(--card);width:100%}
 .dq-pending-scroll table.tbl{border-collapse:separate;border-spacing:0}
 .dq-pending-scroll th{position:sticky;top:0;z-index:2;background:var(--nav)}
+.dq-pending-group-row td{background:var(--sf-blue-l);border-bottom:2px solid var(--line)}
 .dq-delta-slot{display:inline-block;width:44px;flex:none;text-align:right;padding-right:4px}
 .dq-delta-badge{font-size:10px;font-weight:700;white-space:nowrap}
 .dq-delta-badge.dq-delta-up{color:#c23934}
@@ -1064,12 +1065,13 @@ function dqConfirmPending(){
 function renderDqPending(){
   const box=document.getElementById('dq-pending'); if(!box) return;
   if(!DQ_PENDING){ box.innerHTML=''; return; }
+  const groupRow=`<tr class="dq-pending-group-row"><td></td><td><b>Phân nhóm: ${DQ_PENDING.group}</b></td>
+    <td><input class="mass-sel" id="dq-pending-gsm-group" placeholder="Định lượng cho cả nhóm" value="${DQ_PENDING.groupGsm||''}" oninput="dqPendingGroupGsmInput(this.value)"></td></tr>`;
   const rows=DQ_PENDING.items.map((it,idx)=>`<tr><td><input type="checkbox" id="dq-pending-chk-${idx}" ${DQ_PENDING.checked[idx]?'checked':''} onchange="dqPendingToggleCheck(${idx})"></td><td>${it.sku}</td>
-    <td><input class="mass-sel" id="dq-pending-gsm-${idx}" style="width:140px" placeholder="VD: 150 hoặc 150-200" value="${DQ_PENDING.inputs[idx]||''}" oninput="dqPendingInput(${idx},this.value)"></td></tr>`).join('');
+    <td><input class="mass-sel" id="dq-pending-gsm-${idx}" placeholder="VD: 150 hoặc 150-200" value="${DQ_PENDING.inputs[idx]||''}" oninput="dqPendingInput(${idx},this.value)"></td></tr>`).join('');
   box.innerHTML=`<div class="dq-pending-box" style="display:block">
-    <div style="margin-bottom:8px"><b>Phân nhóm: ${DQ_PENDING.group}</b><div class="wf-muted" style="font-size:11px">Nhập định lượng cho từng sản phẩm muốn thêm (1 số hoặc 1 khoảng, VD 150 hoặc 150-200) — bỏ trống sản phẩm không cần thêm.</div></div>
-    <div class="ptf-row" style="align-items:center;margin-bottom:8px"><label class="wf-muted" style="font-size:12px;white-space:nowrap">Khung định lượng cho cả nhóm</label><input class="mass-sel" style="width:160px" placeholder="VD: 150 hoặc 150-200" value="${DQ_PENDING.groupGsm||''}" oninput="dqPendingGroupGsmInput(this.value)"></div>
-    <div class="dq-pending-scroll"><table class="tbl" style="margin:0"><thead><tr><th></th><th>Sản phẩm</th><th>Định lượng</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="wf-muted" style="font-size:11px;margin-bottom:8px">Nhập định lượng cho từng sản phẩm muốn thêm (1 số hoặc 1 khoảng, VD 150 hoặc 150-200) — bỏ trống sản phẩm không cần thêm.</div>
+    <div class="dq-pending-scroll"><table class="tbl" style="margin:0"><thead><tr><th></th><th>Sản phẩm</th><th>Định lượng</th></tr></thead><tbody>${groupRow}${rows}</tbody></table></div>
     <div class="wf-muted" style="font-size:11px;margin-top:4px">Tick chọn ✓ 1 dòng để nạp khung định lượng của cả nhóm vào dòng đó; tự gõ định lượng riêng cho 1 dòng cũng sẽ tự tick chọn dòng đó.</div>
     <div style="margin-top:8px;display:flex;gap:8px">
       <button class="btn sm pri" onclick="dqConfirmPending()">＋ Thêm vào báo giá</button>
