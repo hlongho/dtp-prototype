@@ -184,6 +184,7 @@ a:hover{text-decoration:underline}
 .dq-pending-scroll table.tbl{border-collapse:separate;border-spacing:0}
 .dq-pending-scroll th{position:sticky;top:0;z-index:2;background:var(--nav)}
 .dq-pending-group-row td{background:var(--sf-blue-l);border-bottom:2px solid var(--line)}
+.lgf-sub-row td{background:var(--bg);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;color:var(--txt-mut);padding:4px 8px}
 .dq-delta-slot{display:inline-block;width:44px;flex:none;text-align:right;padding-right:4px}
 .dq-delta-badge{font-size:10px;font-weight:700;white-space:nowrap}
 .dq-delta-badge.dq-delta-up{color:#c23934}
@@ -715,6 +716,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     <div class="pm-head"><h3>Chọn chi phí khiếu nại</h3><button title="Đóng" onclick="closeClaimFeeModal()">✕</button></div>
     <div class="pm-body" id="claimfee-body"></div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeClaimFeeModal()">Hủy</button><button class="btn pri" onclick="confirmClaimFee()">Lưu</button></div></div>
+  </div>
+  <!-- Modal thêm Chi phí Logistic (Shipment mua hàng nhập khẩu) -->
+  <div class="modal-back" id="logfeeback" onclick="closeLogFeeModal()" style="z-index:135"></div>
+  <div class="po-modal" id="logfeemodal" style="z-index:140;width:min(1100px,97vw);max-height:88vh;overflow:auto">
+    <div class="pm-head"><h3>Thêm phí Logistic</h3><button title="Đóng" onclick="closeLogFeeModal()">✕</button></div>
+    <div class="pm-body" id="logfee-body"></div>
+    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeLogFeeModal()">Hủy</button><button class="btn pri" onclick="confirmLogFeeModal()">Lưu</button></div></div>
   </div>
   <!-- Modal tạo báo giá Logistics chi tiết (Phí nội địa / Dịch vụ / NCC (agency)) -->
   <div class="modal-back" id="ldback" onclick="closeLogisDetailModal()" style="z-index:135"></div>
@@ -2831,6 +2839,155 @@ function confirmFee(){
   SHIPFEES.push({type,stage,amount,cur,ext,reason});
   renderShipFees(); closeFeeModal(); toast('Đã thêm phí: '+type+' · '+feeAmt({amount,cur}));
 }
+/* --- Chi phí Logistic (Shipment mua hàng nhập khẩu) — nhiều Section cố định, mỗi dòng phí có
+   Bên chịu phát sinh riêng; "Đồng Tiến Group" dùng cho khoản phí có ghi lý do nhưng KHÔNG tạo Case sự vụ. --- */
+const LOGFEE_PARTY_OPTIONS=['Đồng Tiến Group','Nhà cung cấp (Supplier)','Forwarder/Agent','Hãng tàu (Shipping Line)','Đơn vị dịch vụ Hải quan (Customs Broker)','Công ty Bảo hiểm (Insurance Company)','Cảng (Port Operator)','Đơn vị vận tải (Trucking Company)'];
+const LOGFEE_EXRATE_DEFAULT=26000;
+const LOGFEE_SECTIONS=[
+  {key:'port',title:'Chi phí địa phương của hãng tàu - Port Charges',items:[{name:'D/O fee'},{name:'Handling fee'},{name:'Cleaning fee'},{name:'Import service fee'},{name:'EMP'},{name:'DTHC'},{name:'CIC'}]},
+  {key:'trucking',title:'Chi phí Cảng - Inland Trucking',items:[{name:'Trucking'},{name:'Hạ rỗng xa'},{name:'CSHT'}]},
+  {key:'customs',title:'Chi phí dịch vụ Hải quan - Customs Brokerage',items:[]},
+  {key:'incidental',title:'Chi phí phát sinh - Incidental Charges',items:[
+    {name:'Phụ phí chuyển cảng',sub:'Cảng thu'},{name:'LOLO Level 2 Surcharge',sub:'Cảng thu'},{name:'LOLO Level 3 Surcharge',sub:'Cảng thu'},
+    {name:'LOLO Level 4 Surcharge',sub:'Cảng thu'},{name:'STO',sub:'Cảng thu'},
+    {name:'DEM, DET',sub:'Hãng tàu thu'},{name:'STO',sub:'Hãng tàu thu'},{name:'ROB Fee',sub:'Hãng tàu thu'}
+  ]},
+  {key:'emptyreturn',title:'Chi phí sau trả rỗng container - Empty Container Return Charges',items:[
+    {name:'Phí sửa chữa container (Container Repair)'},{name:'Phí vệ sinh đợt 2 (Second Cleaning Fee)'},
+    {name:'Cược container (Container Deposit)'},{name:'Khấu trừ cược (nếu có)'}
+  ]}
+];
+let SHIP_LOGFEES=[]; // {section,item,party,amount,cur,reason,note} — đã lưu, hiện trong card "Chi phí Logistic"
+let LGF_EXTRA_IDS={}, LGF_EXTRA_SEQ={}, LGF_HIDDEN={};
+LOGFEE_SECTIONS.forEach(s=>{ LGF_EXTRA_IDS[s.key]=[]; LGF_EXTRA_SEQ[s.key]=0; LGF_HIDDEN[s.key]=new Set(); });
+function lgfNum(id){ const el=document.getElementById(id); return el?(+el.value||0):0; }
+function lgfHasVal(id){ const el=document.getElementById(id); return !!(el&&el.value!==''); }
+function lgfExRate(){ return LOGFEE_EXRATE_DEFAULT; }
+function lgfPartySel(id){ return `<select id="${id}" class="mass-sel"><option value="">— Chọn —</option>${LOGFEE_PARTY_OPTIONS.map(o=>`<option ${o==='Đồng Tiến Group'?'title="Áp dụng cho khoản phí có ghi lý do nhưng không tạo Case sự vụ"':''}>${o}</option>`).join('')}</select>`; }
+function lgfCurSel(id){ return `<select id="${id}" class="mass-sel" onchange="lgfRecalcTotal()"><option value="VNĐ" selected>VNĐ</option><option value="USD">USD</option></select>`; }
+function lgfDelBtn(fn){ return `<button class="btn sm" title="Xóa dòng" onclick="${fn}">✕</button>`; }
+function lgfValVND(amtId,curId){
+  const amt=lgfNum(amtId); const curEl=document.getElementById(curId); const cur=curEl?curEl.value:'VNĐ';
+  return cur==='USD' ? amt*lgfExRate() : amt;
+}
+function lgfRowHTML(sectionKey,name,i){
+  return `<tr><td>${name}</td><td>${lgfPartySel('lgf-'+sectionKey+'-'+i+'-party')}</td>
+    <td class="num"><input type="number" min="0" class="mass-sel" id="lgf-${sectionKey}-${i}-amt" placeholder="Số tiền" oninput="lgfRecalcTotal()" style="text-align:right"></td>
+    <td>${lgfCurSel('lgf-'+sectionKey+'-'+i+'-cur')}</td>
+    <td><input class="mass-sel" id="lgf-${sectionKey}-${i}-reason" placeholder="Lý do phát sinh"></td>
+    <td><input class="mass-sel" id="lgf-${sectionKey}-${i}-note" placeholder="Ghi chú"></td>
+    <td>${lgfDelBtn("lgfRemoveMainRow('"+sectionKey+"',"+i+")")}</td></tr>`;
+}
+function lgfExtraRowHTML(sectionKey,rowId){
+  return `<tr><td><input class="mass-sel" id="${rowId}-name" placeholder="Nhập tên phí"></td><td>${lgfPartySel(rowId+'-party')}</td>
+    <td class="num"><input type="number" min="0" class="mass-sel" id="${rowId}-amt" placeholder="Số tiền" oninput="lgfRecalcTotal()" style="text-align:right"></td>
+    <td>${lgfCurSel(rowId+'-cur')}</td>
+    <td><input class="mass-sel" id="${rowId}-reason" placeholder="Lý do phát sinh"></td>
+    <td><input class="mass-sel" id="${rowId}-note" placeholder="Ghi chú"></td>
+    <td>${lgfDelBtn("lgfRemoveExtraRow('"+sectionKey+"','"+rowId+"')")}</td></tr>`;
+}
+function lgfSectionRowsHTML(sectionKey){
+  const sec=LOGFEE_SECTIONS.find(s=>s.key===sectionKey);
+  let html='', prevSub=null;
+  sec.items.forEach((it,i)=>{
+    if(LGF_HIDDEN[sectionKey].has(i)) return;
+    if(it.sub && it.sub!==prevSub){ html+=`<tr class="lgf-sub-row"><td colspan="7">${it.sub}</td></tr>`; prevSub=it.sub; }
+    html+=lgfRowHTML(sectionKey,it.name,i);
+  });
+  html+=LGF_EXTRA_IDS[sectionKey].map(rowId=>lgfExtraRowHTML(sectionKey,rowId)).join('');
+  if(!html) html=`<tr><td colspan="7" class="wf-muted" style="text-align:center;padding:10px">Chưa có khoản phí nào — dùng nút "＋ Thêm phí" bên dưới.</td></tr>`;
+  return html;
+}
+function lgfSectionHTML(sectionKey){
+  const sec=LOGFEE_SECTIONS.find(s=>s.key===sectionKey);
+  return `<div style="margin-bottom:16px">
+    <div style="font-weight:600;margin-bottom:6px">${sec.title}</div>
+    <div class="tbl-wrap"><table class="tbl sm"><thead><tr><th>Tên phí</th><th>Bên chịu phát sinh</th><th class="num">Số tiền</th><th>Đơn vị tính</th><th>Lý do phát sinh</th><th>Ghi chú</th><th></th></tr></thead>
+    <tbody id="lgf-${sectionKey}-tbody">${lgfSectionRowsHTML(sectionKey)}</tbody></table></div>
+    <button class="btn sm" style="margin-top:6px" onclick="lgfAddExtraRow('${sectionKey}')">＋ Thêm phí</button>
+  </div>`;
+}
+function lgfSyncValues(containerId){
+  const wrap=document.getElementById(containerId); const map={}; if(!wrap) return map;
+  wrap.querySelectorAll('input,select').forEach(el=>{ if(el.id) map[el.id]=el.value; });
+  return map;
+}
+function lgfApplyValues(containerId,map){
+  const wrap=document.getElementById(containerId); if(!wrap) return;
+  Object.keys(map).forEach(k=>{ const el=document.getElementById(k); if(el) el.value=map[k]; });
+}
+function lgfRenderSection(sectionKey){
+  const saved=lgfSyncValues('lgf-'+sectionKey+'-tbody');
+  document.getElementById('lgf-'+sectionKey+'-tbody').innerHTML=lgfSectionRowsHTML(sectionKey);
+  lgfApplyValues('lgf-'+sectionKey+'-tbody',saved);
+}
+function lgfAddExtraRow(sectionKey){
+  const rowId='lgf-'+sectionKey+'-x'+(LGF_EXTRA_SEQ[sectionKey]++);
+  LGF_EXTRA_IDS[sectionKey].push(rowId);
+  lgfRenderSection(sectionKey); lgfRecalcTotal();
+}
+function lgfRemoveMainRow(sectionKey,i){ LGF_HIDDEN[sectionKey].add(i); lgfRenderSection(sectionKey); lgfRecalcTotal(); }
+function lgfRemoveExtraRow(sectionKey,rowId){ LGF_EXTRA_IDS[sectionKey]=LGF_EXTRA_IDS[sectionKey].filter(id=>id!==rowId); lgfRenderSection(sectionKey); lgfRecalcTotal(); }
+// Chỉ những dòng đã thực sự nhập Số tiền (không để trống) mới được tính vào Tổng và được lưu khi bấm Lưu.
+function lgfAllLineItems(){
+  const items=[];
+  LOGFEE_SECTIONS.forEach(sec=>{
+    sec.items.forEach((it,i)=>{
+      if(LGF_HIDDEN[sec.key].has(i)) return;
+      const amtId='lgf-'+sec.key+'-'+i+'-amt', curId='lgf-'+sec.key+'-'+i+'-cur';
+      if(!lgfHasVal(amtId)) return;
+      items.push({section:sec.title,item:it.name,amtId,curId,
+        party:(document.getElementById('lgf-'+sec.key+'-'+i+'-party')||{}).value||'',
+        reason:(document.getElementById('lgf-'+sec.key+'-'+i+'-reason')||{}).value||'',
+        note:(document.getElementById('lgf-'+sec.key+'-'+i+'-note')||{}).value||''});
+    });
+    LGF_EXTRA_IDS[sec.key].forEach(rowId=>{
+      const amtId=rowId+'-amt', curId=rowId+'-cur';
+      if(!lgfHasVal(amtId)) return;
+      items.push({section:sec.title,item:(document.getElementById(rowId+'-name')||{}).value||'(chưa đặt tên)',amtId,curId,
+        party:(document.getElementById(rowId+'-party')||{}).value||'',
+        reason:(document.getElementById(rowId+'-reason')||{}).value||'',
+        note:(document.getElementById(rowId+'-note')||{}).value||''});
+    });
+  });
+  return items;
+}
+function lgfRecalcTotal(){
+  const total=lgfAllLineItems().reduce((s,it)=>s+lgfValVND(it.amtId,it.curId),0);
+  const el=document.getElementById('lgf-total'); if(el) el.textContent=fmtMoney(Math.round(total));
+}
+function openLogFeeModal(){
+  LOGFEE_SECTIONS.forEach(s=>{ LGF_EXTRA_IDS[s.key]=[]; LGF_EXTRA_SEQ[s.key]=0; LGF_HIDDEN[s.key]=new Set(); });
+  document.getElementById('logfee-body').innerHTML=
+    `<p class="po-hint">Chọn <b>Đồng Tiến Group</b> ở "Bên chịu phát sinh" áp dụng cho khoản phí phát sinh có ghi lý do rõ ràng nhưng <b>không tạo Case sự vụ</b>. Các bên khác (NCC, Forwarder/Agent, Hãng tàu, Hải quan, Bảo hiểm, Cảng, Vận tải) dùng khi cần theo dõi/khiếu nại riêng cho đúng đối tượng.</p>`
+    + LOGFEE_SECTIONS.map(s=>lgfSectionHTML(s.key)).join('')
+    + `<div class="ptf-item" style="background:var(--bg)"><div style="display:flex;justify-content:space-between;align-items:center"><b>Tổng cộng (quy đổi VNĐ, tỷ giá ${LOGFEE_EXRATE_DEFAULT.toLocaleString('vi-VN')})</b><span id="lgf-total" style="font-weight:700">0 ₫</span></div></div>`;
+  document.getElementById('logfeeback').classList.add('show');
+  document.getElementById('logfeemodal').classList.add('show');
+  lgfRecalcTotal();
+}
+function closeLogFeeModal(){ const b=document.getElementById('logfeeback'),m=document.getElementById('logfeemodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
+function confirmLogFeeModal(){
+  const items=lgfAllLineItems();
+  if(!items.length){ toast('Nhập Số tiền cho ít nhất 1 khoản phí'); return; }
+  let missingParty=0;
+  items.forEach(it=>{
+    if(!it.party) missingParty++;
+    SHIP_LOGFEES.push({section:it.section,item:it.item,party:it.party||'—',amount:lgfNum(it.amtId),cur:document.getElementById(it.curId).value,reason:it.reason,note:it.note});
+  });
+  renderShipLogFees(); closeLogFeeModal();
+  toast('Đã thêm '+items.length+' khoản phí Logistic'+(missingParty?' · ⚠ '+missingParty+' khoản chưa chọn Bên chịu phát sinh':''));
+}
+function shipLogFeeAmt(f){ return f.cur==='USD' ? ('$'+f.amount.toLocaleString('en-US')) : fmtMoney(f.amount); }
+function shipLogFeesRows(){
+  if(!SHIP_LOGFEES.length) return `<tr><td colspan="6" class="wf-muted" style="text-align:center;padding:14px">Chưa có khoản phí Logistic nào.</td></tr>`;
+  return SHIP_LOGFEES.map(f=>`<tr><td>${f.section}</td><td>${f.item}</td><td>${f.party}</td><td class="num">${shipLogFeeAmt(f)}</td><td>${f.reason||'—'}</td><td>${f.note||'—'}</td></tr>`).join('');
+}
+function shipLogFeesTotalVND(){ return SHIP_LOGFEES.reduce((s,f)=>s+(f.cur==='USD'?f.amount*LOGFEE_EXRATE_DEFAULT:f.amount),0); }
+function renderShipLogFees(){
+  const tb=document.getElementById('shiplogfee-tbody'); if(tb) tb.innerHTML=shipLogFeesRows();
+  const foot=document.getElementById('shiplogfee-foot'); if(foot) foot.textContent=fmtMoney(Math.round(shipLogFeesTotalVND()));
+}
 /* --- Báo giá Logistics (trên record Báo giá xuất khẩu) --- */
 /* --- Tạo báo giá Logistics chi tiết (Phí nội địa / Phí Dịch vụ / NCC (agency)) --- */
 const LOGIS_FEE_NOIDIA=[['TRUCKING','Cont'],['HẠ CONT + CƠ SỞ HẠ TẦNG','Cont']];
@@ -3949,6 +4106,13 @@ S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',TAB_IM,'Shipment')
           <tfoot><tr><td colspan="2"><b>Tổng phí Local Charge</b></td><td class="num"><b id="ship-fee-foot">${fmtMoney(shipFeesTotal())}</b></td><td colspan="3"></td></tr></tfoot>
         </table></div>`,
        {n:String(SHIPFEES.length), r:'<button class="btn sm" onclick="openCopyFeeModal()">⧉ Sao chép đơn giá cũ</button> <button class="btn sm" onclick="openFeeModal()">＋ Thêm phí phát sinh</button>'})}
+     ${card('Chi phí Logistic',
+       `<div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Section</th><th>Tên phí</th><th>Bên chịu phát sinh</th><th class="num">Số tiền</th><th>Lý do phát sinh</th><th>Ghi chú</th></tr></thead>
+          <tbody id="shiplogfee-tbody">${shipLogFeesRows()}</tbody>
+          <tfoot><tr><td colspan="3"><b>Tổng cộng (quy đổi VNĐ)</b></td><td class="num" colspan="3"><b id="shiplogfee-foot">${fmtMoney(shipLogFeesTotalVND())}</b></td></tr></tfoot>
+        </table></div>`,
+       {n:String(SHIP_LOGFEES.length), r:'<button class="btn sm" onclick="openLogFeeModal()">＋ Thêm chi phí Logistic</button>'})}
      ${card('Cảnh báo chi phí lưu bãi', banner('info','Sau ETA 19/07/2026, còn <b>7 ngày Free time</b> để kéo hàng. Quá hạn phát sinh Dem ≈ <b>$120/cont/ngày</b>.')
        + tbl([{t:'Loại phí'},{t:'Miễn phí đến'},{t:'Phí phát sinh',num:true}],[
        ['Demurrage (lưu bãi)','26/07/2026','$120/cont/ngày'],
