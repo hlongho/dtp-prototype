@@ -822,7 +822,7 @@ function hl({crumb,ico,color,title,sub,fields,actions}){
         </div></div>
       </div>
     </div>
-    ${fields?`<div class="slds-page-header__row slds-page-header__row_gutters"><div class="slds-page-header__col-details"><ul class="slds-page-header__detail-row">${fields.map(f=>`<li class="slds-page-header__detail-block"><div class="slds-text-title slds-truncate wf-muted">${f[0]}</div><div class="slds-truncate" style="font-weight:600">${f[1]}</div></li>`).join('')}</ul></div></div>`:''}
+    ${fields?`<div class="slds-page-header__row slds-page-header__row_gutters"><div class="slds-page-header__col-details"><ul class="slds-page-header__detail-row">${fields.map(f=>`<li class="slds-page-header__detail-block"><div class="slds-text-title slds-truncate wf-muted">${f[0]}</div><div class="slds-truncate" style="font-weight:600" title="${String(f[1]).replace(/<[^>]+>/g,'').replace(/"/g,'&quot;')}">${f[1]}</div></li>`).join('')}</ul></div></div>`:''}
   </div>`;
 }
 function path(stages, cur, btn){
