@@ -4007,7 +4007,6 @@ S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',TAB_IM,'Shipment')
         <div class="tbl-wrap"><table class="tbl">
           <thead><tr><th>Section</th><th>Tên phí</th><th>Bên chịu phát sinh</th><th class="num">Số tiền</th><th>Lý do phát sinh</th><th>Ghi chú</th></tr></thead>
           <tbody id="shiplogfee-tbody">${shipLogFeesRows()}</tbody>
-          <tfoot><tr><td colspan="3"><b>Tổng cộng (quy đổi VNĐ)</b></td><td class="num" colspan="3"><b id="shiplogfee-foot">${fmtMoney(shipLogFeesTotalVND())}</b></td></tr></tfoot>
         </table></div>`,
        {n:String(SHIP_LOGFEES.length), r:'<button class="btn sm" onclick="openLogFeeModal()">＋ Thêm chi phí Logistic</button>'})}
      ${card('Cảnh báo chi phí lưu bãi', banner('info','Sau ETA 19/07/2026, còn <b>7 ngày Free time</b> để kéo hàng. Quá hạn phát sinh Dem ≈ <b>$120/cont/ngày</b>.')
