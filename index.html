@@ -3983,7 +3983,7 @@ S.shipment_xk = ()=> appnav('Bán hàng xuất khẩu','Shipment XK',TAB_EX,'SO'
 S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',TAB_IM,'Shipment')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="shipment_list">Theo dõi Shipment</span> &rsaquo;',ico:'⚓',color:'#0b827c',title:'SHP-041 · OCC 800 tấn (32x40HC)',sub:'Record Type: Mua hàng nhập khẩu · HĐ IC-2026-041 · Hãng ONE',
-     fields:[['Trạng thái',pill('info','Đang trên biển')],['ETA','19/07/2026'],['Free time','7 ngày'],['Tổng phí Local Charge','<span id="ship-fee-total">'+fmtMoney(shipLogFeesTotalVND())+'</span>']],
+     fields:[['Trạng thái',pill('info','Đang trên biển')],['ETA','19/07/2026'],['Free time','7 ngày'],['Tổng phí Local Charge','<span id="ship-fee-total">'+fmtMoney(shipLogFeesTotalVND())+'</span>'],['Phí đã bao gồm (Include)',IC_INCLUDED_FEES]],
      actions:[{t:'Lên kế hoạch kéo hàng',pri:true},{t:'Tạo Case',fn:'createCaseFromShipment()'},{t:'Manage Shipment Fee',fn:'openLogFeeModal()'},'Sửa']})}
    ${path(['Draft','Final Docx','Open tờ khai','Completed'],1)}
    <div class="cols-side act-tab">
@@ -3994,10 +3994,7 @@ S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',TAB_IM,'Shipment')
        ['Cảng đi / đến','Los Angeles / Cát Lái'],['ETD','28/06/2026'],['ETA','19/07/2026'],
        ['Free time DEM','7 ngày từ ETA'],['Free time DET','10 ngày']]))}
      ${card('Shipment Fees',
-       `<div class="fee-inc"><div class="fee-inc-t">Phí đã bao gồm trong Hợp đồng (read-only)</div>
-          <div>${IC_INCLUDED_FEES}</div>
-          <div class="wf-muted" style="margin-top:4px;font-size:11.5px">Kế thừa tự động từ Sale Contract <b>IC-2026-041</b>. Nếu bị thu trùng các phí này → làm thủ tục khiếu nại.</div></div>
-        <div class="tbl-wrap"><table class="tbl">
+       `<div class="tbl-wrap"><table class="tbl">
           <thead><tr><th>Section</th><th>Tên phí</th><th>Bên chịu phát sinh</th><th class="num">Số tiền</th><th>Lý do phát sinh</th></tr></thead>
           <tbody id="shiplogfee-tbody">${shipLogFeesRows()}</tbody>
         </table></div>`,
