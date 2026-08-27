@@ -2863,11 +2863,9 @@ function openLogFeeModal(){
   LOGFEE_SECTIONS.forEach(s=>{ LGF_EXTRA_IDS[s.key]=[]; LGF_EXTRA_SEQ[s.key]=0; LGF_HIDDEN[s.key]=new Set(); });
   document.getElementById('logfee-body').innerHTML=
     `<p class="po-hint">Chọn <b>Đồng Tiến Group</b> ở "Bên chịu phát sinh" áp dụng cho khoản phí phát sinh có ghi lý do rõ ràng nhưng <b>không tạo Case sự vụ</b>. Các bên khác (NCC, Forwarder/Agent, Hãng tàu, Hải quan, Bảo hiểm, Cảng, Vận tải) dùng khi cần theo dõi/khiếu nại riêng cho đúng đối tượng.</p>`
-    + LOGFEE_SECTIONS.map(s=>lgfSectionHTML(s.key)).join('')
-    + `<div class="ptf-item" style="background:var(--bg)"><div style="display:flex;justify-content:space-between;align-items:center"><b>Tổng cộng (quy đổi VNĐ, tỷ giá ${LOGFEE_EXRATE_DEFAULT.toLocaleString('vi-VN')})</b><span id="lgf-total" style="font-weight:700">0 ₫</span></div></div>`;
+    + LOGFEE_SECTIONS.map(s=>lgfSectionHTML(s.key)).join('');
   document.getElementById('logfeeback').classList.add('show');
   document.getElementById('logfeemodal').classList.add('show');
-  lgfRecalcTotal();
 }
 function closeLogFeeModal(){ const b=document.getElementById('logfeeback'),m=document.getElementById('logfeemodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
 function confirmLogFeeModal(){
