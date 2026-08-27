@@ -3991,7 +3991,7 @@ S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',TAB_IM,'Shipment')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="shipment_list">Theo dõi Shipment</span> &rsaquo;',ico:'⚓',color:'#0b827c',title:'SHP-041 · OCC 800 tấn (32x40HC)',sub:'Record Type: Mua hàng nhập khẩu · HĐ IC-2026-041 · Hãng ONE',
      fields:[['Trạng thái',pill('info','Đang trên biển')],['ETA','19/07/2026'],['Free time','7 ngày'],['Tổng phí Local Charge','<span id="ship-fee-total">'+fmtMoney(shipLogFeesTotalVND())+'</span>']],
-     actions:[{t:'Lên kế hoạch kéo hàng',pri:true},{t:'Tạo Case',fn:'createCaseFromShipment()'},{t:'＋ Thêm chi phí Logistic',fn:'openLogFeeModal()'},'Sửa']})}
+     actions:[{t:'Lên kế hoạch kéo hàng',pri:true},{t:'Tạo Case',fn:'createCaseFromShipment()'},{t:'Thêm chi phí Logistic',fn:'openLogFeeModal()'},'Sửa']})}
    ${path(['Draft','Final Docx','Open tờ khai','Completed'],1)}
    <div class="cols-side act-tab">
      <div>
