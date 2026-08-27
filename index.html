@@ -3991,7 +3991,7 @@ S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',TAB_IM,'Shipment')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="shipment_list">Theo dõi Shipment</span> &rsaquo;',ico:'⚓',color:'#0b827c',title:'SHP-041 · OCC 800 tấn (32x40HC)',sub:'Record Type: Mua hàng nhập khẩu · HĐ IC-2026-041 · Hãng ONE',
      fields:[['Trạng thái',pill('info','Đang trên biển')],['ETA','19/07/2026'],['Free time','7 ngày'],['Tổng phí Local Charge','<span id="ship-fee-total">'+fmtMoney(shipLogFeesTotalVND())+'</span>']],
-     actions:[{t:'Lên kế hoạch kéo hàng',pri:true},{t:'Tạo Case',fn:'createCaseFromShipment()'},'Sửa']})}
+     actions:[{t:'Lên kế hoạch kéo hàng',pri:true},{t:'Tạo Case',fn:'createCaseFromShipment()'},{t:'＋ Thêm chi phí Logistic',fn:'openLogFeeModal()'},'Sửa']})}
    ${path(['Draft','Final Docx','Open tờ khai','Completed'],1)}
    <div class="cols-side act-tab">
      <div>
@@ -4008,7 +4008,7 @@ S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',TAB_IM,'Shipment')
           <thead><tr><th>Section</th><th>Tên phí</th><th>Bên chịu phát sinh</th><th class="num">Số tiền</th><th>Lý do phát sinh</th><th>Ghi chú</th></tr></thead>
           <tbody id="shiplogfee-tbody">${shipLogFeesRows()}</tbody>
         </table></div>`,
-       {n:String(SHIP_LOGFEES.length), r:'<button class="btn sm" onclick="openLogFeeModal()">＋ Thêm chi phí Logistic</button>'})}
+       {n:String(SHIP_LOGFEES.length)})}
      ${card('Cảnh báo chi phí lưu bãi', banner('info','Sau ETA 19/07/2026, còn <b>7 ngày Free time</b> để kéo hàng. Quá hạn phát sinh Dem ≈ <b>$120/cont/ngày</b>.')
        + tbl([{t:'Loại phí'},{t:'Miễn phí đến'},{t:'Phí phát sinh',num:true}],[
        ['Demurrage (lưu bãi)','26/07/2026','$120/cont/ngày'],
