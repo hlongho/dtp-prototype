@@ -696,20 +696,6 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     <div class="pm-body" id="npf-body"></div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeNpfEvalModal()">Hủy</button><button class="btn pri" onclick="confirmNpfEval()">Lưu đánh giá</button></div></div>
   </div>
-  <!-- Modal thêm phí phát sinh (Shipment Fee) -->
-  <div class="modal-back" id="feeback" onclick="closeFeeModal()" style="z-index:135"></div>
-  <div class="po-modal" id="feemodal" style="z-index:140;width:min(620px,94vw)">
-    <div class="pm-head"><h3>Thêm phí phát sinh</h3><button title="Đóng" onclick="closeFeeModal()">✕</button></div>
-    <div class="pm-body" id="fee-body"></div>
-    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeFeeModal()">Hủy</button><button class="btn pri" onclick="confirmFee()">Lưu phí</button></div></div>
-  </div>
-  <!-- Modal sao chép đơn giá phí từ shipment cũ -->
-  <div class="modal-back" id="cpfeeback" onclick="closeCopyFeeModal()" style="z-index:135"></div>
-  <div class="po-modal" id="cpfeemodal" style="z-index:140;width:min(720px,95vw)">
-    <div class="pm-head"><h3>Sao chép đơn giá cũ (từ Shipment trước)</h3><button title="Đóng" onclick="closeCopyFeeModal()">✕</button></div>
-    <div class="pm-body" id="cpfee-body"></div>
-    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeCopyFeeModal()">Đóng</button></div></div>
-  </div>
   <!-- Modal chọn chi phí khiếu nại (Case Sự vụ Nhập khẩu - Logistics) -->
   <div class="modal-back" id="claimfeeback" onclick="closeClaimFeeModal()" style="z-index:135"></div>
   <div class="po-modal" id="claimfeemodal" style="z-index:140;width:min(1180px,97vw)">
@@ -2683,58 +2669,10 @@ let SHIPFEES=[
     {party:'Hãng tàu',reason:'Hãng tàu chưa gửi B/L gốc kịp thời',amount:2000000,cur:'VNĐ'},
     {party:'NCC',reason:'NCC chậm bổ sung chứng từ xuất xứ',amount:1920000,cur:'VNĐ'}]},
 ];
-const FEE_PENALTY=['DEM (lưu bãi)','DET (lưu vỏ)','Phí lưu bãi','Gia hạn lệnh'];
 const CLAIM_EXRATE=26000;
 function fmtMoney(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,'.')+' ₫'; }
 function feeAmt(f){ return f.cur==='USD' ? ('$'+f.amount.toLocaleString('en-US')) : fmtMoney(f.amount); }
 function feeAmtUSD(f){ return f.cur==='USD' ? ('$'+f.amount.toLocaleString('en-US')) : ('$'+Math.round(f.amount/CLAIM_EXRATE).toLocaleString('en-US')); }
-function shipFeesRows(){
-  return SHIPFEES.map(f=>`<tr><td>${f.type}</td><td>${f.stage}</td><td class="num">${feeAmt(f)}</td><td>${f.cur}</td><td>${f.ext||'—'}</td><td>${f.reason||'—'}</td></tr>`).join('');
-}
-/* --- Sao chép đơn giá phí từ shipment kỳ trước --- */
-const PAST_SHIP_FEES=[
-  {code:'SHP-039', label:'DLK 400 tấn · Maersk · ETA 12/07/2026', fees:[
-    {type:'THC',stage:'Phí tại cảng',amount:4200000,cur:'VNĐ',ext:'',reason:''},
-    {type:'CIC',stage:'Phí trả Hãng tàu',amount:1050000,cur:'VNĐ',ext:'',reason:''},
-    {type:'Phí vệ sinh cont',stage:'Phí tại cảng',amount:750000,cur:'VNĐ',ext:'',reason:''},
-    {type:'Nâng hạ (LOLO)',stage:'Phí tại cảng',amount:900000,cur:'VNĐ',ext:'',reason:'Cont nặng — nâng hạ tầng 2/3'}]},
-  {code:'SHP-042', label:'Bột giấy 300 tấn · ONE · ETA 28/07/2026', fees:[
-    {type:'THC',stage:'Phí tại cảng',amount:4350000,cur:'VNĐ',ext:'',reason:''},
-    {type:'CIC',stage:'Phí trả Hãng tàu',amount:1100000,cur:'VNĐ',ext:'',reason:''},
-    {type:'Phí chứng từ',stage:'Phí trả Hãng tàu',amount:700000,cur:'VNĐ',ext:'',reason:'Chỉnh sửa B/L'}]},
-  {code:'SHP-036', label:'OCC 750 tấn · ONE · ETA 20/06/2026', fees:[
-    {type:'THC',stage:'Phí tại cảng',amount:4100000,cur:'VNĐ',ext:'',reason:''},
-    {type:'CIC',stage:'Phí trả Hãng tàu',amount:1100000,cur:'VNĐ',ext:'',reason:''},
-    {type:'Phí vệ sinh cont',stage:'Phí tại cảng',amount:800000,cur:'VNĐ',ext:'',reason:''},
-    {type:'DEM (lưu bãi)',stage:'Phí tại cảng',amount:2400000,cur:'VNĐ',ext:'25/06/2026',reason:'Kho hết chỗ, kéo hàng trễ 2 ngày'}]},
-];
-function openCopyFeeModal(){
-  document.getElementById('cpfee-body').innerHTML=
-    `<p class="po-hint">Bấm vào từng Shipment để <b>sổ ra chi tiết các khoản phí</b> sẽ được sao chép, rồi bấm "Sao chép" để tạo cho shipment hiện tại.</p>`
-    + PAST_SHIP_FEES.map((s,i)=>{ const tot=s.fees.filter(f=>f.cur==='VNĐ').reduce((a,f)=>a+f.amount,0);
-        const detail=`<div class="tbl-wrap"><table class="tbl sm"><thead><tr><th>Tên loại phí</th><th>Giai đoạn phí</th><th class="num">Đơn giá</th><th>Tiền tệ</th><th>Lý do phát sinh</th></tr></thead><tbody>`
-          + s.fees.map(f=>`<tr><td>${f.type}</td><td>${f.stage}</td><td class="num">${feeAmt(f)}</td><td>${f.cur}</td><td>${f.reason||'—'}</td></tr>`).join('')
-          + `<tr style="font-weight:700;background:var(--bg)"><td colspan="2">Tổng (VNĐ)</td><td class="num">${fmtMoney(tot)}</td><td colspan="2"></td></tr></tbody></table></div>`;
-        return `<div class="cpfee-blk" id="cpfee-b-${i}">
-           <div class="cpfee-hd" onclick="cpfeeToggle(${i})"><span class="cpfee-caret">▸</span><span class="sp"><b>${s.code}</b> · ${s.label} · <span class="wf-muted">${s.fees.length} phí · Tổng ${fmtMoney(tot)}</span></span><button class="btn sm pri" onclick="event.stopPropagation();copyFeesFrom(${i})">Sao chép</button></div>
-           <div class="cpfee-detail" style="display:none">${detail}</div>
-         </div>`;
-      }).join('');
-  document.getElementById('cpfeeback').classList.add('show');
-  document.getElementById('cpfeemodal').classList.add('show');
-}
-function cpfeeToggle(i){ const b=document.getElementById('cpfee-b-'+i); if(!b) return; const d=b.querySelector('.cpfee-detail'); const open=b.classList.toggle('open'); if(d) d.style.display=open?'':'none'; }
-function closeCopyFeeModal(){ const b=document.getElementById('cpfeeback'),m=document.getElementById('cpfeemodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
-function copyFeesFrom(i){ const s=PAST_SHIP_FEES[i]; if(!s) return;
-  s.fees.forEach(f=>SHIPFEES.push({type:f.type,stage:f.stage,amount:f.amount,cur:f.cur,ext:f.ext||'',reason:f.reason||'',compLines:[{party:'',reason:'',amount:0,cur:'VNĐ'}]}));
-  renderShipFees(); closeCopyFeeModal(); toast('Đã sao chép '+s.fees.length+' phí (đơn giá + lý do) từ '+s.code+' sang shipment hiện tại');
-}
-function shipFeesTotal(){ return SHIPFEES.filter(f=>f.cur==='VNĐ').reduce((a,f)=>a+f.amount,0); }
-function renderShipFees(){
-  const tb=document.getElementById('ship-fee-tbody'); if(tb) tb.innerHTML=shipFeesRows();
-  const tot=fmtMoney(shipFeesTotal());
-  ['ship-fee-total','ship-fee-foot'].forEach(id=>{const e=document.getElementById(id); if(e) e.textContent=tot;});
-}
 /* --- Case "Sự vụ Nhập khẩu - Logistics" từ Shipment + chọn chi phí khiếu nại --- */
 function createCaseFromShipment(){ toast('Đã tạo Case (Sự vụ Nhập khẩu - Logistics) từ Shipment SHP-041 — mở màn Case'); setTimeout(function(){ if(S.case_im) go('case_im'); }, 700); }
 let CLAIM_FEES=new Set(['DEM (lưu bãi)','Gia hạn lệnh']);
@@ -2803,41 +2741,6 @@ function renderClaimFees(){
   const tb=document.getElementById('claimfee-tbody'); if(tb) tb.innerHTML=claimFeeRows();
   const tot=fmtMoney(claimFeeTotal());
   ['claimfee-total','claimfee-foot'].forEach(id=>{const e=document.getElementById(id); if(e) e.textContent=tot;});
-}
-function toggleFeeExt(){
-  const t=document.getElementById('fee-type').value;
-  const row=document.getElementById('fee-ext-row'); if(row) row.style.display = FEE_PENALTY.includes(t)?'':'none';
-}
-function openFeeModal(){
-  const sel=(id,opts)=>`<select id="${id}" class="mass-sel">${opts.map(o=>`<option>${o}</option>`).join('')}</select>`;
-  document.getElementById('fee-body').innerHTML=
-    `<p class="po-hint">Local Charge phát sinh tại Việt Nam mặc định thu bằng <b>VNĐ</b> (dù đơn giá hàng trên hợp đồng là USD).</p>
-     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Tên loại phí *</label>
-         <select id="fee-type" class="mass-sel" onchange="toggleFeeExt()">${['THC','DEM (lưu bãi)','DET (lưu vỏ)','Phí lưu bãi','Phí vệ sinh cont','CIC','Gia hạn lệnh','Khác'].map(o=>`<option>${o}</option>`).join('')}</select></div>
-       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Phân loại giai đoạn phí *</label>
-         ${sel('fee-stage',['Phí trả Hãng tàu (trước khi kéo công)','Phí tại cảng (sau khi kéo hàng)'])}</div>
-       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Số tiền *</label><input id="fee-amount" class="mass-sel" type="number" placeholder="VD: 2.500.000"></div>
-       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Tiền tệ *</label>${sel('fee-cur',['VNĐ','USD'])}</div>
-       <div id="fee-ext-row" style="display:none"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Ngày gia hạn lệnh</label><input id="fee-ext" class="mass-sel" type="date"></div>
-     </div>
-     <div style="margin-top:10px"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Lý do phát sinh (bắt buộc với phí phạt/lưu kho)</label><input id="fee-reason" class="mass-sel" placeholder="VD: Kho hết chỗ / Thủ tục HQ chậm…"></div>`;
-  document.getElementById('feeback').classList.add('show');
-  document.getElementById('feemodal').classList.add('show');
-  toggleFeeExt();
-}
-function closeFeeModal(){ const b=document.getElementById('feeback'),m=document.getElementById('feemodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
-function confirmFee(){
-  const type=document.getElementById('fee-type').value;
-  const stage=document.getElementById('fee-stage').value.replace(/ \(.*\)/,'');
-  const amount=parseNum(document.getElementById('fee-amount').value);
-  const cur=document.getElementById('fee-cur').value;
-  const ext=FEE_PENALTY.includes(type)?(document.getElementById('fee-ext').value||''):'';
-  const reason=(document.getElementById('fee-reason').value||'').trim();
-  if(!amount){ toast('Nhập số tiền'); return; }
-  if(FEE_PENALTY.includes(type) && !reason){ toast('Phí phạt/lưu kho bắt buộc nhập Lý do phát sinh'); document.getElementById('fee-reason').focus(); return; }
-  SHIPFEES.push({type,stage,amount,cur,ext,reason});
-  renderShipFees(); closeFeeModal(); toast('Đã thêm phí: '+type+' · '+feeAmt({amount,cur}));
 }
 /* --- Chi phí Logistic (Shipment mua hàng nhập khẩu) — nhiều Section cố định, mỗi dòng phí có
    Bên chịu phát sinh riêng; "Đồng Tiến Group" dùng cho khoản phí có ghi lý do nhưng KHÔNG tạo Case sự vụ. --- */
@@ -2986,7 +2889,8 @@ function shipLogFeesRows(){
 function shipLogFeesTotalVND(){ return SHIP_LOGFEES.reduce((s,f)=>s+(f.cur==='USD'?f.amount*LOGFEE_EXRATE_DEFAULT:f.amount),0); }
 function renderShipLogFees(){
   const tb=document.getElementById('shiplogfee-tbody'); if(tb) tb.innerHTML=shipLogFeesRows();
-  const foot=document.getElementById('shiplogfee-foot'); if(foot) foot.textContent=fmtMoney(Math.round(shipLogFeesTotalVND()));
+  const tot=fmtMoney(Math.round(shipLogFeesTotalVND()));
+  ['shiplogfee-foot','ship-fee-total'].forEach(id=>{ const e=document.getElementById(id); if(e) e.textContent=tot; });
 }
 /* --- Báo giá Logistics (trên record Báo giá xuất khẩu) --- */
 /* --- Tạo báo giá Logistics chi tiết (Phí nội địa / Phí Dịch vụ / NCC (agency)) --- */
@@ -4086,7 +3990,7 @@ S.shipment_xk = ()=> appnav('Bán hàng xuất khẩu','Shipment XK',TAB_EX,'SO'
 S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',TAB_IM,'Shipment')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="shipment_list">Theo dõi Shipment</span> &rsaquo;',ico:'⚓',color:'#0b827c',title:'SHP-041 · OCC 800 tấn (32x40HC)',sub:'Record Type: Mua hàng nhập khẩu · HĐ IC-2026-041 · Hãng ONE',
-     fields:[['Trạng thái',pill('info','Đang trên biển')],['ETA','19/07/2026'],['Free time','7 ngày'],['Tổng phí Local Charge','<span id="ship-fee-total">12.900.000 ₫</span>']],
+     fields:[['Trạng thái',pill('info','Đang trên biển')],['ETA','19/07/2026'],['Free time','7 ngày'],['Tổng phí Local Charge','<span id="ship-fee-total">'+fmtMoney(shipLogFeesTotalVND())+'</span>']],
      actions:[{t:'Lên kế hoạch kéo hàng',pri:true},{t:'Tạo Case',fn:'createCaseFromShipment()'},'Sửa']})}
    ${path(['Draft','Final Docx','Open tờ khai','Completed'],1)}
    <div class="cols-side act-tab">
@@ -4096,18 +4000,11 @@ S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',TAB_IM,'Shipment')
        ['Số lượng cont','32'],['Loại cont','40HC'],['Số lượng giao hàng','800 tấn'],
        ['Cảng đi / đến','Los Angeles / Cát Lái'],['ETD','28/06/2026'],['ETA','19/07/2026'],
        ['Free time DEM','7 ngày từ ETA'],['Free time DET','10 ngày']]))}
-     ${card('Chi phí (Shipment Fees)',
+     ${card('Shipment Fees',
        `<div class="fee-inc"><div class="fee-inc-t">Phí đã bao gồm trong Hợp đồng (read-only)</div>
           <div>${IC_INCLUDED_FEES}</div>
           <div class="wf-muted" style="margin-top:4px;font-size:11.5px">Kế thừa tự động từ Sale Contract <b>IC-2026-041</b>. Nếu bị thu trùng các phí này → làm thủ tục khiếu nại.</div></div>
         <div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Tên loại phí</th><th>Giai đoạn phí</th><th class="num">Số tiền</th><th>Tiền tệ</th><th>Ngày gia hạn lệnh</th><th>Lý do phát sinh</th></tr></thead>
-          <tbody id="ship-fee-tbody">${shipFeesRows()}</tbody>
-          <tfoot><tr><td colspan="2"><b>Tổng phí Local Charge</b></td><td class="num"><b id="ship-fee-foot">${fmtMoney(shipFeesTotal())}</b></td><td colspan="3"></td></tr></tfoot>
-        </table></div>`,
-       {n:String(SHIPFEES.length), r:'<button class="btn sm" onclick="openCopyFeeModal()">⧉ Sao chép đơn giá cũ</button> <button class="btn sm" onclick="openFeeModal()">＋ Thêm phí phát sinh</button>'})}
-     ${card('Chi phí Logistic',
-       `<div class="tbl-wrap"><table class="tbl">
           <thead><tr><th>Section</th><th>Tên phí</th><th>Bên chịu phát sinh</th><th class="num">Số tiền</th><th>Lý do phát sinh</th><th>Ghi chú</th></tr></thead>
           <tbody id="shiplogfee-tbody">${shipLogFeesRows()}</tbody>
           <tfoot><tr><td colspan="3"><b>Tổng cộng (quy đổi VNĐ)</b></td><td class="num" colspan="3"><b id="shiplogfee-foot">${fmtMoney(shipLogFeesTotalVND())}</b></td></tr></tfoot>
@@ -5356,7 +5253,7 @@ function setupSearch(){
   dd.addEventListener('click',e=>{const it=e.target.closest('.sr-item'); if(it) pickSearch(it.dataset.id);});
   document.addEventListener('click',e=>{ if(!e.target.closest('.g-search')) dd.classList.remove('show'); });
   document.getElementById('lmsearch').addEventListener('input',e=>renderLauncher(e.target.value));
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeSupModal(); closeMass(); closePO(); closeLauncher(); closeShipModal(); closeSlipModal(); closeEvalModal(); closeFeeModal(); closeQuoteModal(); closeApproveModal(); closeSampleModal(); } });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeSupModal(); closeMass(); closePO(); closeLauncher(); closeShipModal(); closeSlipModal(); closeEvalModal(); closeLogFeeModal(); closeQuoteModal(); closeApproveModal(); closeSampleModal(); } });
 }
 
 /* ---- in-page interactivity ---- */
