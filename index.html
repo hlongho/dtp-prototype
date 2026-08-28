@@ -569,6 +569,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
 .slds-scoped-notification{margin-bottom:.5rem}
 /* nút slds trong page header nhỏ gọn */
 .slds-page-header .slds-button-group-list{flex-wrap:wrap}
+/* Compact layout (Highlights Panel): khi nhiều field không đủ chỗ trên 1 hàng thì xuống dòng
+   thay vì tràn/ẩn mất field cuối (thay cho cơ chế cuộn ngang có mũi tên ‹ › của Lightning thật). */
+.slds-page-header__detail-row{flex-wrap:wrap;row-gap:.75rem}
+.slds-page-header__detail-block{flex:0 0 auto;min-width:9rem;max-width:16rem}
 /* List View selector (dropdown chọn nhiều list view) */
 .lv-view-wrap{position:relative;display:inline-block}
 .lv-view-btn{cursor:pointer;display:inline-flex;align-items:center;gap:6px}
