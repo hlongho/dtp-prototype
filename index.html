@@ -573,6 +573,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
    thay vì tràn/ẩn mất field cuối (thay cho cơ chế cuộn ngang có mũi tên ‹ › của Lightning thật). */
 .slds-page-header__detail-row{flex-wrap:wrap;row-gap:.75rem}
 .slds-page-header__detail-block{flex:0 0 auto;min-width:9rem;max-width:16rem}
+/* Ép nhóm field sau đó xuống dòng mới, dùng cho field ['__break__'] trong mảng fields của hl() */
+.hl-row-break{flex-basis:100%;width:100%;height:0;margin:0;padding:0;list-style:none}
 /* List View selector (dropdown chọn nhiều list view) */
 .lv-view-wrap{position:relative;display:inline-block}
 .lv-view-btn{cursor:pointer;display:inline-flex;align-items:center;gap:6px}
@@ -826,7 +828,7 @@ function hl({crumb,ico,color,title,sub,fields,actions}){
         </div></div>
       </div>
     </div>
-    ${fields?`<div class="slds-page-header__row slds-page-header__row_gutters"><div class="slds-page-header__col-details"><ul class="slds-page-header__detail-row">${fields.map(f=>`<li class="slds-page-header__detail-block"><div class="slds-text-title slds-truncate wf-muted">${f[0]}</div><div class="slds-truncate" style="font-weight:600" title="${String(f[1]).replace(/<[^>]+>/g,'').replace(/"/g,'&quot;')}">${f[1]}</div></li>`).join('')}</ul></div></div>`:''}
+    ${fields?`<div class="slds-page-header__row slds-page-header__row_gutters"><div class="slds-page-header__col-details"><ul class="slds-page-header__detail-row">${fields.map(f=>f[0]==='__break__'?`<li class="hl-row-break" aria-hidden="true"></li>`:`<li class="slds-page-header__detail-block"><div class="slds-text-title slds-truncate wf-muted">${f[0]}</div><div class="slds-truncate" style="font-weight:600" title="${String(f[1]).replace(/<[^>]+>/g,'').replace(/"/g,'&quot;')}">${f[1]}</div></li>`).join('')}</ul></div></div>`:''}
   </div>`;
 }
 function path(stages, cur, btn){
@@ -3994,7 +3996,9 @@ S.shipment_xk = ()=> appnav('Bán hàng xuất khẩu','Shipment XK',TAB_EX,'SO'
 S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',TAB_IM,'Shipment')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="shipment_list">Theo dõi Shipment</span> &rsaquo;',ico:'⚓',color:'#0b827c',title:'SHP-041 · OCC 800 tấn (32x40HC)',sub:'Record Type: Mua hàng nhập khẩu · HĐ IC-2026-041 · Hãng ONE',
-     fields:[['Trạng thái',pill('info','Đang trên biển')],['ETA','19/07/2026'],['Free time','7 ngày'],['Total Additional Incident Cost','<span id="ship-fee-total">'+fmtMoney(shipLogFeesTotalVND())+'</span>'],['Additional Included Charges',IC_INCLUDED_FEES],['Total Claim Cost','<span id="ship-claim-total">'+fmtMoney(claimFeeTotal())+'</span>'],['Total Reimbursement Received','<span id="ship-reimb-total">'+fmtMoney(claimReimbursementTotal())+'</span>']],
+     fields:[['Trạng thái',pill('info','Đang trên biển')],['ETA','19/07/2026'],['Free time','7 ngày'],['Additional Included Charges',IC_INCLUDED_FEES],
+       ['__break__'],
+       ['Total Additional Incident Cost','<span id="ship-fee-total">'+fmtMoney(shipLogFeesTotalVND())+'</span>'],['Total Claim Cost','<span id="ship-claim-total">'+fmtMoney(claimFeeTotal())+'</span>'],['Total Reimbursement Received','<span id="ship-reimb-total">'+fmtMoney(claimReimbursementTotal())+'</span>']],
      actions:[{t:'Lên kế hoạch kéo hàng',pri:true},{t:'Tạo Case',fn:'createCaseFromShipment()'},{t:'Manage Shipment Fee',fn:'openLogFeeModal()'},'Sửa']})}
    ${path(['Draft','Final Docx','Open tờ khai','Completed'],1)}
    <div class="cols-side act-tab">
