@@ -2774,7 +2774,7 @@ const LOGFEE_SECTIONS=[
     {name:'Cược container (Container Deposit)'},{name:'Khấu trừ cược (nếu có)'}
   ]}
 ];
-let SHIP_LOGFEES=[]; // {section,item,party,amount,cur,reason} — đã lưu, hiện trong card "Shipment Fees"
+let SHIP_LOGFEES=[]; // {section,item,party,amount,cur,invNo,invDate,reason} — đã lưu, hiện trong card "Shipment Fees"
 let LGF_EXTRA_IDS={}, LGF_EXTRA_SEQ={}, LGF_HIDDEN={};
 LOGFEE_SECTIONS.forEach(s=>{ LGF_EXTRA_IDS[s.key]=[]; LGF_EXTRA_SEQ[s.key]=0; LGF_HIDDEN[s.key]=new Set(); });
 function lgfNum(id){ const el=document.getElementById(id); return el?(+el.value||0):0; }
@@ -2791,6 +2791,8 @@ function lgfRowHTML(sectionKey,name,i){
   return `<tr><td>${name}</td><td>${lgfPartySel('lgf-'+sectionKey+'-'+i+'-party')}</td>
     <td class="num"><input type="number" min="0" class="mass-sel" id="lgf-${sectionKey}-${i}-amt" placeholder="Số tiền" oninput="lgfRecalcTotal()" style="text-align:right"></td>
     <td>${lgfCurSel('lgf-'+sectionKey+'-'+i+'-cur')}</td>
+    <td><input class="mass-sel" id="lgf-${sectionKey}-${i}-invno" placeholder="Số hóa đơn"></td>
+    <td><input type="date" class="mass-sel" id="lgf-${sectionKey}-${i}-invdate"></td>
     <td><input class="mass-sel" id="lgf-${sectionKey}-${i}-reason" placeholder="Lý do phát sinh"></td>
     <td>${lgfDelBtn("lgfRemoveMainRow('"+sectionKey+"',"+i+")")}</td></tr>`;
 }
@@ -2798,6 +2800,8 @@ function lgfExtraRowHTML(sectionKey,rowId){
   return `<tr><td><input class="mass-sel" id="${rowId}-name" placeholder="Nhập tên phí"></td><td>${lgfPartySel(rowId+'-party')}</td>
     <td class="num"><input type="number" min="0" class="mass-sel" id="${rowId}-amt" placeholder="Số tiền" oninput="lgfRecalcTotal()" style="text-align:right"></td>
     <td>${lgfCurSel(rowId+'-cur')}</td>
+    <td><input class="mass-sel" id="${rowId}-invno" placeholder="Số hóa đơn"></td>
+    <td><input type="date" class="mass-sel" id="${rowId}-invdate"></td>
     <td><input class="mass-sel" id="${rowId}-reason" placeholder="Lý do phát sinh"></td>
     <td>${lgfDelBtn("lgfRemoveExtraRow('"+sectionKey+"','"+rowId+"')")}</td></tr>`;
 }
@@ -2806,18 +2810,18 @@ function lgfSectionRowsHTML(sectionKey){
   let html='', prevSub=null;
   sec.items.forEach((it,i)=>{
     if(LGF_HIDDEN[sectionKey].has(i)) return;
-    if(it.sub && it.sub!==prevSub){ html+=`<tr class="lgf-sub-row"><td colspan="6">${it.sub}</td></tr>`; prevSub=it.sub; }
+    if(it.sub && it.sub!==prevSub){ html+=`<tr class="lgf-sub-row"><td colspan="8">${it.sub}</td></tr>`; prevSub=it.sub; }
     html+=lgfRowHTML(sectionKey,it.name,i);
   });
   html+=LGF_EXTRA_IDS[sectionKey].map(rowId=>lgfExtraRowHTML(sectionKey,rowId)).join('');
-  if(!html) html=`<tr><td colspan="6" class="wf-muted" style="text-align:center;padding:10px">Chưa có khoản phí nào — dùng nút "＋ Thêm phí" bên dưới.</td></tr>`;
+  if(!html) html=`<tr><td colspan="8" class="wf-muted" style="text-align:center;padding:10px">Chưa có khoản phí nào — dùng nút "＋ Thêm phí" bên dưới.</td></tr>`;
   return html;
 }
 function lgfSectionHTML(sectionKey){
   const sec=LOGFEE_SECTIONS.find(s=>s.key===sectionKey);
   return `<div style="margin-bottom:16px">
     <div style="font-weight:600;margin-bottom:6px">${sec.title}</div>
-    <div class="tbl-wrap"><table class="tbl sm"><thead><tr><th>Tên phí</th><th>Bên chịu phát sinh</th><th class="num">Số tiền</th><th>Đơn vị tính</th><th>Lý do phát sinh</th><th></th></tr></thead>
+    <div class="tbl-wrap"><table class="tbl sm"><thead><tr><th>Tên phí</th><th>Bên chịu phát sinh</th><th class="num">Số tiền</th><th>Đơn vị tính</th><th>Số hóa đơn</th><th>Ngày hóa đơn</th><th>Lý do phát sinh</th><th></th></tr></thead>
     <tbody id="lgf-${sectionKey}-tbody">${lgfSectionRowsHTML(sectionKey)}</tbody></table></div>
     <button class="btn sm" style="margin-top:6px" onclick="lgfAddExtraRow('${sectionKey}')">＋ Thêm phí</button>
   </div>`;
@@ -2853,6 +2857,8 @@ function lgfAllLineItems(){
       if(!lgfHasVal(amtId)) return;
       items.push({section:sec.title,item:it.name,amtId,curId,
         party:(document.getElementById('lgf-'+sec.key+'-'+i+'-party')||{}).value||'',
+        invNo:(document.getElementById('lgf-'+sec.key+'-'+i+'-invno')||{}).value||'',
+        invDate:(document.getElementById('lgf-'+sec.key+'-'+i+'-invdate')||{}).value||'',
         reason:(document.getElementById('lgf-'+sec.key+'-'+i+'-reason')||{}).value||''});
     });
     LGF_EXTRA_IDS[sec.key].forEach(rowId=>{
@@ -2860,6 +2866,8 @@ function lgfAllLineItems(){
       if(!lgfHasVal(amtId)) return;
       items.push({section:sec.title,item:(document.getElementById(rowId+'-name')||{}).value||'(chưa đặt tên)',amtId,curId,
         party:(document.getElementById(rowId+'-party')||{}).value||'',
+        invNo:(document.getElementById(rowId+'-invno')||{}).value||'',
+        invDate:(document.getElementById(rowId+'-invdate')||{}).value||'',
         reason:(document.getElementById(rowId+'-reason')||{}).value||''});
     });
   });
@@ -2883,15 +2891,16 @@ function confirmLogFeeModal(){
   let missingParty=0;
   items.forEach(it=>{
     if(!it.party) missingParty++;
-    SHIP_LOGFEES.push({section:it.section,item:it.item,party:it.party||'—',amount:lgfNum(it.amtId),cur:document.getElementById(it.curId).value,reason:it.reason});
+    SHIP_LOGFEES.push({section:it.section,item:it.item,party:it.party||'—',amount:lgfNum(it.amtId),cur:document.getElementById(it.curId).value,invNo:it.invNo,invDate:it.invDate,reason:it.reason});
   });
   renderShipLogFees(); closeLogFeeModal();
   toast('Đã thêm '+items.length+' khoản phí Logistic'+(missingParty?' · ⚠ '+missingParty+' khoản chưa chọn Bên chịu phát sinh':''));
 }
 function shipLogFeeAmt(f){ return f.cur==='USD' ? ('$'+f.amount.toLocaleString('en-US')) : fmtMoney(f.amount); }
+function shipLogFeeInvDate(f){ return f.invDate ? f.invDate.split('-').reverse().join('/') : '—'; }
 function shipLogFeesRows(){
-  if(!SHIP_LOGFEES.length) return `<tr><td colspan="5" class="wf-muted" style="text-align:center;padding:14px">Chưa có khoản phí Logistic nào.</td></tr>`;
-  return SHIP_LOGFEES.map(f=>`<tr><td>${f.section}</td><td>${f.item}</td><td>${f.party}</td><td class="num">${shipLogFeeAmt(f)}</td><td>${f.reason||'—'}</td></tr>`).join('');
+  if(!SHIP_LOGFEES.length) return `<tr><td colspan="7" class="wf-muted" style="text-align:center;padding:14px">Chưa có khoản phí Logistic nào.</td></tr>`;
+  return SHIP_LOGFEES.map(f=>`<tr><td>${f.section}</td><td>${f.item}</td><td>${f.party}</td><td class="num">${shipLogFeeAmt(f)}</td><td>${f.invNo||'—'}</td><td>${shipLogFeeInvDate(f)}</td><td>${f.reason||'—'}</td></tr>`).join('');
 }
 function shipLogFeesTotalVND(){ return SHIP_LOGFEES.reduce((s,f)=>s+(f.cur==='USD'?f.amount*LOGFEE_EXRATE_DEFAULT:f.amount),0); }
 function renderShipLogFees(){
@@ -4011,7 +4020,7 @@ S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',TAB_IM,'Shipment')
        ['Free time DEM','7 ngày từ ETA'],['Free time DET','10 ngày']]))}
      ${card('Shipment Fees',
        `<div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Section</th><th>Tên phí</th><th>Bên chịu phát sinh</th><th class="num">Số tiền</th><th>Lý do phát sinh</th></tr></thead>
+          <thead><tr><th>Section</th><th>Tên phí</th><th>Bên chịu phát sinh</th><th class="num">Số tiền</th><th>Số hóa đơn</th><th>Ngày hóa đơn</th><th>Lý do phát sinh</th></tr></thead>
           <tbody id="shiplogfee-tbody">${shipLogFeesRows()}</tbody>
         </table></div>`,
        {n:String(SHIP_LOGFEES.length)})}
