@@ -2666,47 +2666,41 @@ function confirmNpfEval(){
 
 /* ===== Shipment Fees (Quản lý chi phí) ===== */
 let IC_INCLUDED_FEES='DTHC, Phí vệ sinh, CIC, Phí chứng từ';
-let SHIPFEES=[
-  {type:'THC', stage:'Phí tại cảng', amount:4200000, cur:'VNĐ', ext:'', reason:'', compLines:[{party:'',reason:'',amount:0,cur:'VNĐ'}]},
-  {type:'CIC', stage:'Phí trả Hãng tàu', amount:1100000, cur:'VNĐ', ext:'', reason:'', compLines:[{party:'',reason:'',amount:0,cur:'VNĐ'}]},
-  {type:'Phí vệ sinh cont', stage:'Phí tại cảng', amount:800000, cur:'VNĐ', ext:'', reason:'', compLines:[{party:'NCC',reason:'NCC đóng hàng không đúng quy cách khiến cont bẩn, phát sinh phí vệ sinh',amount:800000,cur:'VNĐ'}]},
-  {type:'DEM (lưu bãi)', stage:'Phí tại cảng', amount:2880000, cur:'VNĐ', ext:'30/07/2026', reason:'Kho hết chỗ, kéo hàng trễ 2 ngày', compLines:[{party:'Hãng tàu',reason:'Hãng tàu chậm cấp lệnh giao hàng khiến kéo cont trễ, phát sinh phí lưu bãi ngoài kế hoạch',amount:2880000,cur:'VNĐ'}]},
-  {type:'Gia hạn lệnh', stage:'Phí trả Hãng tàu', amount:3920000, cur:'VNĐ', ext:'28/07/2026', reason:'Thủ tục hải quan chậm', compLines:[
-    {party:'Hãng tàu',reason:'Hãng tàu chưa gửi B/L gốc kịp thời',amount:2000000,cur:'VNĐ'},
-    {party:'NCC',reason:'NCC chậm bổ sung chứng từ xuất xứ',amount:1920000,cur:'VNĐ'}]},
-];
+let SHIP_LOGFEES=[]; // {id,section,item,party,amount,cur,invNo,invDate,reason,compLines} — Shipment Fee đã lưu (Manage Shipment Fee) — nguồn duy nhất cho chi phí khiếu nại của Case
+let SHIP_LOGFEES_SEQ=1;
 const CLAIM_EXRATE=26000;
 function fmtMoney(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,'.')+' ₫'; }
 function feeAmt(f){ return f.cur==='USD' ? ('$'+f.amount.toLocaleString('en-US')) : fmtMoney(f.amount); }
-function feeAmtUSD(f){ return f.cur==='USD' ? ('$'+f.amount.toLocaleString('en-US')) : ('$'+Math.round(f.amount/CLAIM_EXRATE).toLocaleString('en-US')); }
-/* --- Case "Sự vụ Nhập khẩu - Logistics" từ Shipment + chọn chi phí khiếu nại --- */
+/* --- Case "Sự vụ Nhập khẩu - Logistics" từ Shipment + chọn chi phí khiếu nại (nguồn: Shipment Fee của Shipment) --- */
 function createCaseFromShipment(){ toast('Đã tạo Case (Sự vụ Nhập khẩu - Logistics) từ Shipment SHP-041 — mở màn Case'); setTimeout(function(){ if(S.case_im) go('case_im'); }, 700); }
-let CLAIM_FEES=new Set(['DEM (lưu bãi)','Gia hạn lệnh']);
+let CLAIM_FEES=new Set();
 function claimLinePartyOpt(sel){ return ['', 'Hãng tàu','NCC'].map(p=>`<option value="${p}"${p===sel?' selected':''}>${p||'— Chọn —'}</option>`).join(''); }
+function claimInvDate(f){ return f.invDate ? f.invDate.split('-').reverse().join('/') : '—'; }
 function claimFeeModalRows(){
-  return SHIPFEES.map(f=>{
-    const esc=f.type.replace(/"/g,'&quot;');
+  if(!SHIP_LOGFEES.length) return `<tr><td colspan="13" class="wf-muted" style="text-align:center;padding:14px">Chưa có khoản phí nào trong Shipment Fee — vào "Manage Shipment Fee" trên Shipment để khai báo trước.</td></tr>`;
+  return SHIP_LOGFEES.map(f=>{
     const lines=(f.compLines&&f.compLines.length)?f.compLines:[{party:'',reason:'',amount:0,cur:'VNĐ'}];
     const n=lines.length;
     return lines.map((line,idx)=>{
       const identity = idx===0 ? `
-        <td rowspan="${n}"><input type="checkbox" class="claimfee-cb" data-type="${esc}" onchange="onClaimCbChange()" ${CLAIM_FEES.has(f.type)?'checked':''}></td>
-        <td rowspan="${n}">${f.type}</td><td rowspan="${n}">${f.stage}</td>
-        <td rowspan="${n}" class="num">${feeAmt(f)}</td><td rowspan="${n}" class="num">${feeAmtUSD(f)}</td>` : '';
-      const actions=(idx===n-1&&CLAIM_FEES.has(f.type))?`<button class="btn sm" onclick="addCompLine('${esc}')">＋ Tách dòng</button>`:'';
+        <td rowspan="${n}"><input type="checkbox" class="claimfee-cb" data-id="${f.id}" onchange="onClaimCbChange()" ${CLAIM_FEES.has(f.id)?'checked':''}></td>
+        <td rowspan="${n}">${f.section}</td><td rowspan="${n}">${f.item}</td><td rowspan="${n}">${f.party}</td>
+        <td rowspan="${n}" class="num">${feeAmt(f)}</td><td rowspan="${n}">${f.invNo||'—'}</td><td rowspan="${n}">${claimInvDate(f)}</td>
+        <td rowspan="${n}">${f.reason||'—'}</td>` : '';
+      const actions=(idx===n-1&&CLAIM_FEES.has(f.id))?`<button class="btn sm" onclick="addCompLine(${f.id})">＋ Tách dòng</button>`:'';
       return `<tr>${identity}
-        <td><select class="mass-sel compline-party" data-type="${esc}" data-idx="${idx}">${claimLinePartyOpt(line.party)}</select></td>
-        <td class="num"><input type="number" class="compline-amt mass-sel" data-type="${esc}" data-idx="${idx}" value="${line.amount||0}" style="width:110px;text-align:right"></td>
-        <td><select class="mass-sel compline-cur" data-type="${esc}" data-idx="${idx}"><option value="VNĐ"${line.cur!=='USD'?' selected':''}>VNĐ</option><option value="USD"${line.cur==='USD'?' selected':''}>USD</option></select></td>
-        <td><input class="mass-sel compline-reason" data-type="${esc}" data-idx="${idx}" value="${(line.reason||'').replace(/"/g,'&quot;')}" placeholder="Lý do bồi thường" style="width:180px"></td>
+        <td><select class="mass-sel compline-party" data-id="${f.id}" data-idx="${idx}">${claimLinePartyOpt(line.party)}</select></td>
+        <td class="num"><input type="number" class="compline-amt mass-sel" data-id="${f.id}" data-idx="${idx}" value="${line.amount||0}" style="width:110px;text-align:right"></td>
+        <td><select class="mass-sel compline-cur" data-id="${f.id}" data-idx="${idx}"><option value="VNĐ"${line.cur!=='USD'?' selected':''}>VNĐ</option><option value="USD"${line.cur==='USD'?' selected':''}>USD</option></select></td>
+        <td><input class="mass-sel compline-reason" data-id="${f.id}" data-idx="${idx}" value="${(line.reason||'').replace(/"/g,'&quot;')}" placeholder="Lý do bồi thường" style="width:180px"></td>
         <td style="white-space:nowrap">${actions}</td>
       </tr>`;
     }).join('');
   }).join('');
 }
 function claimFeeModalBodyHTML(){
-  return `<p class="po-hint">Chọn các khoản phí (Shipment Fee) của Shipment SHP-041 để đưa vào hồ sơ khiếu nại này — có thể bỏ chọn hoặc chọn thêm. Dùng "Tách dòng" khi Hãng tàu và NCC có lý do/số tiền bồi thường khác nhau cho cùng 1 khoản phí.</p>
-     <div class="tbl-wrap"><table class="tbl sm"><thead><tr><th style="width:2rem"></th><th>Tên loại phí</th><th>Giai đoạn phí</th><th class="num">Số tiền (VNĐ)</th><th class="num">Số tiền (USD)</th><th>Đối tượng bồi thường</th><th class="num">Số tiền bồi thường</th><th>Đơn vị tiền tệ</th><th>Lý do bồi thường</th><th></th></tr></thead>
+  return `<p class="po-hint">Chọn các khoản phí (Shipment Fee) của Shipment SHP-041 để đưa vào hồ sơ khiếu nại này — có thể bỏ chọn hoặc chọn thêm. Dùng "Tách dòng" khi có nhiều đối tượng bồi thường khác nhau cho cùng 1 khoản phí.</p>
+     <div class="tbl-wrap"><table class="tbl sm"><thead><tr><th style="width:2rem"></th><th>Section</th><th>Tên phí</th><th>Bên chịu phát sinh</th><th class="num">Số tiền</th><th>Số hóa đơn</th><th>Ngày hóa đơn</th><th>Lý do phát sinh</th><th>Đối tượng bồi thường</th><th class="num">Số tiền bồi thường</th><th>Đơn vị tiền tệ</th><th>Lý do bồi thường</th><th></th></tr></thead>
      <tbody>${claimFeeModalRows()}</tbody></table></div>`;
 }
 function openClaimFeeModal(){
@@ -2718,13 +2712,13 @@ function rerenderClaimFeeModal(){ document.getElementById('claimfee-body').inner
 function closeClaimFeeModal(){ const b=document.getElementById('claimfeeback'),m=document.getElementById('claimfeemodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
 function syncClaimFeeModalPending(){
   const claimBoxes=[...document.querySelectorAll('.claimfee-cb')];
-  if(claimBoxes.length) CLAIM_FEES=new Set(claimBoxes.filter(b=>b.checked).map(b=>b.dataset.type));
-  document.querySelectorAll('.compline-reason').forEach(el=>{ const f=SHIPFEES.find(x=>x.type===el.dataset.type); if(f&&f.compLines&&f.compLines[+el.dataset.idx]) f.compLines[+el.dataset.idx].reason=el.value; });
-  document.querySelectorAll('.compline-party').forEach(el=>{ const f=SHIPFEES.find(x=>x.type===el.dataset.type); if(f&&f.compLines&&f.compLines[+el.dataset.idx]) f.compLines[+el.dataset.idx].party=el.value; });
-  document.querySelectorAll('.compline-amt').forEach(el=>{ const f=SHIPFEES.find(x=>x.type===el.dataset.type); if(f&&f.compLines&&f.compLines[+el.dataset.idx]) f.compLines[+el.dataset.idx].amount=+el.value||0; });
-  document.querySelectorAll('.compline-cur').forEach(el=>{ const f=SHIPFEES.find(x=>x.type===el.dataset.type); if(f&&f.compLines&&f.compLines[+el.dataset.idx]) f.compLines[+el.dataset.idx].cur=el.value; });
+  if(claimBoxes.length) CLAIM_FEES=new Set(claimBoxes.filter(b=>b.checked).map(b=>+b.dataset.id));
+  document.querySelectorAll('.compline-reason').forEach(el=>{ const f=SHIP_LOGFEES.find(x=>x.id===+el.dataset.id); if(f&&f.compLines&&f.compLines[+el.dataset.idx]) f.compLines[+el.dataset.idx].reason=el.value; });
+  document.querySelectorAll('.compline-party').forEach(el=>{ const f=SHIP_LOGFEES.find(x=>x.id===+el.dataset.id); if(f&&f.compLines&&f.compLines[+el.dataset.idx]) f.compLines[+el.dataset.idx].party=el.value; });
+  document.querySelectorAll('.compline-amt').forEach(el=>{ const f=SHIP_LOGFEES.find(x=>x.id===+el.dataset.id); if(f&&f.compLines&&f.compLines[+el.dataset.idx]) f.compLines[+el.dataset.idx].amount=+el.value||0; });
+  document.querySelectorAll('.compline-cur').forEach(el=>{ const f=SHIP_LOGFEES.find(x=>x.id===+el.dataset.id); if(f&&f.compLines&&f.compLines[+el.dataset.idx]) f.compLines[+el.dataset.idx].cur=el.value; });
 }
-function addCompLine(type){ syncClaimFeeModalPending(); const f=SHIPFEES.find(x=>x.type===type); if(!f) return; if(!f.compLines) f.compLines=[]; f.compLines.push({party:'',reason:'',amount:0}); rerenderClaimFeeModal(); }
+function addCompLine(id){ syncClaimFeeModalPending(); const f=SHIP_LOGFEES.find(x=>x.id===id); if(!f) return; if(!f.compLines) f.compLines=[]; f.compLines.push({party:'',reason:'',amount:0,cur:'VNĐ'}); rerenderClaimFeeModal(); }
 function onClaimCbChange(){ syncClaimFeeModalPending(); rerenderClaimFeeModal(); }
 function confirmClaimFee(){
   syncClaimFeeModalPending();
@@ -2732,20 +2726,21 @@ function confirmClaimFee(){
   toast('Đã cập nhật '+CLAIM_FEES.size+' khoản phí khiếu nại');
 }
 function claimFeeRows(){
-  return SHIPFEES.filter(f=>CLAIM_FEES.has(f.type)).flatMap(f=>{
+  if(!CLAIM_FEES.size) return `<tr><td colspan="11" class="wf-muted" style="text-align:center;padding:14px">Chưa chọn khoản phí khiếu nại nào — bấm "Chọn chi phí khiếu nại".</td></tr>`;
+  return SHIP_LOGFEES.filter(f=>CLAIM_FEES.has(f.id)).flatMap(f=>{
     const lines=(f.compLines&&f.compLines.length)?f.compLines:[{party:'',reason:'',amount:0,cur:'VNĐ'}];
-    return lines.map(line=>`<tr><td>${f.type}</td><td>${f.stage}</td>
-      <td class="num">${feeAmt(f)}</td><td class="num">${feeAmtUSD(f)}</td>
+    return lines.map(line=>`<tr><td>${f.section}</td><td>${f.item}</td><td>${f.party}</td>
+      <td class="num">${feeAmt(f)}</td><td>${f.invNo||'—'}</td><td>${claimInvDate(f)}</td>
       <td>${f.reason||'—'}</td>
       <td>${line.party||'—'}</td>
       <td class="num">${line.amount?feeAmt(line):'—'}</td><td>${line.amount?(line.cur||'VNĐ'):'—'}</td>
       <td>${line.reason||'—'}</td></tr>`);
   }).join('');
 }
-function claimFeeTotal(){ return SHIPFEES.filter(f=>CLAIM_FEES.has(f.type)&&f.cur==='VNĐ').reduce((a,f)=>a+f.amount,0); }
+function claimFeeTotal(){ return SHIP_LOGFEES.filter(f=>CLAIM_FEES.has(f.id)).reduce((a,f)=> a + (f.cur==='USD' ? f.amount*CLAIM_EXRATE : f.amount), 0); }
 // Tổng số tiền đã đòi/nhận bồi thường (Đối tượng bồi thường trên từng compLine) của các phí đang khiếu nại.
 function claimReimbursementTotal(){
-  return SHIPFEES.filter(f=>CLAIM_FEES.has(f.type)).reduce((sum,f)=>{
+  return SHIP_LOGFEES.filter(f=>CLAIM_FEES.has(f.id)).reduce((sum,f)=>{
     const lines=(f.compLines&&f.compLines.length)?f.compLines:[];
     return sum + lines.reduce((s,line)=> s + (line.cur==='USD' ? (line.amount||0)*CLAIM_EXRATE : (line.amount||0)), 0);
   },0);
@@ -2774,7 +2769,6 @@ const LOGFEE_SECTIONS=[
     {name:'Cược container (Container Deposit)'},{name:'Khấu trừ cược (nếu có)'}
   ]}
 ];
-let SHIP_LOGFEES=[]; // {section,item,party,amount,cur,invNo,invDate,reason} — đã lưu, hiện trong card "Shipment Fees"
 let LGF_EXTRA_IDS={}, LGF_EXTRA_SEQ={}, LGF_HIDDEN={};
 LOGFEE_SECTIONS.forEach(s=>{ LGF_EXTRA_IDS[s.key]=[]; LGF_EXTRA_SEQ[s.key]=0; LGF_HIDDEN[s.key]=new Set(); });
 function lgfNum(id){ const el=document.getElementById(id); return el?(+el.value||0):0; }
@@ -2891,7 +2885,7 @@ function confirmLogFeeModal(){
   let missingParty=0;
   items.forEach(it=>{
     if(!it.party) missingParty++;
-    SHIP_LOGFEES.push({section:it.section,item:it.item,party:it.party||'—',amount:lgfNum(it.amtId),cur:document.getElementById(it.curId).value,invNo:it.invNo,invDate:it.invDate,reason:it.reason});
+    SHIP_LOGFEES.push({id:SHIP_LOGFEES_SEQ++,section:it.section,item:it.item,party:it.party||'—',amount:lgfNum(it.amtId),cur:document.getElementById(it.curId).value,invNo:it.invNo,invDate:it.invDate,reason:it.reason,compLines:[{party:'',reason:'',amount:0,cur:'VNĐ'}]});
   });
   renderShipLogFees(); closeLogFeeModal();
   toast('Đã thêm '+items.length+' khoản phí Logistic'+(missingParty?' · ⚠ '+missingParty+' khoản chưa chọn Bên chịu phát sinh':''));
@@ -4087,11 +4081,11 @@ S.case_im = ()=> appnav('Chăm sóc KH','Case',['Trang chủ','Case','Khách hà
        ['Loại sự vụ','Phí Local Charge phát sinh ngoài dự kiến'],['Hãng tàu / Cảng','ONE / Cát Lái'],
        ['Mô tả','Phát sinh phí lưu bãi (DEM) và gia hạn lệnh do thủ tục hải quan chậm — làm việc với Hãng tàu để miễn/giảm phí.']]))}
      ${card('Chi phí khiếu nại',
-       `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tên loại phí</th><th>Giai đoạn phí</th><th class="num">Số tiền (VNĐ)</th><th class="num">Số tiền (USD)</th><th>Lý do phát sinh</th><th>Đối tượng bồi thường</th><th class="num">Số tiền bồi thường</th><th>Đơn vị tiền tệ</th><th>Lý do bồi thường</th></tr></thead>
+       `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Section</th><th>Tên phí</th><th>Bên chịu phát sinh</th><th class="num">Số tiền</th><th>Số hóa đơn</th><th>Ngày hóa đơn</th><th>Lý do phát sinh</th><th>Đối tượng bồi thường</th><th class="num">Số tiền bồi thường</th><th>Đơn vị tiền tệ</th><th>Lý do bồi thường</th></tr></thead>
         <tbody id="claimfee-tbody">${claimFeeRows()}</tbody></table></div>`,
        {n:String(CLAIM_FEES.size)})}
      </div>
-     ${activity([['🎧','Tạo Case từ Shipment SHP-041','Logistics · Hôm nay'],['💵','Chọn khoản phí khiếu nại (DEM, Gia hạn lệnh)','Hôm nay']])}
+     ${activity([['🎧','Tạo Case từ Shipment SHP-041','Logistics · Hôm nay']])}
    </div>
  </div>`;
 
