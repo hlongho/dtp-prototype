@@ -2666,8 +2666,14 @@ function confirmNpfEval(){
 
 /* ===== Shipment Fees (Quản lý chi phí) ===== */
 let IC_INCLUDED_FEES='DTHC, Phí vệ sinh, CIC, Phí chứng từ';
-let SHIP_LOGFEES=[]; // {id,section,item,party,amount,cur,invNo,invDate,reason,compLines} — Shipment Fee đã lưu (Manage Shipment Fee) — nguồn duy nhất cho chi phí khiếu nại của Case
-let SHIP_LOGFEES_SEQ=1;
+let SHIP_LOGFEES=[ // {id,section,item,party,amount,cur,invNo,invDate,reason,compLines} — Shipment Fee đã lưu (Manage Shipment Fee) — nguồn duy nhất cho chi phí khiếu nại của Case
+  {id:1,section:'Shipping Line Local Charges',item:'DTHC',party:'Hãng tàu (Shipping Line)',amount:4200000,cur:'VNĐ',invNo:'INV-2026-0041',invDate:'2026-07-20',reason:'',compLines:[{party:'',reason:'',amount:0,cur:'VNĐ'}]},
+  {id:2,section:'Shipping Line Local Charges',item:'CIC',party:'Hãng tàu (Shipping Line)',amount:1100000,cur:'VNĐ',invNo:'INV-2026-0041',invDate:'2026-07-20',reason:'',compLines:[{party:'',reason:'',amount:0,cur:'VNĐ'}]},
+  {id:3,section:'Chi phí phát sinh - Incidental Charges',item:'DEM, DET',party:'Hãng tàu (Shipping Line)',amount:2880000,cur:'VNĐ',invNo:'INV-2026-0058',invDate:'2026-07-30',reason:'Kho hết chỗ, kéo hàng trễ 2 ngày',compLines:[{party:'Hãng tàu',reason:'Hãng tàu chậm cấp lệnh giao hàng khiến kéo cont trễ, phát sinh phí lưu bãi ngoài kế hoạch',amount:2880000,cur:'VNĐ'}]},
+  {id:4,section:'Port Charges',item:'LOLO',party:'Cảng (Port Operator)',amount:100,cur:'USD',invNo:'INV-2026-0059',invDate:'2026-07-30',reason:'',compLines:[{party:'',reason:'',amount:0,cur:'VNĐ'}]},
+  {id:5,section:'Chi phí dịch vụ Hải quan - Customs Brokerage',item:'Phí khai báo hải quan',party:'Đơn vị dịch vụ Hải quan (Customs Broker)',amount:1500000,cur:'VNĐ',invNo:'INV-2026-0050',invDate:'2026-07-22',reason:'',compLines:[{party:'',reason:'',amount:0,cur:'VNĐ'}]},
+];
+let SHIP_LOGFEES_SEQ=6;
 const CLAIM_EXRATE=26000;
 function fmtMoney(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,'.')+' ₫'; }
 function feeAmt(f){ return f.cur==='USD' ? ('$'+f.amount.toLocaleString('en-US')) : fmtMoney(f.amount); }
@@ -2780,6 +2786,7 @@ const LOGFEE_SECTIONS=[
 ];
 let LGF_EXTRA_IDS={}, LGF_EXTRA_SEQ={}, LGF_HIDDEN={};
 LOGFEE_SECTIONS.forEach(s=>{ LGF_EXTRA_IDS[s.key]=[]; LGF_EXTRA_SEQ[s.key]=0; LGF_HIDDEN[s.key]=new Set(); });
+let LGF_ROW_ID={}; // amtId -> id của SHIP_LOGFEES entry đã lưu, để Manage Shipment Fee load lại đúng dòng thay vì luôn tạo mới
 function lgfNum(id){ const el=document.getElementById(id); return el?(+el.value||0):0; }
 function lgfHasVal(id){ const el=document.getElementById(id); return !!(el&&el.value!==''); }
 function lgfExRate(){ return LOGFEE_EXRATE_DEFAULT; }
@@ -2880,24 +2887,75 @@ function lgfRecalcTotal(){
   const total=lgfAllLineItems().reduce((s,it)=>s+lgfValVND(it.amtId,it.curId),0);
   const el=document.getElementById('lgf-total'); if(el) el.textContent=fmtMoney(Math.round(total));
 }
+// Đổ các Shipment Fee ĐÃ LƯU vào đúng dòng catalog (khớp Section+Tên phí); phần còn lại (tên tùy chỉnh,
+// hoặc trùng tên với 1 dòng catalog đã dùng) được đổ vào dạng dòng "Thêm phí" để vẫn sửa/xóa được.
+function lgfLoadSavedFees(){
+  LGF_ROW_ID={};
+  const usedIds=new Set();
+  LOGFEE_SECTIONS.forEach(sec=>{
+    sec.items.forEach((it,i)=>{
+      const match=SHIP_LOGFEES.find(f=>!usedIds.has(f.id) && f.section===sec.title && f.item===it.name);
+      if(match){ usedIds.add(match.id); LGF_ROW_ID['lgf-'+sec.key+'-'+i+'-amt']=match.id; }
+    });
+  });
+  SHIP_LOGFEES.forEach(f=>{
+    if(usedIds.has(f.id)) return;
+    const sec=LOGFEE_SECTIONS.find(s=>s.title===f.section); if(!sec) return;
+    const rowId='lgf-'+sec.key+'-x'+(LGF_EXTRA_SEQ[sec.key]++);
+    LGF_EXTRA_IDS[sec.key].push(rowId);
+    LGF_ROW_ID[rowId+'-amt']=f.id;
+    usedIds.add(f.id);
+  });
+}
+function lgfPrefillLoadedValues(){
+  Object.keys(LGF_ROW_ID).forEach(amtId=>{
+    const f=SHIP_LOGFEES.find(x=>x.id===LGF_ROW_ID[amtId]); if(!f) return;
+    const base=amtId.slice(0,-4); // bỏ hậu tố '-amt'
+    const setVal=(suffix,val)=>{ const el=document.getElementById(base+suffix); if(el&&val!=null) el.value=val; };
+    setVal('-amt', f.amount);
+    setVal('-cur', f.cur);
+    setVal('-party', f.party==='—'?'':f.party);
+    setVal('-invno', f.invNo||'');
+    setVal('-invdate', f.invDate||'');
+    setVal('-reason', f.reason||'');
+    setVal('-name', f.item); // chỉ áp dụng cho dòng "Thêm phí" (có ô tên); dòng catalog không có ô này nên bỏ qua
+  });
+}
 function openLogFeeModal(){
   LOGFEE_SECTIONS.forEach(s=>{ LGF_EXTRA_IDS[s.key]=[]; LGF_EXTRA_SEQ[s.key]=0; LGF_HIDDEN[s.key]=new Set(); });
+  lgfLoadSavedFees();
   document.getElementById('logfee-body').innerHTML=
     LOGFEE_SECTIONS.map(s=>lgfSectionHTML(s.key)).join('');
+  lgfPrefillLoadedValues();
   document.getElementById('logfeeback').classList.add('show');
   document.getElementById('logfeemodal').classList.add('show');
 }
 function closeLogFeeModal(){ const b=document.getElementById('logfeeback'),m=document.getElementById('logfeemodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
 function confirmLogFeeModal(){
   const items=lgfAllLineItems();
-  if(!items.length){ toast('Nhập Số tiền cho ít nhất 1 khoản phí'); return; }
+  const hadLoaded=Object.keys(LGF_ROW_ID).length>0;
+  if(!items.length && !hadLoaded){ toast('Nhập Số tiền cho ít nhất 1 khoản phí'); return; }
   let missingParty=0;
+  const keptIds=new Set();
   items.forEach(it=>{
     if(!it.party) missingParty++;
-    SHIP_LOGFEES.push({id:SHIP_LOGFEES_SEQ++,section:it.section,item:it.item,party:it.party||'—',amount:lgfNum(it.amtId),cur:document.getElementById(it.curId).value,invNo:it.invNo,invDate:it.invDate,reason:it.reason,compLines:[{party:'',reason:'',amount:0,cur:'VNĐ'}]});
+    const cur=document.getElementById(it.curId).value;
+    const existingId=LGF_ROW_ID[it.amtId];
+    const existing=existingId?SHIP_LOGFEES.find(x=>x.id===existingId):null;
+    if(existing){
+      Object.assign(existing,{section:it.section,item:it.item,party:it.party||'—',amount:lgfNum(it.amtId),cur,invNo:it.invNo,invDate:it.invDate,reason:it.reason});
+      keptIds.add(existing.id);
+    } else {
+      const id=SHIP_LOGFEES_SEQ++;
+      SHIP_LOGFEES.push({id,section:it.section,item:it.item,party:it.party||'—',amount:lgfNum(it.amtId),cur,invNo:it.invNo,invDate:it.invDate,reason:it.reason,compLines:[{party:'',reason:'',amount:0,cur:'VNĐ'}]});
+      keptIds.add(id);
+    }
   });
+  // Khoản nào đã được load lên nhưng lần này không còn giá trị (bị xóa dòng hoặc bỏ trống Số tiền) thì xóa khỏi Shipment Fee.
+  const loadedIds=new Set(Object.values(LGF_ROW_ID));
+  SHIP_LOGFEES=SHIP_LOGFEES.filter(f=>!loadedIds.has(f.id) || keptIds.has(f.id));
   renderShipLogFees(); closeLogFeeModal();
-  toast('Đã thêm '+items.length+' khoản phí Logistic'+(missingParty?' · ⚠ '+missingParty+' khoản chưa chọn Bên chịu phát sinh':''));
+  toast('Đã cập nhật '+items.length+' khoản phí Logistic'+(missingParty?' · ⚠ '+missingParty+' khoản chưa chọn Bên chịu phát sinh':''));
 }
 function shipLogFeeAmt(f){ return f.cur==='USD' ? ('$'+f.amount.toLocaleString('en-US')) : fmtMoney(f.amount); }
 function shipLogFeeInvDate(f){ return f.invDate ? f.invDate.split('-').reverse().join('/') : '—'; }
