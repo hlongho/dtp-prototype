@@ -2760,8 +2760,9 @@ function renderClaimFees(){
 const LOGFEE_PARTY_OPTIONS=['Đồng Tiến Group','Nhà cung cấp (Supplier)','Forwarder/Agent','Hãng tàu (Shipping Line)','Đơn vị dịch vụ Hải quan (Customs Broker)','Công ty Bảo hiểm (Insurance Company)','Cảng (Port Operator)','Đơn vị vận tải (Trucking Company)'];
 const LOGFEE_EXRATE_DEFAULT=26000;
 const LOGFEE_SECTIONS=[
-  {key:'port',title:'Chi phí địa phương của hãng tàu - Port Charges',items:[{name:'D/O fee'},{name:'Handling fee'},{name:'Cleaning fee'},{name:'Import service fee'},{name:'EMP'},{name:'DTHC'},{name:'CIC'}]},
-  {key:'trucking',title:'Chi phí Cảng - Inland Trucking',items:[{name:'Trucking'},{name:'Hạ rỗng xa'},{name:'CSHT'}]},
+  {key:'shiplocal',title:'Shipping Line Local Charges',items:[{name:'D/O fee'},{name:'Handling fee'},{name:'Cleaning fee'},{name:'Import service fee'},{name:'EMP'},{name:'DTHC'},{name:'CIC'}]},
+  {key:'portcharges',title:'Port Charges',items:[{name:'LOLO'},{name:'Chuyển bãi Kiểm hóa'},{name:'Quá hạn bãi kiểm hóa'},{name:'Phụ phí biến động nhiên liệu'}]},
+  {key:'trucking',title:'Inland Trucking',items:[{name:'Trucking'},{name:'Hạ rỗng xa'},{name:'CSHT'}]},
   {key:'customs',title:'Chi phí dịch vụ Hải quan - Customs Brokerage',items:[]},
   {key:'incidental',title:'Chi phí phát sinh - Incidental Charges',items:[
     {name:'Phụ phí chuyển cảng',sub:'Cảng thu'},{name:'LOLO Level 2 Surcharge',sub:'Cảng thu'},{name:'LOLO Level 3 Surcharge',sub:'Cảng thu'},
