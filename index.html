@@ -2737,6 +2737,13 @@ function claimFeeRows(){
   }).join('');
 }
 function claimFeeTotal(){ return SHIPFEES.filter(f=>CLAIM_FEES.has(f.type)&&f.cur==='VNĐ').reduce((a,f)=>a+f.amount,0); }
+// Tổng số tiền đã đòi/nhận bồi thường (Đối tượng bồi thường trên từng compLine) của các phí đang khiếu nại.
+function claimReimbursementTotal(){
+  return SHIPFEES.filter(f=>CLAIM_FEES.has(f.type)).reduce((sum,f)=>{
+    const lines=(f.compLines&&f.compLines.length)?f.compLines:[];
+    return sum + lines.reduce((s,line)=> s + (line.cur==='USD' ? (line.amount||0)*CLAIM_EXRATE : (line.amount||0)), 0);
+  },0);
+}
 function renderClaimFees(){
   const tb=document.getElementById('claimfee-tbody'); if(tb) tb.innerHTML=claimFeeRows();
   const tot=fmtMoney(claimFeeTotal());
@@ -3983,7 +3990,7 @@ S.shipment_xk = ()=> appnav('Bán hàng xuất khẩu','Shipment XK',TAB_EX,'SO'
 S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',TAB_IM,'Shipment')
  + `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="shipment_list">Theo dõi Shipment</span> &rsaquo;',ico:'⚓',color:'#0b827c',title:'SHP-041 · OCC 800 tấn (32x40HC)',sub:'Record Type: Mua hàng nhập khẩu · HĐ IC-2026-041 · Hãng ONE',
-     fields:[['Trạng thái',pill('info','Đang trên biển')],['ETA','19/07/2026'],['Free time','7 ngày'],['Tổng phí Local Charge','<span id="ship-fee-total">'+fmtMoney(shipLogFeesTotalVND())+'</span>'],['Include Fee',IC_INCLUDED_FEES]],
+     fields:[['Trạng thái',pill('info','Đang trên biển')],['ETA','19/07/2026'],['Free time','7 ngày'],['Total Additional Incident Cost','<span id="ship-fee-total">'+fmtMoney(shipLogFeesTotalVND())+'</span>'],['Additional Included Charges',IC_INCLUDED_FEES],['Total Claim Cost','<span id="ship-claim-total">'+fmtMoney(claimFeeTotal())+'</span>'],['Total Reimbursement Received','<span id="ship-reimb-total">'+fmtMoney(claimReimbursementTotal())+'</span>']],
      actions:[{t:'Lên kế hoạch kéo hàng',pri:true},{t:'Tạo Case',fn:'createCaseFromShipment()'},{t:'Manage Shipment Fee',fn:'openLogFeeModal()'},'Sửa']})}
    ${path(['Draft','Final Docx','Open tờ khai','Completed'],1)}
    <div class="cols-side act-tab">
