@@ -2687,7 +2687,9 @@ function claimFeeModalRows(){
         <td rowspan="${n}">${f.section}</td><td rowspan="${n}">${f.item}</td><td rowspan="${n}">${f.party}</td>
         <td rowspan="${n}" class="num">${feeAmt(f)}</td><td rowspan="${n}">${f.invNo||'—'}</td><td rowspan="${n}">${claimInvDate(f)}</td>
         <td rowspan="${n}">${f.reason||'—'}</td>` : '';
-      const actions=(idx===n-1)?`<button class="btn sm" onclick="addCompLine(${f.id})">＋ Tách dòng</button>`:'';
+      const addBtn=(idx===n-1)?`<button class="btn sm" onclick="addCompLine(${f.id})">＋ Tách dòng</button>`:'';
+      const delBtn=n>1?`<button class="btn sm" title="Xóa dòng" onclick="removeCompLine(${f.id},${idx})">✕</button>`:'';
+      const actions=[addBtn,delBtn].filter(Boolean).join(' ');
       return `<tr>${identity}
         <td><select class="mass-sel compline-party" data-id="${f.id}" data-idx="${idx}">${claimLinePartyOpt(line.party)}</select></td>
         <td class="num"><input type="number" class="compline-amt mass-sel" data-id="${f.id}" data-idx="${idx}" value="${line.amount||0}" style="width:110px;text-align:right"></td>
@@ -2719,6 +2721,13 @@ function syncClaimFeeModalPending(){
   document.querySelectorAll('.compline-cur').forEach(el=>{ const f=SHIP_LOGFEES.find(x=>x.id===+el.dataset.id); if(f&&f.compLines&&f.compLines[+el.dataset.idx]) f.compLines[+el.dataset.idx].cur=el.value; });
 }
 function addCompLine(id){ syncClaimFeeModalPending(); const f=SHIP_LOGFEES.find(x=>x.id===id); if(!f) return; if(!f.compLines) f.compLines=[]; f.compLines.push({party:'',reason:'',amount:0,cur:'VNĐ'}); rerenderClaimFeeModal(); }
+function removeCompLine(id,idx){
+  syncClaimFeeModalPending();
+  const f=SHIP_LOGFEES.find(x=>x.id===id); if(!f||!f.compLines) return;
+  f.compLines.splice(idx,1);
+  if(!f.compLines.length) f.compLines.push({party:'',reason:'',amount:0,cur:'VNĐ'});
+  rerenderClaimFeeModal();
+}
 function onClaimCbChange(){ syncClaimFeeModalPending(); rerenderClaimFeeModal(); }
 function confirmClaimFee(){
   syncClaimFeeModalPending();
