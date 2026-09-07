@@ -2678,7 +2678,6 @@ const CLAIM_EXRATE=26000;
 function fmtMoney(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,'.')+' ₫'; }
 function feeAmt(f){ return f.cur==='USD' ? ('$'+f.amount.toLocaleString('en-US')) : fmtMoney(f.amount); }
 /* --- Case "Sự vụ Nhập khẩu - Logistics" từ Shipment + chọn chi phí khiếu nại (nguồn: Shipment Fee của Shipment) --- */
-function createCaseFromShipment(){ toast('Đã tạo Case (Sự vụ Nhập khẩu - Logistics) từ Shipment SHP-041 — mở màn Case'); setTimeout(function(){ if(S.case_im) go('case_im'); }, 700); }
 // Bấm "Tạo Case" ngay trên 1 dòng Shipment Fee cụ thể -> tự tick chọn đúng khoản phí đó vào Case khiếu nại rồi mở Case.
 function createCaseFromFee(id){
   CLAIM_FEES.add(id);
@@ -4117,7 +4116,7 @@ S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',TAB_IM,'Shipment')
      fields:[['Trạng thái',pill('info','Đang trên biển')],['ETA','19/07/2026'],['Free time','7 ngày'],['Additional Included Charges',IC_INCLUDED_FEES],
        ['__break__'],
        ['Total Additional Incident Cost','<span id="ship-fee-total">'+fmtMoney(shipLogFeesTotalVND())+'</span>'],['Total Claim Cost','<span id="ship-claim-total">'+fmtMoney(claimFeeTotal())+'</span>'],['Total Reimbursement Received','<span id="ship-reimb-total">'+fmtMoney(claimReimbursementTotal())+'</span>']],
-     actions:[{t:'Lên kế hoạch kéo hàng',pri:true},{t:'Tạo Case',fn:'createCaseFromShipment()'},{t:'Manage Shipment Fee',fn:'openLogFeeModal()'},'Sửa']})}
+     actions:[{t:'Lên kế hoạch kéo hàng',pri:true},{t:'Manage Shipment Fee',fn:'openLogFeeModal()'},'Sửa']})}
    ${path(['Draft','Final Docx','Open tờ khai','Completed'],1)}
    <div class="cols-side act-tab">
      <div>
