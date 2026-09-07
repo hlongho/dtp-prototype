@@ -2666,12 +2666,12 @@ function confirmNpfEval(){
 
 /* ===== Shipment Fees (Quản lý chi phí) ===== */
 let IC_INCLUDED_FEES='DTHC, Phí vệ sinh, CIC, Phí chứng từ';
-let SHIP_LOGFEES=[ // {id,section,item,party,amount,cur,invNo,invDate,reason,compLines} — Shipment Fee đã lưu (Manage Shipment Fee) — nguồn duy nhất cho chi phí khiếu nại của Case
-  {id:1,section:'Shipping Line Local Charges',item:'DTHC',party:'Hãng tàu (Shipping Line)',amount:4200000,cur:'VNĐ',invNo:'INV-2026-0041',invDate:'2026-07-20',reason:'',compLines:[{party:'',reason:'',amount:0,cur:'VNĐ'}]},
-  {id:2,section:'Shipping Line Local Charges',item:'CIC',party:'Hãng tàu (Shipping Line)',amount:1100000,cur:'VNĐ',invNo:'INV-2026-0041',invDate:'2026-07-20',reason:'',compLines:[{party:'',reason:'',amount:0,cur:'VNĐ'}]},
-  {id:3,section:'Chi phí phát sinh - Incidental Charges',item:'DEM, DET',party:'Hãng tàu (Shipping Line)',amount:2880000,cur:'VNĐ',invNo:'INV-2026-0058',invDate:'2026-07-30',reason:'Kho hết chỗ, kéo hàng trễ 2 ngày',compLines:[{party:'Hãng tàu',reason:'Hãng tàu chậm cấp lệnh giao hàng khiến kéo cont trễ, phát sinh phí lưu bãi ngoài kế hoạch',amount:2880000,cur:'VNĐ'}]},
-  {id:4,section:'Port Charges',item:'LOLO',party:'Cảng (Port Operator)',amount:100,cur:'USD',invNo:'INV-2026-0059',invDate:'2026-07-30',reason:'',compLines:[{party:'',reason:'',amount:0,cur:'VNĐ'}]},
-  {id:5,section:'Chi phí dịch vụ Hải quan - Customs Brokerage',item:'Phí khai báo hải quan',party:'Đơn vị dịch vụ Hải quan (Customs Broker)',amount:1500000,cur:'VNĐ',invNo:'INV-2026-0050',invDate:'2026-07-22',reason:'',compLines:[{party:'',reason:'',amount:0,cur:'VNĐ'}]},
+let SHIP_LOGFEES=[ // {id,section,item,party,serviceProvider,amount,cur,invNo,invDate,reason,serviceQuality?,assignedQty?,rolledQty?,service?,severity?,compLines} — Shipment Fee đã lưu (Manage Shipment Fee) — nguồn duy nhất cho chi phí khiếu nại của Case
+  {id:1,section:'Shipping Line Local Charges',item:'DTHC',party:'Hãng tàu (Shipping Line)',serviceProvider:'ONE Line',amount:4200000,cur:'VNĐ',invNo:'INV-2026-0041',invDate:'2026-07-20',reason:'',service:false,severity:'',compLines:[{party:'',reason:'',amount:0,cur:'VNĐ'}]},
+  {id:2,section:'Shipping Line Local Charges',item:'CIC',party:'Hãng tàu (Shipping Line)',serviceProvider:'ONE Line',amount:1100000,cur:'VNĐ',invNo:'INV-2026-0041',invDate:'2026-07-20',reason:'',service:false,severity:'',compLines:[{party:'',reason:'',amount:0,cur:'VNĐ'}]},
+  {id:3,section:'Chi phí phát sinh - Incidental Charges',item:'DEM, DET',party:'Hãng tàu (Shipping Line)',serviceProvider:'ONE Line',amount:2880000,cur:'VNĐ',invNo:'INV-2026-0058',invDate:'2026-07-30',reason:'Kho hết chỗ, kéo hàng trễ 2 ngày',service:true,severity:'Có lỗi ảnh hưởng đến tiến độ',compLines:[{party:'Hãng tàu',reason:'Hãng tàu chậm cấp lệnh giao hàng khiến kéo cont trễ, phát sinh phí lưu bãi ngoài kế hoạch',amount:2880000,cur:'VNĐ'}]},
+  {id:4,section:'Port Charges',item:'LOLO',party:'Cảng (Port Operator)',serviceProvider:'',amount:100,cur:'USD',invNo:'INV-2026-0059',invDate:'2026-07-30',reason:'',service:false,severity:'',compLines:[{party:'',reason:'',amount:0,cur:'VNĐ'}]},
+  {id:5,section:'Chi phí dịch vụ Hải quan - Customs Brokerage',item:'Phí khai báo hải quan',party:'Đơn vị dịch vụ Hải quan (Customs Broker)',serviceProvider:'',amount:1500000,cur:'VNĐ',invNo:'INV-2026-0050',invDate:'2026-07-22',reason:'',service:false,severity:'',compLines:[{party:'',reason:'',amount:0,cur:'VNĐ'}]},
 ];
 let SHIP_LOGFEES_SEQ=6;
 const CLAIM_EXRATE=26000;
@@ -2768,6 +2768,8 @@ function renderClaimFees(){
 /* --- Chi phí Logistic (Shipment mua hàng nhập khẩu) — nhiều Section cố định, mỗi dòng phí có
    Bên chịu phát sinh riêng; "Đồng Tiến Group" dùng cho khoản phí có ghi lý do nhưng KHÔNG tạo Case sự vụ. --- */
 const LOGFEE_PARTY_OPTIONS=['Đồng Tiến Group','Nhà cung cấp (Supplier)','Forwarder/Agent','Hãng tàu (Shipping Line)','Đơn vị dịch vụ Hải quan (Customs Broker)','Công ty Bảo hiểm (Insurance Company)','Cảng (Port Operator)','Đơn vị vận tải (Trucking Company)'];
+const LOGFEE_SERVICE_QUALITY_OPTIONS=['Container về sau 16h Mức 1','Container về sau 16h Mức 2','Có phát sinh lỗi chứng từ','Có khả năng xử lý sự cố','Phản hồi trễ','Hỗ trợ'];
+const LOGFEE_SEVERITY_OPTIONS=['Có lỗi nhỏ, xử lý ngay','Có lỗi ảnh hưởng đến tiến độ','Có lỗi gây thiệt hại, có đền bù','Lỗi nghiêm trọng'];
 const LOGFEE_EXRATE_DEFAULT=26000;
 const LOGFEE_SECTIONS=[
   {key:'shiplocal',title:'Shipping Line Local Charges',items:[{name:'D/O fee'},{name:'Handling fee'},{name:'Cleaning fee'},{name:'Import service fee'},{name:'EMP'},{name:'DTHC'},{name:'CIC'}]},
@@ -2792,58 +2794,81 @@ function lgfHasVal(id){ const el=document.getElementById(id); return !!(el&&el.v
 function lgfExRate(){ return LOGFEE_EXRATE_DEFAULT; }
 function lgfPartySel(id){ return `<select id="${id}" class="mass-sel"><option value="">— Chọn —</option>${LOGFEE_PARTY_OPTIONS.map(o=>`<option ${o==='Đồng Tiến Group'?'title="Áp dụng cho khoản phí có ghi lý do nhưng không tạo Case sự vụ"':''}>${o}</option>`).join('')}</select>`; }
 function lgfCurSel(id){ return `<select id="${id}" class="mass-sel" onchange="lgfRecalcTotal()"><option value="VNĐ" selected>VNĐ</option><option value="USD">USD</option></select>`; }
+// Service Provider (Lookup account) — chọn từ danh sách NCC/Vendor đang có trong hệ thống (VENDOR_INFO).
+function lgfServiceProviderSel(id){ return `<select id="${id}" class="mass-sel"><option value="">— Chọn —</option>${Object.keys(VENDOR_INFO).map(o=>`<option>${o}</option>`).join('')}</select>`; }
+function lgfSel(id,options){ return `<select id="${id}" class="mass-sel"><option value="">— Chọn —</option>${options.map(o=>`<option>${o}</option>`).join('')}</select>`; }
 function lgfDelBtn(fn){ return `<button class="btn sm" title="Xóa dòng" onclick="${fn}">✕</button>`; }
 function lgfValVND(amtId,curId){
   const amt=lgfNum(amtId); const curEl=document.getElementById(curId); const cur=curEl?curEl.value:'VNĐ';
   return cur==='USD' ? amt*lgfExRate() : amt;
 }
-function lgfRowHTML(sectionKey,name,i){
-  return `<tr><td>${name}</td><td>${lgfPartySel('lgf-'+sectionKey+'-'+i+'-party')}</td>
-    <td class="num"><input type="number" min="0" class="mass-sel" id="lgf-${sectionKey}-${i}-amt" placeholder="Số tiền" oninput="lgfRecalcTotal()" style="text-align:right"></td>
-    <td>${lgfCurSel('lgf-'+sectionKey+'-'+i+'-cur')}</td>
-    <td><input class="mass-sel" id="lgf-${sectionKey}-${i}-invno" placeholder="Số hóa đơn"></td>
-    <td><input type="date" class="mass-sel" id="lgf-${sectionKey}-${i}-invdate"></td>
-    <td><input class="mass-sel" id="lgf-${sectionKey}-${i}-reason" placeholder="Lý do phát sinh"></td>
+// Inland Trucking có thêm Service Quality/Assigned/Rolled-over Container Quantity; các section còn lại
+// có thêm Service (checkbox) + Severity Level thay vào đó.
+function lgfExtraColsHTML(base,isTrucking){
+  if(isTrucking){
+    return `<td>${lgfSel(base+'-svcqual',LOGFEE_SERVICE_QUALITY_OPTIONS)}</td>
+    <td class="num"><input type="number" min="0" class="mass-sel" id="${base}-assignedqty" placeholder="SL" style="text-align:right"></td>
+    <td class="num"><input type="number" min="0" class="mass-sel" id="${base}-rolledqty" placeholder="SL" style="text-align:right"></td>`;
+  }
+  return `<td style="text-align:center"><input type="checkbox" id="${base}-service"></td>
+    <td>${lgfSel(base+'-severity',LOGFEE_SEVERITY_OPTIONS)}</td>`;
+}
+function lgfRowHTML(sectionKey,name,i,isTrucking){
+  const base='lgf-'+sectionKey+'-'+i;
+  return `<tr><td>${name}</td><td>${lgfPartySel(base+'-party')}</td><td>${lgfServiceProviderSel(base+'-svcprov')}</td>
+    <td class="num"><input type="number" min="0" class="mass-sel" id="${base}-amt" placeholder="Số tiền" oninput="lgfRecalcTotal()" style="text-align:right"></td>
+    <td>${lgfCurSel(base+'-cur')}</td>
+    <td><input class="mass-sel" id="${base}-invno" placeholder="Số hóa đơn"></td>
+    <td><input type="date" class="mass-sel" id="${base}-invdate"></td>
+    <td><input class="mass-sel" id="${base}-reason" placeholder="Lý do phát sinh"></td>
+    ${lgfExtraColsHTML(base,isTrucking)}
     <td>${lgfDelBtn("lgfRemoveMainRow('"+sectionKey+"',"+i+")")}</td></tr>`;
 }
-function lgfExtraRowHTML(sectionKey,rowId){
-  return `<tr><td><input class="mass-sel" id="${rowId}-name" placeholder="Nhập tên phí"></td><td>${lgfPartySel(rowId+'-party')}</td>
+function lgfExtraRowHTML(sectionKey,rowId,isTrucking){
+  return `<tr><td><input class="mass-sel" id="${rowId}-name" placeholder="Nhập tên phí"></td><td>${lgfPartySel(rowId+'-party')}</td><td>${lgfServiceProviderSel(rowId+'-svcprov')}</td>
     <td class="num"><input type="number" min="0" class="mass-sel" id="${rowId}-amt" placeholder="Số tiền" oninput="lgfRecalcTotal()" style="text-align:right"></td>
     <td>${lgfCurSel(rowId+'-cur')}</td>
     <td><input class="mass-sel" id="${rowId}-invno" placeholder="Số hóa đơn"></td>
     <td><input type="date" class="mass-sel" id="${rowId}-invdate"></td>
     <td><input class="mass-sel" id="${rowId}-reason" placeholder="Lý do phát sinh"></td>
+    ${lgfExtraColsHTML(rowId,isTrucking)}
     <td>${lgfDelBtn("lgfRemoveExtraRow('"+sectionKey+"','"+rowId+"')")}</td></tr>`;
 }
 function lgfSectionRowsHTML(sectionKey){
   const sec=LOGFEE_SECTIONS.find(s=>s.key===sectionKey);
+  const isTrucking=sectionKey==='trucking';
+  const colspan=isTrucking?12:11;
   let html='', prevSub=null;
   sec.items.forEach((it,i)=>{
     if(LGF_HIDDEN[sectionKey].has(i)) return;
-    if(it.sub && it.sub!==prevSub){ html+=`<tr class="lgf-sub-row"><td colspan="8">${it.sub}</td></tr>`; prevSub=it.sub; }
-    html+=lgfRowHTML(sectionKey,it.name,i);
+    if(it.sub && it.sub!==prevSub){ html+=`<tr class="lgf-sub-row"><td colspan="${colspan}">${it.sub}</td></tr>`; prevSub=it.sub; }
+    html+=lgfRowHTML(sectionKey,it.name,i,isTrucking);
   });
-  html+=LGF_EXTRA_IDS[sectionKey].map(rowId=>lgfExtraRowHTML(sectionKey,rowId)).join('');
-  if(!html) html=`<tr><td colspan="8" class="wf-muted" style="text-align:center;padding:10px">Chưa có khoản phí nào — dùng nút "＋ Thêm phí" bên dưới.</td></tr>`;
+  html+=LGF_EXTRA_IDS[sectionKey].map(rowId=>lgfExtraRowHTML(sectionKey,rowId,isTrucking)).join('');
+  if(!html) html=`<tr><td colspan="${colspan}" class="wf-muted" style="text-align:center;padding:10px">Chưa có khoản phí nào — dùng nút "＋ Thêm phí" bên dưới.</td></tr>`;
   return html;
 }
 function lgfSectionHTML(sectionKey){
   const sec=LOGFEE_SECTIONS.find(s=>s.key===sectionKey);
+  const isTrucking=sectionKey==='trucking';
+  const extraHeaders=isTrucking
+    ? '<th>Service Quality</th><th class="num">Assigned Container Quantity</th><th class="num">Rolled-over Container Quantity</th>'
+    : '<th style="text-align:center">Service</th><th>Severity Level</th>';
   return `<div style="margin-bottom:16px">
     <div style="font-weight:600;margin-bottom:6px">${sec.title}</div>
-    <div class="tbl-wrap"><table class="tbl sm"><thead><tr><th>Tên phí</th><th>Bên chịu phát sinh</th><th class="num">Số tiền</th><th>Đơn vị tính</th><th>Số hóa đơn</th><th>Ngày hóa đơn</th><th>Lý do phát sinh</th><th></th></tr></thead>
+    <div class="tbl-wrap"><table class="tbl sm"><thead><tr><th>Tên phí</th><th>Bên chịu phát sinh</th><th>Service Provider</th><th class="num">Số tiền</th><th>Đơn vị tính</th><th>Số hóa đơn</th><th>Ngày hóa đơn</th><th>Lý do phát sinh</th>${extraHeaders}<th></th></tr></thead>
     <tbody id="lgf-${sectionKey}-tbody">${lgfSectionRowsHTML(sectionKey)}</tbody></table></div>
     <button class="btn sm" style="margin-top:6px" onclick="lgfAddExtraRow('${sectionKey}')">＋ Thêm phí</button>
   </div>`;
 }
 function lgfSyncValues(containerId){
   const wrap=document.getElementById(containerId); const map={}; if(!wrap) return map;
-  wrap.querySelectorAll('input,select').forEach(el=>{ if(el.id) map[el.id]=el.value; });
+  wrap.querySelectorAll('input,select').forEach(el=>{ if(!el.id) return; map[el.id]=el.type==='checkbox'?el.checked:el.value; });
   return map;
 }
 function lgfApplyValues(containerId,map){
   const wrap=document.getElementById(containerId); if(!wrap) return;
-  Object.keys(map).forEach(k=>{ const el=document.getElementById(k); if(el) el.value=map[k]; });
+  Object.keys(map).forEach(k=>{ const el=document.getElementById(k); if(!el) return; if(el.type==='checkbox') el.checked=map[k]; else el.value=map[k]; });
 }
 function lgfRenderSection(sectionKey){
   const saved=lgfSyncValues('lgf-'+sectionKey+'-tbody');
@@ -2857,28 +2882,36 @@ function lgfAddExtraRow(sectionKey){
 }
 function lgfRemoveMainRow(sectionKey,i){ LGF_HIDDEN[sectionKey].add(i); lgfRenderSection(sectionKey); lgfRecalcTotal(); }
 function lgfRemoveExtraRow(sectionKey,rowId){ LGF_EXTRA_IDS[sectionKey]=LGF_EXTRA_IDS[sectionKey].filter(id=>id!==rowId); lgfRenderSection(sectionKey); lgfRecalcTotal(); }
+function lgfBuildItem(sectionTitle,itemName,base,isTrucking){
+  const val=suffix=>(document.getElementById(base+suffix)||{}).value||'';
+  const out={section:sectionTitle,item:itemName,amtId:base+'-amt',curId:base+'-cur',
+    party:val('-party'), serviceProvider:val('-svcprov'),
+    invNo:val('-invno'), invDate:val('-invdate'), reason:val('-reason')};
+  if(isTrucking){
+    out.serviceQuality=val('-svcqual');
+    out.assignedQty=+val('-assignedqty')||0;
+    out.rolledQty=+val('-rolledqty')||0;
+  } else {
+    const cb=document.getElementById(base+'-service');
+    out.service=!!(cb&&cb.checked);
+    out.severity=val('-severity');
+  }
+  return out;
+}
 // Chỉ những dòng đã thực sự nhập Số tiền (không để trống) mới được tính vào Tổng và được lưu khi bấm Lưu.
 function lgfAllLineItems(){
   const items=[];
   LOGFEE_SECTIONS.forEach(sec=>{
+    const isTrucking=sec.key==='trucking';
     sec.items.forEach((it,i)=>{
       if(LGF_HIDDEN[sec.key].has(i)) return;
-      const amtId='lgf-'+sec.key+'-'+i+'-amt', curId='lgf-'+sec.key+'-'+i+'-cur';
-      if(!lgfHasVal(amtId)) return;
-      items.push({section:sec.title,item:it.name,amtId,curId,
-        party:(document.getElementById('lgf-'+sec.key+'-'+i+'-party')||{}).value||'',
-        invNo:(document.getElementById('lgf-'+sec.key+'-'+i+'-invno')||{}).value||'',
-        invDate:(document.getElementById('lgf-'+sec.key+'-'+i+'-invdate')||{}).value||'',
-        reason:(document.getElementById('lgf-'+sec.key+'-'+i+'-reason')||{}).value||''});
+      const base='lgf-'+sec.key+'-'+i;
+      if(!lgfHasVal(base+'-amt')) return;
+      items.push(lgfBuildItem(sec.title,it.name,base,isTrucking));
     });
     LGF_EXTRA_IDS[sec.key].forEach(rowId=>{
-      const amtId=rowId+'-amt', curId=rowId+'-cur';
-      if(!lgfHasVal(amtId)) return;
-      items.push({section:sec.title,item:(document.getElementById(rowId+'-name')||{}).value||'(chưa đặt tên)',amtId,curId,
-        party:(document.getElementById(rowId+'-party')||{}).value||'',
-        invNo:(document.getElementById(rowId+'-invno')||{}).value||'',
-        invDate:(document.getElementById(rowId+'-invdate')||{}).value||'',
-        reason:(document.getElementById(rowId+'-reason')||{}).value||''});
+      if(!lgfHasVal(rowId+'-amt')) return;
+      items.push(lgfBuildItem(sec.title,(document.getElementById(rowId+'-name')||{}).value||'(chưa đặt tên)',rowId,isTrucking));
     });
   });
   return items;
@@ -2915,10 +2948,16 @@ function lgfPrefillLoadedValues(){
     setVal('-amt', f.amount);
     setVal('-cur', f.cur);
     setVal('-party', f.party==='—'?'':f.party);
+    setVal('-svcprov', f.serviceProvider||'');
     setVal('-invno', f.invNo||'');
     setVal('-invdate', f.invDate||'');
     setVal('-reason', f.reason||'');
     setVal('-name', f.item); // chỉ áp dụng cho dòng "Thêm phí" (có ô tên); dòng catalog không có ô này nên bỏ qua
+    setVal('-svcqual', f.serviceQuality||'');
+    setVal('-assignedqty', f.assignedQty||'');
+    setVal('-rolledqty', f.rolledQty||'');
+    setVal('-severity', f.severity||'');
+    const cb=document.getElementById(base+'-service'); if(cb) cb.checked=!!f.service;
   });
 }
 function openLogFeeModal(){
@@ -2940,14 +2979,16 @@ function confirmLogFeeModal(){
   items.forEach(it=>{
     if(!it.party) missingParty++;
     const cur=document.getElementById(it.curId).value;
+    const fields={section:it.section,item:it.item,party:it.party||'—',serviceProvider:it.serviceProvider||'',amount:lgfNum(it.amtId),cur,invNo:it.invNo,invDate:it.invDate,reason:it.reason,
+      serviceQuality:it.serviceQuality,assignedQty:it.assignedQty,rolledQty:it.rolledQty,service:it.service,severity:it.severity};
     const existingId=LGF_ROW_ID[it.amtId];
     const existing=existingId?SHIP_LOGFEES.find(x=>x.id===existingId):null;
     if(existing){
-      Object.assign(existing,{section:it.section,item:it.item,party:it.party||'—',amount:lgfNum(it.amtId),cur,invNo:it.invNo,invDate:it.invDate,reason:it.reason});
+      Object.assign(existing,fields);
       keptIds.add(existing.id);
     } else {
       const id=SHIP_LOGFEES_SEQ++;
-      SHIP_LOGFEES.push({id,section:it.section,item:it.item,party:it.party||'—',amount:lgfNum(it.amtId),cur,invNo:it.invNo,invDate:it.invDate,reason:it.reason,compLines:[{party:'',reason:'',amount:0,cur:'VNĐ'}]});
+      SHIP_LOGFEES.push({id,...fields,compLines:[{party:'',reason:'',amount:0,cur:'VNĐ'}]});
       keptIds.add(id);
     }
   });
@@ -2960,8 +3001,8 @@ function confirmLogFeeModal(){
 function shipLogFeeAmt(f){ return f.cur==='USD' ? ('$'+f.amount.toLocaleString('en-US')) : fmtMoney(f.amount); }
 function shipLogFeeInvDate(f){ return f.invDate ? f.invDate.split('-').reverse().join('/') : '—'; }
 function shipLogFeesRows(){
-  if(!SHIP_LOGFEES.length) return `<tr><td colspan="7" class="wf-muted" style="text-align:center;padding:14px">Chưa có khoản phí Logistic nào.</td></tr>`;
-  return SHIP_LOGFEES.map(f=>`<tr><td>${f.section}</td><td>${f.item}</td><td>${f.party}</td><td class="num">${shipLogFeeAmt(f)}</td><td>${f.invNo||'—'}</td><td>${shipLogFeeInvDate(f)}</td><td>${f.reason||'—'}</td></tr>`).join('');
+  if(!SHIP_LOGFEES.length) return `<tr><td colspan="13" class="wf-muted" style="text-align:center;padding:14px">Chưa có khoản phí Logistic nào.</td></tr>`;
+  return SHIP_LOGFEES.map(f=>`<tr><td>${f.section}</td><td>${f.item}</td><td>${f.party}</td><td>${f.serviceProvider||'—'}</td><td class="num">${shipLogFeeAmt(f)}</td><td>${f.invNo||'—'}</td><td>${shipLogFeeInvDate(f)}</td><td>${f.reason||'—'}</td><td>${f.serviceQuality||'—'}</td><td class="num">${f.assignedQty!=null?f.assignedQty:'—'}</td><td class="num">${f.rolledQty!=null?f.rolledQty:'—'}</td><td style="text-align:center">${f.service?'✓':'—'}</td><td>${f.severity||'—'}</td></tr>`).join('');
 }
 function shipLogFeesTotalVND(){ return SHIP_LOGFEES.reduce((s,f)=>s+(f.cur==='USD'?f.amount*LOGFEE_EXRATE_DEFAULT:f.amount),0); }
 function renderShipLogFees(){
@@ -4081,7 +4122,7 @@ S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',TAB_IM,'Shipment')
        ['Free time DEM','7 ngày từ ETA'],['Free time DET','10 ngày']]))}
      ${card('Shipment Fees',
        `<div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Section</th><th>Tên phí</th><th>Bên chịu phát sinh</th><th class="num">Số tiền</th><th>Số hóa đơn</th><th>Ngày hóa đơn</th><th>Lý do phát sinh</th></tr></thead>
+          <thead><tr><th>Section</th><th>Tên phí</th><th>Bên chịu phát sinh</th><th>Service Provider</th><th class="num">Số tiền</th><th>Số hóa đơn</th><th>Ngày hóa đơn</th><th>Lý do phát sinh</th><th>Service Quality</th><th class="num">Assigned Container Quantity</th><th class="num">Rolled-over Container Quantity</th><th style="text-align:center">Service</th><th>Severity Level</th></tr></thead>
           <tbody id="shiplogfee-tbody">${shipLogFeesRows()}</tbody>
         </table></div>`,
        {n:String(SHIP_LOGFEES.length)})}
