@@ -2679,6 +2679,12 @@ function fmtMoney(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,'.')+' �
 function feeAmt(f){ return f.cur==='USD' ? ('$'+f.amount.toLocaleString('en-US')) : fmtMoney(f.amount); }
 /* --- Case "Sự vụ Nhập khẩu - Logistics" từ Shipment + chọn chi phí khiếu nại (nguồn: Shipment Fee của Shipment) --- */
 function createCaseFromShipment(){ toast('Đã tạo Case (Sự vụ Nhập khẩu - Logistics) từ Shipment SHP-041 — mở màn Case'); setTimeout(function(){ if(S.case_im) go('case_im'); }, 700); }
+// Bấm "Tạo Case" ngay trên 1 dòng Shipment Fee cụ thể -> tự tick chọn đúng khoản phí đó vào Case khiếu nại rồi mở Case.
+function createCaseFromFee(id){
+  CLAIM_FEES.add(id);
+  toast('Đã thêm khoản phí vào Case (Sự vụ Nhập khẩu - Logistics) — mở Case để xem');
+  setTimeout(function(){ if(S.case_im) go('case_im'); }, 700);
+}
 let CLAIM_FEES=new Set();
 function claimLinePartyOpt(sel){ return ['', 'Hãng tàu','NCC'].map(p=>`<option value="${p}"${p===sel?' selected':''}>${p||'— Chọn —'}</option>`).join(''); }
 function claimInvDate(f){ return f.invDate ? f.invDate.split('-').reverse().join('/') : '—'; }
@@ -3001,8 +3007,8 @@ function confirmLogFeeModal(){
 function shipLogFeeAmt(f){ return f.cur==='USD' ? ('$'+f.amount.toLocaleString('en-US')) : fmtMoney(f.amount); }
 function shipLogFeeInvDate(f){ return f.invDate ? f.invDate.split('-').reverse().join('/') : '—'; }
 function shipLogFeesRows(){
-  if(!SHIP_LOGFEES.length) return `<tr><td colspan="13" class="wf-muted" style="text-align:center;padding:14px">Chưa có khoản phí Logistic nào.</td></tr>`;
-  return SHIP_LOGFEES.map(f=>`<tr><td>${f.section}</td><td>${f.item}</td><td>${f.party}</td><td>${f.serviceProvider||'—'}</td><td class="num">${shipLogFeeAmt(f)}</td><td>${f.invNo||'—'}</td><td>${shipLogFeeInvDate(f)}</td><td>${f.reason||'—'}</td><td>${f.serviceQuality||'—'}</td><td class="num">${f.assignedQty!=null?f.assignedQty:'—'}</td><td class="num">${f.rolledQty!=null?f.rolledQty:'—'}</td><td style="text-align:center">${f.service?'✓':'—'}</td><td>${f.severity||'—'}</td></tr>`).join('');
+  if(!SHIP_LOGFEES.length) return `<tr><td colspan="14" class="wf-muted" style="text-align:center;padding:14px">Chưa có khoản phí Logistic nào.</td></tr>`;
+  return SHIP_LOGFEES.map(f=>`<tr><td>${f.section}</td><td>${f.item}</td><td>${f.party}</td><td>${f.serviceProvider||'—'}</td><td class="num">${shipLogFeeAmt(f)}</td><td>${f.invNo||'—'}</td><td>${shipLogFeeInvDate(f)}</td><td>${f.reason||'—'}</td><td>${f.serviceQuality||'—'}</td><td class="num">${f.assignedQty!=null?f.assignedQty:'—'}</td><td class="num">${f.rolledQty!=null?f.rolledQty:'—'}</td><td style="text-align:center">${f.service?'✓':'—'}</td><td>${f.severity||'—'}</td><td><button class="btn sm" onclick="createCaseFromFee(${f.id})">Tạo Case</button></td></tr>`).join('');
 }
 function shipLogFeesTotalVND(){ return SHIP_LOGFEES.reduce((s,f)=>s+(f.cur==='USD'?f.amount*LOGFEE_EXRATE_DEFAULT:f.amount),0); }
 function renderShipLogFees(){
@@ -4122,7 +4128,7 @@ S.shipment = ()=> appnav('Mua nhập khẩu','Shipment',TAB_IM,'Shipment')
        ['Free time DEM','7 ngày từ ETA'],['Free time DET','10 ngày']]))}
      ${card('Shipment Fees',
        `<div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Section</th><th>Tên phí</th><th>Bên chịu phát sinh</th><th>Service Provider</th><th class="num">Số tiền</th><th>Số hóa đơn</th><th>Ngày hóa đơn</th><th>Lý do phát sinh</th><th>Service Quality</th><th class="num">Assigned Container Quantity</th><th class="num">Rolled-over Container Quantity</th><th style="text-align:center">Service</th><th>Severity Level</th></tr></thead>
+          <thead><tr><th>Section</th><th>Tên phí</th><th>Bên chịu phát sinh</th><th>Service Provider</th><th class="num">Số tiền</th><th>Số hóa đơn</th><th>Ngày hóa đơn</th><th>Lý do phát sinh</th><th>Service Quality</th><th class="num">Assigned Container Quantity</th><th class="num">Rolled-over Container Quantity</th><th style="text-align:center">Service</th><th>Severity Level</th><th></th></tr></thead>
           <tbody id="shiplogfee-tbody">${shipLogFeesRows()}</tbody>
         </table></div>`,
        {n:String(SHIP_LOGFEES.length)})}
