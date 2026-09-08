@@ -775,6 +775,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     <div class="pm-body" id="sr-body"></div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeSampleModal()">Hủy</button><button class="btn pri" onclick="confirmSample()">Tạo yêu cầu</button></div></div>
   </div>
+  <!-- Modal Thêm bảng giá NCC (Vendor Price Book) -->
+  <div class="modal-back" id="vpbback" onclick="closeVpbModal()" style="z-index:135"></div>
+  <div class="po-modal" id="vpbmodal" style="z-index:140;width:min(760px,96vw);max-height:88vh;overflow:auto">
+    <div class="pm-head"><h3>Thêm bảng giá Nhà cung cấp</h3><button title="Đóng" onclick="closeVpbModal()">✕</button></div>
+    <div class="pm-body" id="vpb-body"></div>
+    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeVpbModal()">Hủy</button><button class="btn pri" onclick="confirmVpbModal()">Lưu bảng giá</button></div></div>
+  </div>
 </div>
 
 <script>
@@ -1598,6 +1605,22 @@ S.home = ()=> appnav('CRM Đồng Tiến','Trang chủ',['Trang chủ','Cơ hộ
  </div>`;
 
 S.pricebook = ()=> { const pbName=PB_CTX_NAME||PB_NAME_DTLA;
+  const vpb=VENDOR_PRICEBOOKS.find(p=>p.name===pbName);
+  if(vpb){
+    return appnav('Dữ liệu nền tảng','Bảng giá',TAB_MD,'Bảng giá')
+   + `<div class="sf-body narrow">
+     ${hl({crumb:'<span data-go="pricebook_list">Price Book</span> &rsaquo;',ico:'₫',color:'#5867e8',title:vpb.name,sub:'Bảng giá mua vào NCC · '+vpb.vendorName+' · đang kích hoạt',
+       fields:[['Active',pill('ok','✓ Active')],['Is Standard Price Book','—'],['Số Price Book Entry',String(vpb.lines.length)],['Tiền tệ',vpb.currency]],
+       actions:['Sửa']})}
+     <div class="cols-side act-tab">
+       <div>
+       ${card('Thông tin Price Book', fg([['Price Book Name',vpb.name],['Nhà cung cấp','<a data-go="vendor" onclick="VENDOR_CTX={name:\''+vpb.vendorName.replace(/'/g,"\\'")+'\'}">'+vpb.vendorName+'</a>'],['Active','✓ (đang kích hoạt)'],['Is Standard Price Book','— Không'],['Tiền tệ',vpb.currency],['Ngày hiệu lực',vpb.effDate||'—']]))}
+       ${card('Price Book Entry', vpb.lines.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Sản phẩm</th><th>Mã sản phẩm</th><th>ĐVT</th><th class="num">Giá</th></tr></thead><tbody>${vpb.lines.map(l=>`<tr><td><a data-go="product_list">${l.name}</a></td><td>${l.code}</td><td>${l.unit}</td><td class="num">${l.price.toLocaleString('vi-VN')}</td></tr>`).join('')}</tbody></table></div>` : `<div class="po-hint">Chưa có Price Book Entry nào cho ${vpb.name}.</div>`,{n:String(vpb.lines.length)})}
+       </div>
+       ${activity([['₫','Tạo bảng giá NCC "'+vpb.name+'"','P.Mua hàng']])}
+     </div>
+   </div>`;
+  }
   const isNCC = pbName==='Bảng giá NCC (mua vào) 2026';
   const entries = isNCC?[]:PB_PRODUCTS.filter(p=>p.pricebook===pbName);
   const isStandard = pbName===PB_NAME_DTLA;
@@ -3753,6 +3776,94 @@ const VENDOR_INFO={
  'Maersk':{mst:'—',nhom:'Cước tàu biển (Hãng tàu)',contact:'Sales team Maersk',phone:'028 xxx xxxx',email:'vn.sales@maersk.com',address:'TP.HCM',tt:'Công nợ 15 ngày'},
  'Evergreen':{mst:'—',nhom:'Cước tàu biển (Hãng tàu)',contact:'Sales team Evergreen',phone:'028 xxx xxxx',email:'vn.sales@evergreen-line.com',address:'TP.HCM',tt:'Công nợ 30 ngày'},
 };
+/* ===== Bảng giá NCC (Vendor Price Book) — Dữ liệu nền tảng -> Chi tiết Nhà cung cấp
+   Chỉ áp dụng cho NCC Nội địa + Nhập khẩu (không áp dụng NCC Dịch vụ). Dòng sản phẩm gắn với
+   danh mục Product2 hiện có (như Bảng giá chuẩn DTP) — tìm & chọn, không nhập tự do.
+   Bảng giá tạo ra hiển thị cả ở trang NCC lẫn danh sách Bảng giá chung (Dữ liệu nền tảng). ===== */
+let VENDOR_PRICEBOOKS=[]; // {id, vendorName, name, currency, effDate, lines:[{code,name,unit,price}]}
+let VPB_SEQ=1;
+let VPB_VENDOR_NAME='';
+let VPB_LINES=[]; // dòng sản phẩm đang nhập trong popup (chưa lưu)
+const VPB_PRODUCT_CATALOG=[
+  {code:'SP-M125',name:'Giấy Medium 125gsm',unit:'kg'},
+  {code:'SP-M110',name:'Giấy Medium 110gsm',unit:'kg'},
+  {code:'SP-M150',name:'Giấy Medium 150gsm',unit:'kg'},
+  {code:'SP-K170',name:'Giấy Kraft 170gsm',unit:'kg'},
+  {code:'SP-T125',name:'Testliner 125gsm',unit:'kg'},
+  {code:'SP-DL150',name:'Giấy Duplex 150gsm',unit:'kg'},
+];
+function vpbAllowed(type){ return type!=='dichvu'; }
+function vpbVendorBooks(vendorName){ return VENDOR_PRICEBOOKS.filter(p=>p.vendorName===vendorName); }
+function vpbCardHTML(vendorName){
+  const rows=vpbVendorBooks(vendorName);
+  return card('Bảng giá NCC', rows.length
+    ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Price Book Name</th><th>Tiền tệ</th><th>Hiệu lực</th><th class="num">Số entry</th></tr></thead><tbody>${rows.map(p=>
+        `<tr><td><a data-go="pricebook" onclick="pbGoCtx('${p.name.replace(/'/g,"\\'")}')">${p.name}</a></td><td>${p.currency}</td><td>${p.effDate}</td><td class="num">${p.lines.length}</td></tr>`).join('')}</tbody></table></div>`
+    : '<div class="po-hint">Chưa có bảng giá nào cho NCC này.</div>',
+    {n:String(rows.length), r:`<button class="btn sm" onclick="openVpbModal('${vendorName.replace(/'/g,"\\'")}')">＋ Thêm bảng giá</button>`});
+}
+function vpbActionBtn(vendorName){
+  return {t:'＋ Thêm bảng giá',fn:`openVpbModal('${vendorName.replace(/'/g,"\\'")}')`};
+}
+function vpbCurSel(id){ return `<select id="${id}" class="mass-sel"><option value="VND">VND</option><option value="USD">USD</option></select>`; }
+function vpbSearchInput(){
+  const box=document.getElementById('vpb-suggest'); if(!box) return;
+  const q=norm(document.getElementById('vpb-search').value||'');
+  const picked=new Set(VPB_LINES.map(l=>l.code));
+  const matches=VPB_PRODUCT_CATALOG.filter(p=>!picked.has(p.code) && (!q || norm(p.code).includes(q) || norm(p.name).includes(q)));
+  box.innerHTML=matches.length
+    ? matches.slice(0,8).map(p=>`<div class="dq-sugg-item" onclick="vpbAddLine('${p.code}')"><b>${p.code}</b> — ${p.name}</div>`).join('')
+    : `<div class="dq-sugg-item wf-muted">Không tìm thấy sản phẩm phù hợp</div>`;
+  box.hidden=false;
+}
+function vpbAddLine(code){
+  if(VPB_LINES.some(l=>l.code===code)) return;
+  const p=VPB_PRODUCT_CATALOG.find(x=>x.code===code); if(!p) return;
+  VPB_LINES.push({code:p.code,name:p.name,unit:p.unit,price:0});
+  const search=document.getElementById('vpb-search'); if(search) search.value='';
+  const box=document.getElementById('vpb-suggest'); if(box){ box.hidden=true; box.innerHTML=''; }
+  vpbRenderLines();
+}
+function vpbRemoveLine(code){ VPB_LINES=VPB_LINES.filter(l=>l.code!==code); vpbRenderLines(); }
+function vpbSetPrice(code,val){ const l=VPB_LINES.find(x=>x.code===code); if(l) l.price=parseFloat(val)||0; }
+function vpbLinesRowsHTML(){
+  if(!VPB_LINES.length) return `<tr><td colspan="4" class="wf-muted" style="text-align:center;padding:12px">Chưa chọn sản phẩm — dùng ô tìm kiếm phía trên để thêm sản phẩm vào bảng giá.</td></tr>`;
+  return VPB_LINES.map(l=>`<tr><td><b>${l.code}</b> — ${l.name}</td><td>${l.unit}</td><td class="num"><input type="number" min="0" class="mass-sel num" style="width:100px" value="${l.price}" oninput="vpbSetPrice('${l.code}',this.value)"></td><td class="num"><button class="btn sm" title="Xoá" onclick="vpbRemoveLine('${l.code}')">✕</button></td></tr>`).join('');
+}
+function vpbRenderLines(){ const tb=document.getElementById('vpb-tbody'); if(tb) tb.innerHTML=vpbLinesRowsHTML(); }
+function openVpbModal(vendorName){
+  VPB_VENDOR_NAME=vendorName; VPB_LINES=[];
+  document.getElementById('vpb-body').innerHTML=
+    `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Nhà cung cấp</label><input class="mass-sel" value="${vendorName}" readonly></div>
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Price Book Name *</label><input id="vpb-name" class="mass-sel" value="Bảng giá ${vendorName} 2026"></div>
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Tiền tệ</label>${vpbCurSel('vpb-cur')}</div>
+       <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Ngày hiệu lực</label><input id="vpb-effdate" class="mass-sel" type="date" value="2026-09-08"></div>
+     </div>
+     <div class="wf-muted" style="font-size:12px;font-weight:700;margin-bottom:4px">Dòng sản phẩm (Price Book Entry) — tìm & chọn từ danh mục Sản phẩm hiện có</div>
+     <div class="dq-search-wrap" style="margin-bottom:10px">
+       <input id="vpb-search" class="mass-sel" placeholder="🔍 Tìm & chọn sản phẩm (theo mã hoặc tên)..." oninput="vpbSearchInput()" onfocus="vpbSearchInput()">
+       <div id="vpb-suggest" class="dq-suggest" hidden></div>
+     </div>
+     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Sản phẩm</th><th>ĐVT</th><th class="num">Giá</th><th></th></tr></thead><tbody id="vpb-tbody">${vpbLinesRowsHTML()}</tbody></table></div>`;
+  document.getElementById('vpbback').classList.add('show');
+  document.getElementById('vpbmodal').classList.add('show');
+}
+function closeVpbModal(){ const b=document.getElementById('vpbback'),m=document.getElementById('vpbmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
+function confirmVpbModal(){
+  const name=(document.getElementById('vpb-name').value||'').trim();
+  if(!name){ toast('Nhập Price Book Name'); return; }
+  if(!VPB_LINES.length){ toast('Thêm ít nhất 1 sản phẩm vào bảng giá'); return; }
+  if(VENDOR_PRICEBOOKS.some(p=>p.name===name)){ toast('Đã tồn tại Price Book Name này — vui lòng đổi tên khác'); return; }
+  const currency=document.getElementById('vpb-cur').value;
+  const effRaw=document.getElementById('vpb-effdate').value;
+  const effDate=effRaw ? effRaw.split('-').reverse().join('/') : '';
+  VENDOR_PRICEBOOKS.push({id:VPB_SEQ++, vendorName:VPB_VENDOR_NAME, name, currency, effDate, lines:VPB_LINES.map(l=>({...l}))});
+  const vendor=VPB_VENDOR_NAME;
+  closeVpbModal();
+  toast('Đã tạo bảng giá "'+name+'" cho '+vendor);
+  if(VENDOR_CTX.name===vendor) go('vendor');
+}
 S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'],'NCC')
  + (()=>{
    const type=VENDOR_CTX.type||'noidia';
@@ -3764,19 +3875,20 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
      if(!e){
        return `<div class="sf-body narrow">
        ${hl({crumb:'<span data-go="vendor_list">Đánh giá Nhà cung cấp</span> &rsaquo;',ico:'⭐',color:'#2e844a',title:vendorName,sub:'NCC nội địa · Chưa có đánh giá',
-         actions:[{t:'Đánh giá NCC',pri:true,fn:`openNccEvalModal('${vendorName}')`},'Sửa']})}
+         actions:[{t:'Đánh giá NCC',pri:true,fn:`openNccEvalModal('${vendorName}')`},vpbActionBtn(vendorName),'Sửa']})}
        <div class="cols-side act-tab"><div>
        ${card('Thông tin nhà cung cấp', fg([['Tên NCC',vendorName],['Mã số thuế',info.mst],['Loại NCC','Nội địa'],
          ['Nhóm hàng cung cấp',info.nhom],['Người liên hệ',info.contact],['Điện thoại',info.phone],
          ['Email',info.email],['Địa chỉ',info.address],['Điều khoản TT',info.tt],['Trạng thái',pill('ok','Đang hợp tác')]]))}
        ${card('Lịch sử đánh giá', '<div class="po-hint">Chưa có kỳ đánh giá nào cho NCC này.</div>', {r:`<button class="btn sm" onclick="openNccEvalModal('${vendorName}')">＋ Đánh giá NCC</button>`})}
+       ${vpbCardHTML(vendorName)}
        </div>${activity([])}</div></div>`;
      }
      const {total}=nccEvalScores(e.picks); const g=nccGrade(total);
      return `<div class="sf-body narrow">
      ${hl({crumb:'<span data-go="vendor_list">Đánh giá Nhà cung cấp</span> &rsaquo;',ico:'⭐',color:'#2e844a',title:vendorName,sub:'NCC nội địa · Điểm đánh giá tổng: '+total+'/100 · Xếp loại '+g+' — '+nccGradeLabel(g),
        fields:[['Điểm',total+'/100'],['Xếp loại',nccGradePill(g)],['Hành động',nccGradeAction(g)],['Kỳ đánh giá',e.period]],
-       actions:[{t:'Đánh giá NCC',pri:true,fn:`openNccEvalModal('${vendorName}')`},{t:'Ghi nhận sự cố'},'Sửa']})}
+       actions:[{t:'Đánh giá NCC',pri:true,fn:`openNccEvalModal('${vendorName}')`},{t:'Ghi nhận sự cố'},vpbActionBtn(vendorName),'Sửa']})}
      <div class="cols-side act-tab">
        <div>
        ${card('Thông tin nhà cung cấp', fg([['Tên NCC',vendorName],['Mã số thuế',info.mst],['Loại NCC','Nội địa'],
@@ -3785,6 +3897,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
          ['Đánh giá tổng',total+'/100 · Xếp loại '+g],['Trạng thái',pill('ok','Đang hợp tác')]]))}
        ${card('Tiêu chí đánh giá NCC (kỳ '+e.period+')', nccCriteriaRowsHTML(e.picks), {n:'8'})}
        ${card('Lịch sử đánh giá', tbl([{t:'Kỳ đánh giá'},{t:'Ngày'},{t:'Điểm'},{t:'Xếp loại'},{t:'Người đánh giá'},{t:'Kết luận'}], nccEvalsListRows(vendorName)),{n:String(NCC_EVALS.filter(x=>x.vendor===vendorName).length),r:`<button class="btn sm" onclick="openNccEvalModal('${vendorName}')">＋ Đánh giá NCC</button>`})}
+       ${vpbCardHTML(vendorName)}
        </div>
        ${activity([['⚠','QA ghi nhận lô keo lỗi','QA · 06/2026'],['📦','17 đơn mua hoàn tất','—']])}
      </div>
@@ -3797,19 +3910,20 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
    if(!e){
      return `<div class="sf-body narrow">
      ${hl({crumb:'<span data-go="vendor_list">Đánh giá Nhà cung cấp</span> &rsaquo;',ico:profile.ico,color:profile.color,title:vendorName,sub:profile.label+' · Chưa có đánh giá',
-       actions:[{t:'Đánh giá NCC',pri:true,fn:`openNpfEvalModal('${type}','${vendorName.replace(/'/g,"\\'")}')`},'Sửa']})}
+       actions:[{t:'Đánh giá NCC',pri:true,fn:`openNpfEvalModal('${type}','${vendorName.replace(/'/g,"\\'")}')`},...(vpbAllowed(type)?[vpbActionBtn(vendorName)]:[]),'Sửa']})}
      <div class="cols-side act-tab"><div>
      ${card('Thông tin nhà cung cấp', fg([['Tên NCC',vendorName],['Mã số thuế',info.mst],['Loại NCC',loaiLabel],
        ['Nhóm hàng/dịch vụ',info.nhom],['Người liên hệ',info.contact],['Điện thoại',info.phone],
        ['Email',info.email],['Địa chỉ',info.address],['Điều khoản TT',info.tt],['Trạng thái',pill('ok','Đang hợp tác')]]))}
      ${card('Lịch sử đánh giá', '<div class="po-hint">Chưa có kỳ đánh giá nào cho NCC này.</div>', {r:`<button class="btn sm" onclick="openNpfEvalModal('${type}','${vendorName.replace(/'/g,"\\'")}')">＋ Đánh giá NCC</button>`})}
+     ${vpbAllowed(type)?vpbCardHTML(vendorName):''}
      </div>${activity([])}</div></div>`;
    }
    const {total}=npfScore(profile,e.picks); const g=npfGrade(profile,total);
    return `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="vendor_list">Đánh giá Nhà cung cấp</span> &rsaquo;',ico:profile.ico,color:profile.color,title:vendorName,sub:profile.label+' · Điểm đánh giá tổng: '+total+'/100 · Xếp loại '+g.g+' — '+g.label,
      fields:[['Điểm',total+'/100'],['Xếp loại',npfGradePill(profile,g.g)],['Kỳ đánh giá',e.period]],
-     actions:[{t:'Đánh giá NCC',pri:true,fn:`openNpfEvalModal('${type}','${vendorName.replace(/'/g,"\\'")}')`},{t:'Ghi nhận sự cố'},'Sửa']})}
+     actions:[{t:'Đánh giá NCC',pri:true,fn:`openNpfEvalModal('${type}','${vendorName.replace(/'/g,"\\'")}')`},{t:'Ghi nhận sự cố'},...(vpbAllowed(type)?[vpbActionBtn(vendorName)]:[]),'Sửa']})}
    <div class="cols-side act-tab">
      <div>
      ${card('Thông tin nhà cung cấp', fg([['Tên NCC',vendorName],['Mã số thuế',info.mst],['Loại NCC',loaiLabel],
@@ -3818,6 +3932,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
        ['Đánh giá tổng',total+'/100 · Xếp loại '+g.g],['Trạng thái',pill('ok','Đang hợp tác')]]))}
      ${card('Tiêu chí đánh giá NCC (kỳ '+e.period+')', npfCriteriaRowsHTML(type,e.picks), {n:String(profile.criteria.length)})}
      ${card('Lịch sử đánh giá', tbl([{t:'Kỳ đánh giá'},{t:'Ngày'},{t:'Điểm'},{t:'Xếp loại'},{t:'Người đánh giá'}], npfEvalsListRows(type,vendorName)),{n:String(NCC_EVALS_EXT.filter(x=>x.type===type&&x.vendor===vendorName).length),r:`<button class="btn sm" onclick="openNpfEvalModal('${type}','${vendorName.replace(/'/g,"\\'")}')">＋ Đánh giá NCC</button>`})}
+     ${vpbAllowed(type)?vpbCardHTML(vendorName):''}
      </div>
      ${activity([['📦','Đơn hàng gần nhất đã hoàn tất','—']])}
    </div>
@@ -4799,14 +4914,16 @@ S.pricerpt = ()=> appnav('Dữ liệu nền tảng','Biến động giá',TAB_MD
    </div>
  </div>`;
 function pbGoCtx(name){ PB_CTX_NAME=name; go('pricebook'); }
-S.pricebook_list = ()=> appnav('Dữ liệu nền tảng','Bảng giá',TAB_MD,'Bảng giá')
- + `<div class="sf-body">${lv({crumb:'Price Book',ico:'₫',color:'#5867e8',object:'Price Book',view:'Tất cả bảng giá',views:['Tất cả bảng giá','Đang kích hoạt'],count:'4',newLabel:'Price Book mới',
+S.pricebook_list = ()=> { const vpbRows=VENDOR_PRICEBOOKS.map(p=>({cells:['<a onclick="pbGoCtx(\''+p.name.replace(/'/g,"\\'")+'\')">'+p.name+'</a>',pill('ok','✓ Active'),'—',String(p.lines.length),p.currency]}));
+  return appnav('Dữ liệu nền tảng','Bảng giá',TAB_MD,'Bảng giá')
+ + `<div class="sf-body">${lv({crumb:'Price Book',ico:'₫',color:'#5867e8',object:'Price Book',view:'Tất cả bảng giá',views:['Tất cả bảng giá','Đang kích hoạt'],count:String(4+VENDOR_PRICEBOOKS.length),newLabel:'Price Book mới',
    cols:[{t:'Price Book Name'},{t:'Active'},{t:'Is Standard'},{t:'Số entry',num:true},{t:'Tiền tệ'}],
    rows:[
     {cells:['<a onclick="pbGoCtx(\''+PB_NAME_DTLA+'\')">'+PB_NAME_DTLA+'</a>',pill('ok','✓ Active'),'✓',String(PB_PRODUCTS.filter(p=>p.pricebook===PB_NAME_DTLA).length),'VND']},
     {cells:['<a onclick="pbGoCtx(\''+PB_NAME_DTBD+'\')">'+PB_NAME_DTBD+'</a>',pill('ok','✓ Active'),'—',String(PB_PRODUCTS.filter(p=>p.pricebook===PB_NAME_DTBD).length),'VND']},
     {cells:['<a onclick="pbGoCtx(\''+PB_NAME_MIZU+'\')">'+PB_NAME_MIZU+'</a>',pill('ok','✓ Active'),'—','0','VND']},
-    {cells:['<a onclick="pbGoCtx(\'Bảng giá NCC (mua vào) 2026\')">Bảng giá NCC (mua vào) 2026</a>',pill('ok','✓ Active'),'—','18','VND']}]})}</div>`;
+    {cells:['<a onclick="pbGoCtx(\'Bảng giá NCC (mua vào) 2026\')">Bảng giá NCC (mua vào) 2026</a>',pill('ok','✓ Active'),'—','18','VND']},
+    ...vpbRows]})}</div>`; };
 
 function machineCell(def){
   const opts=['PM4','PM5','PM6'].map(m=>`<option ${m===def?'selected':''}>${m}</option>`).join('');
@@ -5374,7 +5491,7 @@ function setupSearch(){
   dd.addEventListener('click',e=>{const it=e.target.closest('.sr-item'); if(it) pickSearch(it.dataset.id);});
   document.addEventListener('click',e=>{ if(!e.target.closest('.g-search')) dd.classList.remove('show'); });
   document.getElementById('lmsearch').addEventListener('input',e=>renderLauncher(e.target.value));
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeSupModal(); closeMass(); closePO(); closeLauncher(); closeShipModal(); closeSlipModal(); closeEvalModal(); closeLogFeeModal(); closeQuoteModal(); closeApproveModal(); closeSampleModal(); } });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeSupModal(); closeMass(); closePO(); closeLauncher(); closeShipModal(); closeSlipModal(); closeEvalModal(); closeLogFeeModal(); closeQuoteModal(); closeApproveModal(); closeSampleModal(); closeVpbModal(); } });
 }
 
 /* ---- in-page interactivity ---- */
