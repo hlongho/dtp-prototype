@@ -1517,7 +1517,8 @@ const NAV = [
    ['account_list','Khách hàng (Account)','Admin','list'],
    ['account','↳ Chi tiết Khách hàng (Account)','','record'],
    ['vendor_list','Nhà cung cấp (NCC · Account)','Admin','list'],
-   ['vendor','↳ Chi tiết Nhà cung cấp (NCC)','','record']]},
+   ['vendor','↳ Chi tiết Nhà cung cấp (NCC)','','record'],
+   ['sec_config','Cấu hình Đánh giá NCC (Setup)','Admin','custom']]},
  {g:'Bán hàng nội địa', items:[
    ['lead_list','Lead','Sales','list'],
    ['lead','↳ Chi tiết Lead (kiểm tra trùng)','','record'],
@@ -3764,6 +3765,357 @@ S.impo = ()=> appnav('Mua hàng nhập khẩu','Đơn mua (PO)',TAB_IM,'Đơn mu
    </div>
  </div>`;
 
+/* ===== Cấu hình Đánh giá NCC (Setup screen) — theo .docs/supplier-evaluation-config-screen.md =====
+   Config theo Object+Field+Giá trị so sánh (không hardcode logic tính điểm) — cho phép nghiệp vụ tự
+   sửa quy tắc mà không cần deploy lại. 3 nhóm NCC (Nội địa/Nhập khẩu/Dịch vụ) xác định qua Record Type
+   Account (ở đây là NAV context noidia/nhapkhau/dichvu đã dùng chung toàn app). Tiêu chí+Rule+Threshold
+   khởi tạo lại từ NCC_CRITERIA/NCC_PROFILES (mục tiêu: tổng tỷ trọng mỗi nhóm luôn = 100%). */
+let SEC_SEQ=1; function secId(){ return SEC_SEQ++; }
+function secRule(o){ return Object.assign({id:secId(),name:'',object:'',points:0,applyMode:'Per_Occurrence',
+  maxOccPerPeriod:1,worstCaseGroup:'',escalationGroup:'',escalationMultiplier:1,maxOccBeforeAction:'',
+  actionOnMax:'None',dateField:'',snapshotAll:false,active:true,logicMode:'AND',hasHistory:false,conditions:[]},o); }
+function secCond(o){ return Object.assign({id:secId(),field:'',operator:'=',value:'',valueMax:'',
+  compareToField:'',compareMode:false},o); }
+const SEC_OBJECT_OPTIONS=['Case','Shipment__c','Quote__c','PurchaseOrder__c','Account'];
+/* Danh sách field minh hoạ — bản thật sẽ dùng dropdown động qua lightning/uiObjectInfoApi (xem mục 6.2
+   của tài liệu spec: cần rà soát field thật đã có trên từng object trước khi build Rule Condition thật). */
+const SEC_OBJECT_FIELDS={
+  'Case':[{v:'Severity__c',t:'Mức độ lỗi (Severity__c)'},{v:'CreatedDate',t:'Ngày tạo (CreatedDate)'},{v:'Root_Cause__c',t:'Nguyên nhân gốc (Root_Cause__c)'}],
+  'Shipment__c':[{v:'Delay_Reason__c',t:'Lý do trễ (Delay_Reason__c)'},{v:'Delay_Days__c',t:'Số ngày trễ (Delay_Days__c)'},{v:'Urgent_Delivery__c',t:'Giao gấp (Urgent_Delivery__c)'},{v:'Actual_Delivery_Date__c',t:'Ngày giao thực tế (Actual_Delivery_Date__c)'}],
+  'Quote__c':[{v:'Unit_Price__c',t:'Đơn giá (Unit_Price__c)'},{v:'Reference_Price__c',t:'Giá tham chiếu (Reference_Price__c)'},{v:'Quote_Date__c',t:'Ngày báo giá (Quote_Date__c)'}],
+  'PurchaseOrder__c':[{v:'Payment_Term__c',t:'Điều khoản TT (Payment_Term__c)'},{v:'Document_Error__c',t:'Sai chứng từ (Document_Error__c)'},{v:'Order_Date__c',t:'Ngày đặt hàng (Order_Date__c)'}],
+  'Account':[{v:'ESG_Certified__c',t:'Chứng chỉ ESG (ESG_Certified__c)'},{v:'Active__c',t:'Đang hợp tác (Active__c)'}],
+};
+const SEC_OPERATOR_OPTIONS=[['=','bằng'],['!=','khác'],['>','lớn hơn'],['>=','lớn hơn hoặc bằng'],['<','nhỏ hơn'],['<=','nhỏ hơn hoặc bằng'],['between','trong khoảng'],['contains','chứa']];
+const SEC_OP_LABEL=Object.fromEntries(SEC_OPERATOR_OPTIONS);
+const SEC_APPLY_MODE_OPTIONS=[['Per_Occurrence','Mỗi lần'],['Once_Per_Period','1 lần/kỳ'],['Worst_Case_Only','Mức nặng nhất']];
+const SEC_ACTION_OPTIONS=[['None','Không có'],['Exclude_Supplier','Đề xuất loại NCC'],['Flag_For_Review','Gắn cờ cần xem xét']];
+const SEC_GROUP_LABEL={noidia:'Nội địa',nhapkhau:'Nhập khẩu',dichvu:'Dịch vụ'};
+const SEC_GROUP_ICO={noidia:'⭐',nhapkhau:'🚢',dichvu:'🛠️'};
+function secBuildCriteria(list){
+  return list.map((c,i)=>({id:secId(),code:(c.key||c.name).toString().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,15),
+    name:c.name,maxScore:c.max,weight:c.max,seq:i+1,active:true,hasHistory:false,rules:[]}));
+}
+let SEC_CRITERIA_DATA={
+  noidia: secBuildCriteria(NCC_CRITERIA),
+  nhapkhau: secBuildCriteria(NCC_PROFILES.nhapkhau.criteria),
+  dichvu: secBuildCriteria(NCC_PROFILES.dichvu.criteria),
+};
+function secAttachRules(list,code,rules){ const c=list.find(x=>x.code===code); if(c) c.rules=rules; }
+/* Ví dụ minh hoạ theo mục 7 (Data mẫu) của spec: Case lỗi "Mức 1 – Nhẹ" tái phạm trong kỳ (nhân đôi dần,
+   lần 3 tự đề xuất loại NCC); Shipment giao trễ do lỗi NCC (trừ điểm) vs giao trễ khách quan (không trừ
+   nhờ điều kiện kép AND — ở đây minh hoạ bằng field Delay_Reason__c); Shipment giao gấp hoàn thành (cộng
+   điểm, giới hạn 1 lần/kỳ). QUALITY còn minh hoạ "hasHistory" (đã có Evidence lịch sử) để demo hành vi
+   chặn xoá cứng — chỉ cho tắt Active. */
+secAttachRules(SEC_CRITERIA_DATA.noidia,'CHATLUONG',[
+  secRule({name:'Mức 1 – Nhẹ',object:'Case',points:-10,dateField:'CreatedDate',escalationGroup:'QUALITY_MINOR',
+    escalationMultiplier:2,maxOccBeforeAction:3,actionOnMax:'Exclude_Supplier',hasHistory:true,
+    conditions:[secCond({field:'Severity__c',operator:'=',value:'Mức 1 – Nhẹ'})]}),
+  secRule({name:'Mức 2 – Nặng',object:'Case',points:-20,dateField:'CreatedDate',
+    conditions:[secCond({field:'Severity__c',operator:'=',value:'Mức 2 – Nặng'})]}),
+]);
+secAttachRules(SEC_CRITERIA_DATA.noidia,'GIAOHANG',[
+  secRule({name:'Giao trễ do lỗi NCC',object:'Shipment__c',points:-10,dateField:'Actual_Delivery_Date__c',
+    conditions:[secCond({field:'Delay_Reason__c',operator:'=',value:'Lỗi NCC'}),secCond({field:'Delay_Days__c',operator:'>',value:'0'})]}),
+  secRule({name:'Giao gấp hoàn thành tốt',object:'Shipment__c',points:5,applyMode:'Once_Per_Period',maxOccPerPeriod:1,
+    dateField:'Actual_Delivery_Date__c',conditions:[secCond({field:'Urgent_Delivery__c',operator:'=',value:'true'})]}),
+]);
+secAttachRules(SEC_CRITERIA_DATA.nhapkhau,'CHATLUONG',[
+  secRule({name:'Có lỗi nhỏ nhưng chấp nhận được',object:'Case',points:-5,dateField:'CreatedDate',
+    conditions:[secCond({field:'Severity__c',operator:'=',value:'Có lỗi nhỏ nhưng chấp nhận được'})]}),
+  secRule({name:'Trả hàng/khiếu nại nghiêm trọng',object:'Case',points:-40,dateField:'CreatedDate',
+    conditions:[secCond({field:'Severity__c',operator:'=',value:'Trả hàng hoặc khiếu nại nghiêm trọng'})]}),
+]);
+secAttachRules(SEC_CRITERIA_DATA.dichvu,'CHATLUONG',[
+  secRule({name:'Có lỗi ảnh hưởng tiến độ',object:'Case',points:-10,dateField:'CreatedDate',
+    conditions:[secCond({field:'Severity__c',operator:'=',value:'Có lỗi ảnh hưởng tiến độ'})]}),
+]);
+let SEC_THRESH_SEQ=1;
+let SEC_THRESHOLDS={
+  noidia:[
+    {id:secId(),name:'A',min:90,max:100,label:'Xuất sắc',action:'Ưu tiên đặt hàng; xem xét hợp tác chiến lược'},
+    {id:secId(),name:'B',min:80,max:89,label:'Tốt',action:'Tiếp tục duy trì và phát triển'},
+    {id:secId(),name:'C',min:70,max:79,label:'Đạt',action:'Tiếp tục giao dịch; yêu cầu cải tiến nếu cần'},
+    {id:secId(),name:'D',min:60,max:69,label:'Cần cải thiện',action:'Theo dõi đặc biệt; yêu cầu CAPA và đánh giá lại'},
+    {id:secId(),name:'E',min:0,max:59,label:'Không đạt',action:'Tạm ngừng hoặc xem xét loại khỏi danh sách'},
+  ],
+  nhapkhau: NCC_PROFILES.nhapkhau.grades.map((g,i,arr)=>({id:secId(),name:g.g,min:g.min,max:i===0?100:arr[i-1].min-1,label:g.label,action:'—'})),
+  dichvu: NCC_PROFILES.dichvu.grades.map((g,i,arr)=>({id:secId(),name:g.g,min:g.min,max:i===0?100:arr[i-1].min-1,label:g.label,action:'—'})),
+};
+/* ---- state ---- */
+let SEC_TAB='noidia', SEC_SUBTAB='rules', SEC_EDIT=false;
+let SEC_DRAFT_CRITERIA=null, SEC_DRAFT_THRESHOLD=null;
+let SEC_EXPANDED_RULE=new Set(), SEC_EXPANDED_ADV=new Set();
+function secGroupTabsHTML(){
+  return `<div class="rel-tabs" style="margin-bottom:10px">${Object.keys(SEC_GROUP_LABEL).map(k=>
+    `<button class="rel-tab${k===SEC_TAB?' on':''}" onclick="secSetGroup('${k}')">${SEC_GROUP_ICO[k]} ${SEC_GROUP_LABEL[k]}</button>`).join('')}</div>`;
+}
+function secSubtabsHTML(){
+  return `<div class="rel-tabs" style="margin-bottom:12px">
+    <button class="rel-tab${SEC_SUBTAB==='rules'?' on':''}" onclick="secSetSubtab('rules')">Danh sách Tiêu chí &amp; Rule</button>
+    <button class="rel-tab${SEC_SUBTAB==='threshold'?' on':''}" onclick="secSetSubtab('threshold')">Bảng xếp loại</button>
+  </div>`;
+}
+function secBodyHTML(){
+  const inner = SEC_SUBTAB==='rules'
+    ? (SEC_EDIT? secRulesEditHTML() : secRulesViewHTML())
+    : (SEC_EDIT? secThresholdEditHTML() : secThresholdViewHTML());
+  return secGroupTabsHTML()+secSubtabsHTML()+inner;
+}
+function secRenderBody(){ const c=document.getElementById('sec-body'); if(c) c.innerHTML=secBodyHTML(); }
+function secSetGroup(g){ if(SEC_EDIT){ toast('Hãy Lưu hoặc Huỷ trước khi đổi nhóm NCC'); return; } SEC_TAB=g; secRenderBody(); }
+function secSetSubtab(t){ if(SEC_EDIT){ toast('Hãy Lưu hoặc Huỷ trước khi đổi tab'); return; } SEC_SUBTAB=t; secRenderBody(); }
+function secEnterEdit(){
+  if(SEC_SUBTAB==='rules') SEC_DRAFT_CRITERIA=JSON.parse(JSON.stringify(SEC_CRITERIA_DATA[SEC_TAB]));
+  else SEC_DRAFT_THRESHOLD=JSON.parse(JSON.stringify(SEC_THRESHOLDS[SEC_TAB]));
+  SEC_EDIT=true; secRenderBody();
+}
+function secCancelEdit(){ SEC_EDIT=false; SEC_DRAFT_CRITERIA=null; SEC_DRAFT_THRESHOLD=null; secRenderBody(); toast('Đã huỷ, không lưu thay đổi'); }
+/* ---- view mode: Danh sách Tiêu chí & Rule ---- */
+function secWeightTotal(list){ return list.reduce((s,c)=> s + (c.active!==false? Number(c.weight)||0 : 0), 0); }
+function secWeightBannerInner(list){
+  const t=Math.round(secWeightTotal(list)*100)/100; const ok=Math.abs(t-100)<0.01;
+  return banner(ok?'ok':'err', `Tổng tỷ trọng (các tiêu chí đang Active): <b>${t}%</b> ${ok?'✅':'— phải bằng 100% mới được Lưu'}`);
+}
+function secRefreshWeightBanner(){ const el=document.getElementById('sec-weight-banner'); if(el) el.innerHTML=secWeightBannerInner(SEC_DRAFT_CRITERIA); }
+function secApplyModeBadge(m){ const map={Per_Occurrence:'Mỗi lần',Once_Per_Period:'1 lần/kỳ',Worst_Case_Only:'Mức nặng nhất'}; return pill('info',map[m]||m); }
+function secRuleRowView(r){
+  return `<tr><td>${r.name}${r.active===false?' <span class="wf-muted" style="font-size:11px">(tạm ngưng)</span>':''}</td><td>${r.object}</td>
+    <td class="num">${r.points>0?'+':''}${r.points}</td><td>${secApplyModeBadge(r.applyMode)}</td>
+    <td>${r.active!==false?pill('ok','Active'):pill('mut','Ngưng')}</td></tr>`;
+}
+function secCriteriaCardView(c){
+  const body = c.rules.length
+    ? `<div class="tbl-wrap"><table class="tbl sm"><thead><tr><th>Tên mức</th><th>Object nguồn</th><th class="num">Điểm</th><th>Cách áp dụng</th><th>Trạng thái</th></tr></thead>
+       <tbody>${c.rules.map(secRuleRowView).join('')}</tbody></table></div>`
+    : `<div class="po-hint">Chưa có quy tắc nào cho tiêu chí này.</div>`;
+  return card(`${c.seq}. ${c.name}`, `<div class="wf-muted" style="font-size:12px;margin-bottom:8px">Điểm tối đa: <b>${c.maxScore}</b> · Tỷ trọng: <b>${c.weight}%</b>${c.active===false?' · Tạm ngưng':''}</div>${body}`, {n:String(c.rules.length)});
+}
+function secRulesViewHTML(){
+  const list=SEC_CRITERIA_DATA[SEC_TAB];
+  return `<div id="sec-weight-banner">${secWeightBannerInner(list)}</div>
+    <div style="display:flex;justify-content:flex-end;margin:8px 0"><button class="btn pri" onclick="secEnterEdit()">Sửa</button></div>
+    ${list.map(secCriteriaCardView).join('')}`;
+}
+/* ---- view mode: Bảng xếp loại ---- */
+function secThresholdViewHTML(){
+  const list=SEC_THRESHOLDS[SEC_TAB];
+  return `<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn pri" onclick="secEnterEdit()">Sửa</button></div>
+    ${card('Bảng xếp loại — '+SEC_GROUP_LABEL[SEC_TAB], list.length? tbl(
+      [{t:'Từ điểm',num:true},{t:'Đến điểm',num:true},{t:'Xếp loại'},{t:'Mô tả'},{t:'Hướng xử lý'}],
+      list.slice().sort((a,b)=>b.min-a.min).map(x=>[String(x.min),String(x.max),x.name,x.label,x.action||'—'])
+    ) : `<div class="po-hint">Chưa có mức xếp loại nào cho nhóm này. <button class="btn sm" onclick="secEnterEdit()">＋ Thêm mức xếp loại</button></div>`)}`;
+}
+/* ---- draft mutation helpers (edit mode) ---- */
+function secCritGet(cid){ return SEC_DRAFT_CRITERIA.find(c=>c.id===cid); }
+function secRuleGet(cid,rid){ const c=secCritGet(cid); return c&&c.rules.find(r=>r.id===rid); }
+function secCondGet(cid,rid,coid){ const r=secRuleGet(cid,rid); return r&&r.conditions.find(x=>x.id===coid); }
+function secSetCritField(cid,field,val){ const c=secCritGet(cid); if(!c) return; c[field]=(field==='maxScore'||field==='weight')?(parseFloat(val)||0):(field==='active'?val:val); secRefreshWeightBanner(); }
+function secAddCriteria(){ SEC_DRAFT_CRITERIA.push({id:secId(),code:'NEW'+secId(),name:'',maxScore:0,weight:0,seq:SEC_DRAFT_CRITERIA.length+1,active:true,hasHistory:false,rules:[]}); secRenderBody(); }
+function secRemoveCriteria(cid){
+  const c=secCritGet(cid); if(!c) return;
+  if(c.hasHistory){ toast('Không thể xoá — tiêu chí đã có dữ liệu đánh giá lịch sử. Hãy tắt Active thay vì xoá.'); return; }
+  SEC_DRAFT_CRITERIA=SEC_DRAFT_CRITERIA.filter(x=>x.id!==cid); secRenderBody();
+}
+function secAddRule(cid){ const c=secCritGet(cid); if(!c) return; c.rules.push(secRule({name:'Mức mới'})); secRenderBody(); }
+function secRemoveRule(cid,rid){
+  const c=secCritGet(cid); if(!c) return; const r=c.rules.find(x=>x.id===rid);
+  if(r&&r.hasHistory){ toast('Không thể xoá — rule đã có dữ liệu đánh giá lịch sử. Hãy tắt Active thay vì xoá.'); return; }
+  c.rules=c.rules.filter(x=>x.id!==rid); secRenderBody();
+}
+function secSetRuleField(cid,rid,field,val){
+  const r=secRuleGet(cid,rid); if(!r) return;
+  if(['maxOccPerPeriod','escalationMultiplier','maxOccBeforeAction'].includes(field)) val = val===''?'':parseFloat(val);
+  r[field]=val; secRefreshRulePreview(cid,rid);
+}
+function secSetRuleMagnitude(cid,rid,val){ const r=secRuleGet(cid,rid); if(!r) return; const sign=Number(r.points)<0?-1:1; r.points=sign*Math.abs(parseFloat(val)||0); secRefreshRulePreview(cid,rid); }
+function secSetRulePointsSign(cid,rid,sign){ const r=secRuleGet(cid,rid); if(!r) return; r.points=sign*Math.abs(Number(r.points)||0); secRefreshRulePreview(cid,rid); }
+function secToggleEscalation(cid,rid,on){
+  const r=secRuleGet(cid,rid); if(!r) return;
+  if(on){ if(!r.escalationGroup) r.escalationGroup='GROUP_'+rid; if(!r.escalationMultiplier||r.escalationMultiplier<=1) r.escalationMultiplier=2; }
+  else { r.escalationGroup=''; r.maxOccBeforeAction=''; r.actionOnMax='None'; }
+  secRenderBody();
+}
+function secToggleCondEditor(rid){ if(SEC_EXPANDED_RULE.has(rid)) SEC_EXPANDED_RULE.delete(rid); else SEC_EXPANDED_RULE.add(rid); secRenderBody(); }
+function secToggleAdv(rid){ if(SEC_EXPANDED_ADV.has(rid)) SEC_EXPANDED_ADV.delete(rid); else SEC_EXPANDED_ADV.add(rid); secRenderBody(); }
+function secAddCond(cid,rid){ const r=secRuleGet(cid,rid); if(!r) return; r.conditions.push(secCond({})); SEC_EXPANDED_RULE.add(rid); secRenderBody(); }
+function secRemoveCond(cid,rid,coid){
+  const r=secRuleGet(cid,rid); if(!r) return;
+  if(r.conditions.length<=1){ toast('Rule phải có ít nhất 1 điều kiện'); return; }
+  r.conditions=r.conditions.filter(x=>x.id!==coid); secRenderBody();
+}
+function secSetCondField(cid,rid,coid,field,val){ const co=secCondGet(cid,rid,coid); if(!co) return; co[field]=val; secRefreshRulePreview(cid,rid); }
+function secToggleCompareField(cid,rid,coid,on){ const co=secCondGet(cid,rid,coid); if(!co) return; co.compareMode=on; if(!on) co.compareToField=''; secRenderBody(); }
+function secSetRuleLogic(cid,rid,mode){ const r=secRuleGet(cid,rid); if(!r) return; r.logicMode=mode; secRefreshRulePreview(cid,rid); }
+/* ---- câu diễn giải tiếng Việt tự sinh (preview) ---- */
+function secFieldLabel(obj,field){ const f=(SEC_OBJECT_FIELDS[obj]||[]).find(x=>x.v===field); return f? f.t.split(' (')[0] : (field||'(chưa chọn field)'); }
+function secCondPhrase(obj,co){
+  if(co.compareMode) return `${secFieldLabel(obj,co.field)} so với ${secFieldLabel(obj,co.compareToField)}`;
+  if(co.operator==='between') return `${secFieldLabel(obj,co.field)} trong khoảng ${co.value||'?'} – ${co.valueMax||'?'}`;
+  return `${secFieldLabel(obj,co.field)} ${SEC_OP_LABEL[co.operator]||co.operator} ${co.value||'?'}`;
+}
+function secActionLabel(a){ return {None:'không làm gì',Exclude_Supplier:'đề xuất loại NCC',Flag_For_Review:'gắn cờ cần xem xét'}[a]||a; }
+function secRuleSentence(r){
+  if(!r.conditions.length) return '<span class="wf-muted">Chưa có điều kiện.</span>';
+  const joiner = r.logicMode==='OR' ? ' HOẶC ' : ' VÀ ';
+  const condText = r.conditions.map(co=>secCondPhrase(r.object,co)).join(joiner);
+  const timeText = r.snapshotAll ? 'tại thời điểm tính điểm' : 'phát sinh trong khoảng ngày đánh giá';
+  const ptsText = (Number(r.points)<0? 'trừ '+Math.abs(r.points) : 'cộng '+r.points) + ' điểm';
+  let modeText='mỗi lần';
+  if(r.applyMode==='Once_Per_Period') modeText='tối đa '+(r.maxOccPerPeriod||1)+' lần/kỳ';
+  else if(r.applyMode==='Worst_Case_Only') modeText='(chỉ tính mức nặng nhất trong nhóm "'+(r.worstCaseGroup||'?')+'")';
+  let escText='';
+  if(r.escalationGroup){
+    const m=Number(r.escalationMultiplier)||1;
+    escText=` Nếu lặp lại trong cùng kỳ: lần 2 ${Number(r.points)<0?'trừ':'cộng'} gấp ${m}, lần 3 gấp ${m*m}...`;
+    if(r.maxOccBeforeAction) escText+=` từ lần ${r.maxOccBeforeAction} trở đi tự động ${secActionLabel(r.actionOnMax)}.`;
+  }
+  return `<em>"Nếu ${r.object||'(chưa chọn object)'} có ${condText}, ${timeText}, thì ${ptsText} ${modeText}.${escText}"</em>`;
+}
+function secRefreshRulePreview(cid,rid){ const el=document.getElementById('sec-prev-'+rid); const r=secRuleGet(cid,rid); if(el&&r) el.innerHTML=secRuleSentence(r); }
+/* ---- edit mode HTML ---- */
+function secCondEditorHTML(cid,r){
+  const fieldOpts=SEC_OBJECT_FIELDS[r.object]||[];
+  const rows=r.conditions.map((co,i)=>`<div class="ptf-row" style="gap:6px;margin-top:6px;flex-wrap:wrap;align-items:center">
+    <span class="wf-muted" style="font-size:11px;width:14px">${i+1}.</span>
+    <select class="mass-sel" style="max-width:220px" onchange="secSetCondField(${cid},${r.id},${co.id},'field',this.value);secRenderBody()">
+      <option value="">-- Field --</option>${fieldOpts.map(f=>`<option value="${f.v}" ${co.field===f.v?'selected':''}>${f.t}</option>`).join('')}
+    </select>
+    <select class="mass-sel" style="max-width:170px" onchange="secSetCondField(${cid},${r.id},${co.id},'operator',this.value);secRenderBody()">
+      ${SEC_OPERATOR_OPTIONS.map(o=>`<option value="${o[0]}" ${co.operator===o[0]?'selected':''}>${o[1]}</option>`).join('')}
+    </select>
+    ${!co.compareMode?`<input class="mass-sel" style="max-width:140px" placeholder="Giá trị" value="${(co.value||'').replace(/"/g,'&quot;')}" oninput="secSetCondField(${cid},${r.id},${co.id},'value',this.value)">`:''}
+    ${(!co.compareMode&&co.operator==='between')?`<span class="wf-muted">–</span><input class="mass-sel" style="max-width:120px" placeholder="Giá trị trên" value="${(co.valueMax||'').replace(/"/g,'&quot;')}" oninput="secSetCondField(${cid},${r.id},${co.id},'valueMax',this.value)">`:''}
+    <label style="display:flex;align-items:center;gap:3px;font-size:11px"><input type="checkbox" ${co.compareMode?'checked':''} onchange="secToggleCompareField(${cid},${r.id},${co.id},this.checked)">So với field khác</label>
+    ${co.compareMode?`<select class="mass-sel" style="max-width:200px" onchange="secSetCondField(${cid},${r.id},${co.id},'compareToField',this.value);secRenderBody()">
+      <option value="">-- Field so sánh --</option>${fieldOpts.map(f=>`<option value="${f.v}" ${co.compareToField===f.v?'selected':''}>${f.t}</option>`).join('')}
+    </select>`:''}
+    <button class="btn sm" onclick="secRemoveCond(${cid},${r.id},${co.id})">🗑</button>
+  </div>`).join('');
+  const logicSection = r.conditions.length>=2 ? `<div class="ptf-row" style="gap:14px;margin-top:8px;font-size:12px">
+    <label style="display:flex;align-items:center;gap:4px"><input type="radio" name="sec-logic-${r.id}" ${r.logicMode!=='OR'?'checked':''} onchange="secSetRuleLogic(${cid},${r.id},'AND')">Tất cả đúng (VÀ)</label>
+    <label style="display:flex;align-items:center;gap:4px"><input type="radio" name="sec-logic-${r.id}" ${r.logicMode==='OR'?'checked':''} onchange="secSetRuleLogic(${cid},${r.id},'OR')">Một trong các điều kiện đúng (HOẶC)</label>
+  </div>` : '';
+  const dateSection=`<div class="ptf-row" style="gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap">
+    <span class="wf-muted" style="font-size:11px">Field ngày lọc theo kỳ:</span>
+    <select class="mass-sel" style="max-width:220px" ${r.snapshotAll?'disabled':''} onchange="secSetRuleField(${cid},${r.id},'dateField',this.value)">
+      <option value="">-- Field ngày --</option>${fieldOpts.map(f=>`<option value="${f.v}" ${r.dateField===f.v?'selected':''}>${f.t}</option>`).join('')}
+    </select>
+    <label style="display:flex;align-items:center;gap:3px;font-size:11px"><input type="checkbox" ${r.snapshotAll?'checked':''} onchange="secSetRuleField(${cid},${r.id},'snapshotAll',this.checked);secRenderBody()">Lấy trạng thái hiện tại (bỏ lọc ngày)</label>
+  </div>`;
+  return `<div style="margin-top:4px;padding:8px 10px;background:var(--bg);border-radius:6px">${rows}${logicSection}${dateSection}
+    <button class="btn sm" style="margin-top:8px" onclick="secAddCond(${cid},${r.id})">＋ Thêm điều kiện</button></div>`;
+}
+function secAdvEditorHTML(cid,r){
+  return `<div style="margin-top:6px;padding:8px 10px;background:var(--bg);border-radius:6px">
+    <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" ${r.escalationGroup?'checked':''} onchange="secToggleEscalation(${cid},${r.id},this.checked)">Bật tái phạm (tăng điểm dần trong kỳ)</label>
+    ${r.escalationGroup?`<div class="ptf-row" style="gap:10px;margin-top:8px;flex-wrap:wrap;align-items:center">
+      <span class="wf-muted" style="font-size:11px">Nhóm đếm tái phạm:</span><input class="mass-sel" style="max-width:160px" value="${(r.escalationGroup||'').replace(/"/g,'&quot;')}" oninput="secSetRuleField(${cid},${r.id},'escalationGroup',this.value)">
+      <span class="wf-muted" style="font-size:11px">Hệ số nhân:</span><input type="number" step="0.5" min="1" class="mass-sel" style="width:64px" value="${r.escalationMultiplier||1}" oninput="secSetRuleField(${cid},${r.id},'escalationMultiplier',this.value)">
+      <span class="wf-muted" style="font-size:11px">Số lần tối đa trước hành động:</span><input type="number" min="1" class="mass-sel" style="width:64px" value="${r.maxOccBeforeAction||''}" oninput="secSetRuleField(${cid},${r.id},'maxOccBeforeAction',this.value)">
+      <span class="wf-muted" style="font-size:11px">Hành động:</span><select class="mass-sel" style="max-width:180px" onchange="secSetRuleField(${cid},${r.id},'actionOnMax',this.value)">
+        ${SEC_ACTION_OPTIONS.map(o=>`<option value="${o[0]}" ${r.actionOnMax===o[0]?'selected':''}>${o[1]}</option>`).join('')}
+      </select>
+    </div>`:''}
+  </div>`;
+}
+function secRuleEditBlock(cid,r){
+  const condExpanded=SEC_EXPANDED_RULE.has(r.id), advExpanded=SEC_EXPANDED_ADV.has(r.id);
+  return `<div class="ptf-item" style="margin-bottom:8px">
+    <div class="ptf-row" style="flex-wrap:wrap;gap:8px;align-items:center">
+      <input class="mass-sel" style="max-width:190px" value="${(r.name||'').replace(/"/g,'&quot;')}" placeholder="Tên mức" oninput="secSetRuleField(${cid},${r.id},'name',this.value)">
+      <select class="mass-sel" style="max-width:150px" onchange="secSetRuleField(${cid},${r.id},'object',this.value);secRenderBody()">
+        <option value="">-- Object nguồn --</option>${SEC_OBJECT_OPTIONS.map(o=>`<option value="${o}" ${r.object===o?'selected':''}>${o}</option>`).join('')}
+      </select>
+      <label style="display:flex;align-items:center;gap:3px;font-size:12px"><input type="radio" name="sec-sign-${r.id}" ${Number(r.points)<=0?'checked':''} onchange="secSetRulePointsSign(${cid},${r.id},-1)"> ➖</label>
+      <input type="number" min="0" class="mass-sel" style="width:64px" value="${Math.abs(r.points)}" oninput="secSetRuleMagnitude(${cid},${r.id},this.value)">
+      <label style="display:flex;align-items:center;gap:3px;font-size:12px"><input type="radio" name="sec-sign-${r.id}" ${Number(r.points)>0?'checked':''} onchange="secSetRulePointsSign(${cid},${r.id},1)"> ➕</label>
+      <select class="mass-sel" style="max-width:140px" onchange="secSetRuleField(${cid},${r.id},'applyMode',this.value);secRenderBody()">
+        ${SEC_APPLY_MODE_OPTIONS.map(o=>`<option value="${o[0]}" ${r.applyMode===o[0]?'selected':''}>${o[1]}</option>`).join('')}
+      </select>
+      <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" ${r.active!==false?'checked':''} onchange="secSetRuleField(${cid},${r.id},'active',this.checked)">Active</label>
+      <button class="btn sm" onclick="secRemoveRule(${cid},${r.id})">🗑</button>
+    </div>
+    ${r.applyMode==='Once_Per_Period'?`<div class="ptf-row" style="margin-top:4px"><span class="wf-muted" style="font-size:12px">Số lần tối đa tính điểm/kỳ:</span><input type="number" min="1" class="mass-sel" style="width:70px" value="${r.maxOccPerPeriod||1}" oninput="secSetRuleField(${cid},${r.id},'maxOccPerPeriod',this.value)"></div>`:''}
+    ${r.applyMode==='Worst_Case_Only'?`<div class="ptf-row" style="margin-top:4px"><span class="wf-muted" style="font-size:12px">Nhóm loại trừ lẫn nhau:</span><input class="mass-sel" style="max-width:200px" value="${(r.worstCaseGroup||'').replace(/"/g,'&quot;')}" oninput="secSetRuleField(${cid},${r.id},'worstCaseGroup',this.value)"></div>`:''}
+    <div style="margin-top:6px"><a onclick="secToggleCondEditor(${r.id})" style="cursor:pointer;font-size:12.5px">Điều kiện (${r.conditions.length}) ${condExpanded?'▾':'▸'}</a>${condExpanded?secCondEditorHTML(cid,r):''}</div>
+    <div style="margin-top:6px"><button class="btn sm" onclick="secToggleAdv(${r.id})">${advExpanded?'▾':'▸'} Cài đặt nâng cao: Tái phạm</button>${advExpanded?secAdvEditorHTML(cid,r):''}</div>
+    <div id="sec-prev-${r.id}" class="wf-muted" style="font-size:12px;margin-top:8px;padding:8px;background:var(--bg);border-radius:6px">${secRuleSentence(r)}</div>
+  </div>`;
+}
+function secCritEditBlock(c){
+  const rulesHtml=c.rules.map(r=>secRuleEditBlock(c.id,r)).join('') || '<div class="po-hint">Chưa có mức nào.</div>';
+  return `<div class="po-card" style="margin-bottom:10px">
+    <div class="po-card-h" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-weight:700">${c.seq}.</span>
+      <input class="mass-sel" style="max-width:280px" value="${(c.name||'').replace(/"/g,'&quot;')}" placeholder="Tên tiêu chí" oninput="secSetCritField(${c.id},'name',this.value)">
+      <span class="wf-muted" style="font-size:12px">Điểm tối đa:</span><input type="number" class="mass-sel" style="width:70px" value="${c.maxScore}" oninput="secSetCritField(${c.id},'maxScore',this.value)">
+      <span class="wf-muted" style="font-size:12px">Tỷ trọng:</span><input type="number" class="mass-sel" style="width:70px" value="${c.weight}" oninput="secSetCritField(${c.id},'weight',this.value)">%
+      <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" ${c.active!==false?'checked':''} onchange="secSetCritField(${c.id},'active',this.checked)">Active</label>
+      <button class="btn sm" style="margin-left:auto" onclick="secRemoveCriteria(${c.id})">🗑 Xoá tiêu chí</button>
+    </div>
+    <div style="padding:10px 12px">${rulesHtml}<button class="btn sm" onclick="secAddRule(${c.id})">＋ Thêm mức</button></div>
+  </div>`;
+}
+function secRulesEditHTML(){
+  const list=SEC_DRAFT_CRITERIA;
+  return `<div class="po-card" style="padding:10px 14px;margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <b>Sửa Tiêu chí &amp; Rule — ${SEC_GROUP_LABEL[SEC_TAB]}</b>
+      <div style="margin-left:auto;display:flex;gap:8px"><button class="btn" onclick="secCancelEdit()">Huỷ</button><button class="btn pri" onclick="secSaveRules()">Lưu tất cả</button></div>
+    </div>
+  </div>
+  ${list.map(secCritEditBlock).join('')}
+  <button class="btn" onclick="secAddCriteria()">＋ Thêm tiêu chí mới</button>
+  <div id="sec-weight-banner" style="margin-top:10px">${secWeightBannerInner(list)}</div>`;
+}
+function secSaveRules(){
+  const list=SEC_DRAFT_CRITERIA;
+  const t=Math.round(secWeightTotal(list)*100)/100;
+  if(Math.abs(t-100)>0.01){ toast('Tổng tỷ trọng phải bằng 100% (hiện: '+t+'%)'); return; }
+  for(const c of list){ if(!((c.name||'').trim())){ toast('Nhập Tên tiêu chí cho tất cả các dòng'); return; } }
+  SEC_CRITERIA_DATA[SEC_TAB]=list; SEC_EDIT=false; SEC_DRAFT_CRITERIA=null; secRenderBody();
+  toast('Đã lưu cấu hình Tiêu chí & Rule — '+SEC_GROUP_LABEL[SEC_TAB]);
+}
+function secSetThreshField(id,field,val){ const x=SEC_DRAFT_THRESHOLD.find(i=>i.id===id); if(!x) return; x[field]=(field==='min'||field==='max')?(parseFloat(val)||0):val; }
+function secAddThresh(){ SEC_DRAFT_THRESHOLD.push({id:secId(),name:'',min:0,max:0,label:'',action:''}); secRenderBody(); }
+function secRemoveThresh(id){ SEC_DRAFT_THRESHOLD=SEC_DRAFT_THRESHOLD.filter(x=>x.id!==id); secRenderBody(); }
+function secThresholdEditHTML(){
+  const list=SEC_DRAFT_THRESHOLD;
+  const rows=list.map(x=>`<tr>
+    <td><input class="mass-sel" style="width:70px" value="${(x.name||'').replace(/"/g,'&quot;')}" oninput="secSetThreshField(${x.id},'name',this.value)"></td>
+    <td class="num"><input type="number" class="mass-sel" style="width:80px" value="${x.min}" oninput="secSetThreshField(${x.id},'min',this.value)"></td>
+    <td class="num"><input type="number" class="mass-sel" style="width:80px" value="${x.max}" oninput="secSetThreshField(${x.id},'max',this.value)"></td>
+    <td><input class="mass-sel" value="${(x.label||'').replace(/"/g,'&quot;')}" oninput="secSetThreshField(${x.id},'label',this.value)"></td>
+    <td><input class="mass-sel" value="${(x.action||'').replace(/"/g,'&quot;')}" oninput="secSetThreshField(${x.id},'action',this.value)"></td>
+    <td><button class="btn sm" onclick="secRemoveThresh(${x.id})">🗑</button></td>
+  </tr>`).join('');
+  return `<div class="po-card" style="padding:10px 14px;margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <b>Sửa Bảng xếp loại — ${SEC_GROUP_LABEL[SEC_TAB]}</b>
+      <div style="margin-left:auto;display:flex;gap:8px"><button class="btn" onclick="secCancelEdit()">Huỷ</button><button class="btn pri" onclick="secSaveThreshold()">Lưu tất cả</button></div>
+    </div>
+  </div>
+  ${card('Các mức xếp loại', list.length? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Xếp loại</th><th class="num">Từ điểm</th><th class="num">Đến điểm</th><th>Mô tả</th><th>Hướng xử lý</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="po-hint">Chưa có mức nào.</div>')}
+  <button class="btn" onclick="secAddThresh()">＋ Thêm mức xếp loại</button>`;
+}
+function secSaveThreshold(){
+  const list=SEC_DRAFT_THRESHOLD.slice().sort((a,b)=>b.min-a.min);
+  for(const x of list){
+    if(!((x.name||'').trim())){ toast('Nhập Xếp loại cho tất cả các dòng'); return; }
+    if(Number(x.min)>Number(x.max)){ toast('Điểm Từ phải nhỏ hơn hoặc bằng Điểm Đến ('+x.name+')'); return; }
+  }
+  for(let i=0;i<list.length-1;i++){
+    const a=list[i], b=list[i+1];
+    if(Number(a.min)<=Number(b.max)){ toast('Khoảng điểm của "'+a.name+'" và "'+b.name+'" bị chồng lấn'); return; }
+    if(Number(a.min)-Number(b.max)>1){ toast('Có khoảng trống điểm giữa "'+b.name+'" và "'+a.name+'"'); return; }
+  }
+  SEC_THRESHOLDS[SEC_TAB]=SEC_DRAFT_THRESHOLD; SEC_EDIT=false; SEC_DRAFT_THRESHOLD=null; secRenderBody();
+  toast('Đã lưu Bảng xếp loại — '+SEC_GROUP_LABEL[SEC_TAB]);
+}
+S.sec_config = ()=> appnav('Dữ liệu nền tảng','Cấu hình Đánh giá NCC',TAB_MD,'Cấu hình Đánh giá NCC')
+ + `<div class="sf-body narrow"><div id="sec-body">${secBodyHTML()}</div></div>`;
+
 const VENDOR_INFO={
  'Cty Hóa chất Tân Tiến':{mst:'0388445511',nhom:'Hóa chất, keo công nghiệp',contact:'Ông Phạm Văn K',phone:'028 xxx xxxx',email:'muahang@tantien.vn',address:'KCN Sóng Thần, Bình Dương',tt:'Net 30'},
  'Cty TM Hải Đăng':{mst:'0311998877',nhom:'Bao bì, phụ liệu đóng gói',contact:'Bà Lê Thị H',phone:'028 xxx xxxx',email:'sales@haidang.vn',address:'Q.Tân Bình, TP.HCM',tt:'Net 30'},
@@ -4553,7 +4905,7 @@ const TAB_SALES=['Trang chủ','Lead','Cơ hội','Báo giá','Sample Request','
 const TAB_EX=['Trang chủ','Báo giá XK','PO','Sales Contract','SO','Phiếu xuất kho','Kế hoạch SX','Chứng từ','Thanh toán','Cước Logistics'];
 const TAB_PUR=['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'];
 const TAB_IM=['Trang chủ','Kế hoạch NVL','Sales Contract','Đơn mua (PO)','Shipment','Claim / Khiếu nại','Payment','Payment Term','Payment Term Item'];
-const TAB_MD=['Bảng giá','Bảng giá custom','Biến động giá','Hợp đồng','Sản phẩm','Khách hàng','NCC'];
+const TAB_MD=['Bảng giá','Bảng giá custom','Biến động giá','Hợp đồng','Sản phẩm','Khách hàng','NCC','Cấu hình Đánh giá NCC'];
 S.product_list = ()=> appnav('Dữ liệu nền tảng','Sản phẩm',TAB_MD,'Sản phẩm')
  + `<div class="sf-body">${lv({crumb:'Sản phẩm',ico:'📦',color:'#5867e8',object:'Sản phẩm (Product)',view:'Tất cả sản phẩm',count:'8',newLabel:'Sản phẩm mới',
    cols:[{t:'Mã SP'},{t:'Tên sản phẩm'},{t:'Loại giấy'},{t:'Định lượng'},{t:'Khổ'},{t:'ĐVT'},{t:'Trạng thái'}],
@@ -5497,7 +5849,7 @@ function setupSearch(){
 /* ---- in-page interactivity ---- */
 const TAB2ID={'Trang chủ':'home','Lead':'lead_list','Cơ hội':'opp_list','Báo giá':'quote_list','Sample Request':'sample_list','Opportunity PO':'oppo_list','Đơn hàng':'order_list','Khách hàng':'account_list',
  'NCC':'vendor_list','Case':'case_list','Báo cáo':'reports','Dashboard':'reports','Cảnh báo':'reports',
- 'Bảng giá':'pricebook_list','Bảng giá custom':'pbec_list','Biến động giá':'pricerpt','Hợp đồng':'contract_list','Sản phẩm':'product_list','Báo giá XK':'exquote_list','SO':'exso_list','Phiếu xuất kho':'issuenote_list','Chứng từ':'excontract_list',
+ 'Bảng giá':'pricebook_list','Bảng giá custom':'pbec_list','Biến động giá':'pricerpt','Hợp đồng':'contract_list','Sản phẩm':'product_list','Cấu hình Đánh giá NCC':'sec_config','Báo giá XK':'exquote_list','SO':'exso_list','Phiếu xuất kho':'issuenote_list','Chứng từ':'excontract_list',
  'Thanh toán':'lc','Cước Logistics':'freight','Thống kê ĐNMH':'rpt_dnmh','Doanh số 3 tháng':'rpt_sales3','Top 10 NCC':'rpt_ncctop','Đánh giá NCC':'rpt_ncceval','Phiếu yêu cầu':'pr_list','Đơn mua (PO)':'ppo_list','Kế hoạch NVL':'matinv',
  'Shipment':'shipment_list','Knowledge':'case_list','Kế hoạch SX':'explan_list','Claim / Khiếu nại':'claimrpt','Payment':'payment_list','Payment Term':'pterm_list','Payment Term Item':'pitem_list'};
 function resolveTab(app,label){
