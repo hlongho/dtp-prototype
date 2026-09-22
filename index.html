@@ -3773,7 +3773,7 @@ S.impo = ()=> appnav('Mua hàng nhập khẩu','Đơn mua (PO)',TAB_IM,'Đơn mu
 let SEC_SEQ=1; function secId(){ return SEC_SEQ++; }
 function secRule(o){ return Object.assign({id:secId(),name:'',object:'',points:0,applyMode:'Per_Occurrence',
   maxOccPerPeriod:1,worstCaseGroup:'',escalationGroup:'',escalationMultiplier:1,maxOccBeforeAction:'',
-  actionOnMax:'None',dateField:'',snapshotAll:false,active:true,logicMode:'AND',hasHistory:false,conditions:[]},o); }
+  actionOnMax:'None',dateField:'',snapshotAll:false,active:true,logicMode:'AND',customLogic:'',hasHistory:false,conditions:[]},o); }
 function secCond(o){ return Object.assign({id:secId(),field:'',operator:'=',value:'',valueMax:'',
   compareToField:'',compareMode:false},o); }
 const SEC_OBJECT_OPTIONS=['Case','Shipment__c','Quote__c','PurchaseOrder__c','Account'];
@@ -3957,8 +3957,14 @@ function secCondPhrase(obj,co){
 function secActionLabel(a){ return {None:'không làm gì',Exclude_Supplier:'đề xuất loại NCC',Flag_For_Review:'gắn cờ cần xem xét'}[a]||a; }
 function secRuleSentence(r){
   if(!r.conditions.length) return '<span class="wf-muted">Chưa có điều kiện.</span>';
-  const joiner = r.logicMode==='OR' ? ' HOẶC ' : ' VÀ ';
-  const condText = r.conditions.map(co=>secCondPhrase(r.object,co)).join(joiner);
+  let condText;
+  if(r.logicMode==='CUSTOM'){
+    const numbered = r.conditions.map((co,i)=>`(${i+1}) ${secCondPhrase(r.object,co)}`).join('; ');
+    condText = `${numbered} — ghép theo logic tuỳ chỉnh <b>${(r.customLogic||'(chưa nhập)').replace(/</g,'&lt;')}</b>`;
+  } else {
+    const joiner = r.logicMode==='OR' ? ' HOẶC ' : ' VÀ ';
+    condText = r.conditions.map(co=>secCondPhrase(r.object,co)).join(joiner);
+  }
   const timeText = r.snapshotAll ? 'tại thời điểm tính điểm' : 'phát sinh trong khoảng ngày đánh giá';
   const ptsText = (Number(r.points)<0? 'trừ '+Math.abs(r.points) : 'cộng '+r.points) + ' điểm';
   let modeText='mỗi lần';
@@ -3992,10 +3998,14 @@ function secCondEditorHTML(cid,r){
     </select>`:''}
     <button class="btn sm" onclick="secRemoveCond(${cid},${r.id},${co.id})">🗑</button>
   </div>`).join('');
-  const logicSection = r.conditions.length>=2 ? `<div class="ptf-row" style="gap:14px;margin-top:8px;font-size:12px">
-    <label style="display:flex;align-items:center;gap:4px"><input type="radio" name="sec-logic-${r.id}" ${r.logicMode!=='OR'?'checked':''} onchange="secSetRuleLogic(${cid},${r.id},'AND')">Tất cả đúng (VÀ)</label>
+  const logicSection = r.conditions.length>=2 ? `<div class="ptf-row" style="gap:14px;margin-top:8px;font-size:12px;flex-wrap:wrap">
+    <label style="display:flex;align-items:center;gap:4px"><input type="radio" name="sec-logic-${r.id}" ${r.logicMode!=='OR'&&r.logicMode!=='CUSTOM'?'checked':''} onchange="secSetRuleLogic(${cid},${r.id},'AND')">Tất cả đúng (VÀ)</label>
     <label style="display:flex;align-items:center;gap:4px"><input type="radio" name="sec-logic-${r.id}" ${r.logicMode==='OR'?'checked':''} onchange="secSetRuleLogic(${cid},${r.id},'OR')">Một trong các điều kiện đúng (HOẶC)</label>
-  </div>` : '';
+    <label style="display:flex;align-items:center;gap:4px"><input type="radio" name="sec-logic-${r.id}" ${r.logicMode==='CUSTOM'?'checked':''} onchange="secSetRuleLogic(${cid},${r.id},'CUSTOM');secRenderBody()">Tuỳ chỉnh (nhập logic thủ công)</label>
+  </div>${r.logicMode==='CUSTOM'?`<div class="ptf-row" style="margin-top:6px;flex-wrap:wrap">
+    <input class="mass-sel" style="max-width:260px" placeholder="VD: 1 AND (2 OR 3)" value="${(r.customLogic||'').replace(/"/g,'&quot;')}" oninput="secSetRuleField(${cid},${r.id},'customLogic',this.value)">
+    <span class="wf-muted" style="font-size:11px;margin-left:8px">Ghép theo số thứ tự điều kiện ở trên (1, 2, 3...) bằng AND/OR/(), vd "1 AND (2 OR 3)"</span>
+  </div>`:''}` : '';
   const dateSection=`<div class="ptf-row" style="gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap">
     <span class="wf-muted" style="font-size:11px">Field ngày lọc theo kỳ:</span>
     <select class="mass-sel" style="max-width:220px" ${r.snapshotAll?'disabled':''} onchange="secSetRuleField(${cid},${r.id},'dateField',this.value)">
@@ -4069,11 +4079,30 @@ function secRulesEditHTML(){
   <button class="btn" onclick="secAddCriteria()">＋ Thêm tiêu chí mới</button>
   <div id="sec-weight-banner" style="margin-top:10px">${secWeightBannerInner(list)}</div>`;
 }
+/* Validate chuỗi Filter_Logic__c tuỳ chỉnh: chỉ cho số thứ tự điều kiện (1..n), AND/OR, ngoặc, khoảng trắng —
+   và mỗi số thứ tự phải tham chiếu đúng 1 điều kiện đang có (tránh nhập lố/thiếu so với danh sách điều kiện). */
+function secValidateCustomLogic(expr,n){
+  const s=(expr||'').trim();
+  if(!s) return 'chưa nhập logic';
+  if(!/^[0-9AND OR()]+$/i.test(s)) return 'chỉ được dùng số thứ tự điều kiện, AND, OR và dấu ngoặc';
+  const nums=(s.match(/\d+/g)||[]).map(Number);
+  if(!nums.length) return 'chưa tham chiếu điều kiện nào';
+  for(const x of nums){ if(x<1||x>n) return 'số thứ tự '+x+' không khớp điều kiện nào (chỉ có 1..'+n+')'; }
+  return null;
+}
 function secSaveRules(){
   const list=SEC_DRAFT_CRITERIA;
   const t=Math.round(secWeightTotal(list)*100)/100;
   if(Math.abs(t-100)>0.01){ toast('Tổng tỷ trọng phải bằng 100% (hiện: '+t+'%)'); return; }
-  for(const c of list){ if(!((c.name||'').trim())){ toast('Nhập Tên tiêu chí cho tất cả các dòng'); return; } }
+  for(const c of list){
+    if(!((c.name||'').trim())){ toast('Nhập Tên tiêu chí cho tất cả các dòng'); return; }
+    for(const r of c.rules){
+      if(r.logicMode==='CUSTOM'){
+        const err=secValidateCustomLogic(r.customLogic,r.conditions.length);
+        if(err){ toast('Logic tuỳ chỉnh của rule "'+(r.name||'(chưa đặt tên)')+'" không hợp lệ: '+err); return; }
+      }
+    }
+  }
   SEC_CRITERIA_DATA[SEC_TAB]=list; SEC_EDIT=false; SEC_DRAFT_CRITERIA=null; secRenderBody();
   toast('Đã lưu cấu hình Tiêu chí & Rule — '+SEC_GROUP_LABEL[SEC_TAB]);
 }
