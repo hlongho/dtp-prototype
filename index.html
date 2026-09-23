@@ -782,6 +782,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     <div class="pm-body" id="vpb-body"></div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeVpbModal()">Hủy</button><button class="btn pri" onclick="confirmVpbModal()">Lưu bảng giá</button></div></div>
   </div>
+  <!-- Modal Thêm vào đợt đánh giá (bulk action từ list view NCC) -->
+  <div class="modal-back" id="secbulkback" onclick="closeSecBulkAddModal()" style="z-index:135"></div>
+  <div class="po-modal sm" id="secbulkmodal" style="z-index:140">
+    <div class="pm-head"><h3>Thêm vào đợt đánh giá</h3><button title="Đóng" onclick="closeSecBulkAddModal()">✕</button></div>
+    <div class="pm-body" id="secbulk-body"></div>
+    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeSecBulkAddModal()">Hủy</button><button class="btn pri" onclick="confirmSecBulkAddModal()">Tiếp tục</button></div></div>
+  </div>
   <!-- Modal Thêm/Sửa đợt đánh giá NCC -->
   <div class="modal-back" id="secbatchback" onclick="closeSecBatchModal()" style="z-index:135"></div>
   <div class="po-modal" id="secbatchmodal" style="z-index:140;width:min(760px,96vw);max-height:88vh;overflow:auto">
@@ -4228,6 +4235,60 @@ function confirmSecBatchModal(){
   toast('Đã lưu đợt đánh giá "'+name+'" · '+SEC_BATCH_DRAFT.suppliers.length+' NCC');
   closeSecBatchModal(); go('evalbatch_list');
 }
+/* ---- Thêm vào đợt đánh giá (bulk action) — chọn nhiều NCC ở list view NCC (vendor_list), thêm vào
+   đợt đã có sẵn hoặc tạo đợt mới luôn kèm sẵn các NCC đã chọn. ---- */
+let SEC_BULK_SELECTED=[];
+function secBulkGetSelectedVendors(){
+  const boxes=[...document.querySelectorAll('.lv-row:checked')];
+  return boxes.map(cb=>{
+    const tr=cb.closest('tr'); const a=tr&&tr.querySelector('a[data-vendor]');
+    return a? {name:a.dataset.vendor, group:a.dataset.vtype||'noidia'} : null;
+  }).filter(Boolean);
+}
+function secBulkUncheckRows(){ document.querySelectorAll('.lv-row').forEach(cb=>cb.checked=false); lvSel(); }
+function secBulkOptionsHTML(){
+  return SEC_BATCHES.map(b=>`<option value="${b.id}">${b.name} (${secDateVN(b.fromDate)} – ${secDateVN(b.toDate)})</option>`).join('');
+}
+function openSecBulkAddModal(){
+  SEC_BULK_SELECTED=secBulkGetSelectedVendors();
+  if(!SEC_BULK_SELECTED.length){ toast('Chọn ít nhất 1 NCC trước khi thêm vào đợt đánh giá'); return; }
+  const hasBatches=SEC_BATCHES.length>0;
+  document.getElementById('secbulk-body').innerHTML=`
+    <div class="po-hint">Đã chọn ${SEC_BULK_SELECTED.length} NCC: ${SEC_BULK_SELECTED.map(v=>v.name).join(', ')}</div>
+    <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+      <label style="display:flex;align-items:center;gap:6px"><input type="radio" name="secbulk-mode" value="new" checked onchange="secBulkToggleMode()">Tạo đợt đánh giá mới</label>
+      <label style="display:flex;align-items:center;gap:6px"><input type="radio" name="secbulk-mode" value="existing" ${hasBatches?'':'disabled'} onchange="secBulkToggleMode()">Thêm vào đợt đã có${hasBatches?'':' (chưa có đợt nào)'}</label>
+    </div>
+    <div id="secbulk-existing-wrap" style="margin-top:10px;display:none">
+      <label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Chọn đợt đánh giá</label>
+      <select id="secbulk-batch-select" class="mass-sel">${secBulkOptionsHTML()}</select>
+    </div>`;
+  document.getElementById('secbulkback').classList.add('show');
+  document.getElementById('secbulkmodal').classList.add('show');
+}
+function secBulkToggleMode(){
+  const mode=document.querySelector('input[name="secbulk-mode"]:checked').value;
+  const wrap=document.getElementById('secbulk-existing-wrap'); if(wrap) wrap.style.display=mode==='existing'?'block':'none';
+}
+function closeSecBulkAddModal(){ const b=document.getElementById('secbulkback'),m=document.getElementById('secbulkmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
+function confirmSecBulkAddModal(){
+  const mode=document.querySelector('input[name="secbulk-mode"]:checked').value;
+  if(mode==='existing'){
+    const bid=parseFloat(document.getElementById('secbulk-batch-select').value);
+    const b=SEC_BATCHES.find(x=>x.id===bid);
+    if(!b){ toast('Chưa chọn đợt đánh giá'); return; }
+    let added=0;
+    SEC_BULK_SELECTED.forEach(v=>{ if(!b.suppliers.some(s=>s.name===v.name)){ b.suppliers.push({name:v.name,group:v.group,status:'Chưa tính'}); added++; } });
+    closeSecBulkAddModal(); secBulkUncheckRows();
+    toast('Đã thêm '+added+' NCC vào đợt "'+b.name+'"'+(added<SEC_BULK_SELECTED.length?' ('+(SEC_BULK_SELECTED.length-added)+' NCC đã có sẵn trong đợt)':''));
+  } else {
+    closeSecBulkAddModal();
+    openSecBatchModal();
+    SEC_BULK_SELECTED.forEach(v=>{ if(!SEC_BATCH_DRAFT.suppliers.some(s=>s.name===v.name)) SEC_BATCH_DRAFT.suppliers.push({name:v.name,group:v.group,status:'Chưa tính'}); });
+    secRenderBatchSuppliers();
+    secBulkUncheckRows();
+  }
+}
 S.evalbatch_list = ()=> appnav('Dữ liệu nền tảng','Đợt đánh giá NCC',TAB_MD,'Đợt đánh giá NCC')
  + `<div class="sf-body">${lv({crumb:'Đợt đánh giá NCC',ico:'📋',object:'Đợt đánh giá NCC (Batch)',view:'Tất cả đợt',count:String(SEC_BATCHES.length),newLabel:'＋ Thêm đợt đánh giá',newFn:'openSecBatchModal()',
    cols:[{t:'Tên đợt'},{t:'Khoảng ngày'},{t:'Số NCC',num:true},{t:'Trạng thái'}],
@@ -5815,6 +5876,7 @@ S.impo_list = ()=> appnav('Mua hàng nhập khẩu','Đơn mua (PO)',TAB_IM,'Đ�
 
 S.vendor_list = ()=> appnav('Mua hàng','NCC',TAB_PUR,'NCC')
  + `<div class="sf-body">${lv({crumb:'Nhà cung cấp',ico:'⭐',color:'#2e844a',object:'Nhà cung cấp (Account)',view:'NCC đang hợp tác',views:['NCC đang hợp tác','Đánh giá thấp','Tạm ngưng','Tất cả NCC'],count:'84',newLabel:'NCC mới',
+   bulk:[{label:'＋ Thêm vào đợt đánh giá',fn:'openSecBulkAddModal()'}],
    cols:[{t:'Tên NCC'},{t:'Mã số thuế'},{t:'Loại NCC'},{t:'Nhóm hàng'},{t:'Điểm',num:true},{t:'Xếp loại'}],
    rows:[
     {go:'vendor',vtype:'noidia',cells:['Cty Hóa chất Tân Tiến','0388445511','Nội địa','Keo/Hóa chất','82',nccGradePill('B')]},
@@ -5967,7 +6029,7 @@ function setupSearch(){
   dd.addEventListener('click',e=>{const it=e.target.closest('.sr-item'); if(it) pickSearch(it.dataset.id);});
   document.addEventListener('click',e=>{ if(!e.target.closest('.g-search')) dd.classList.remove('show'); });
   document.getElementById('lmsearch').addEventListener('input',e=>renderLauncher(e.target.value));
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeSupModal(); closeMass(); closePO(); closeLauncher(); closeShipModal(); closeSlipModal(); closeEvalModal(); closeLogFeeModal(); closeQuoteModal(); closeApproveModal(); closeSampleModal(); closeVpbModal(); closeSecBatchModal(); } });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeSupModal(); closeMass(); closePO(); closeLauncher(); closeShipModal(); closeSlipModal(); closeEvalModal(); closeLogFeeModal(); closeQuoteModal(); closeApproveModal(); closeSampleModal(); closeVpbModal(); closeSecBatchModal(); closeSecBulkAddModal(); } });
 }
 
 /* ---- in-page interactivity ---- */
