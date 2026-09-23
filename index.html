@@ -2343,29 +2343,17 @@ function nccEvalScores(picks){
   if(per.chatluong<20) autoExclude.push('Điểm chất lượng dưới 20/40');
   return {per,total,autoExclude};
 }
-function nccPickLabel(c,p){
-  if(c.bonus){ const idxs=Array.isArray(p)?p:[]; return idxs.map(i=>c.levels[i]?c.levels[i].label:'').filter(Boolean).join('; ')||'Không có'; }
-  if(c.key==='giaban'||c.key==='thanhtoan'||c.key==='dichvu'||c.key==='oncung'||c.key==='chatluong'){
-    const items=pickMultiItems(p);
-    if(!items.length) return c.levels[0].label;
-    return items.map(it=>{ const lv=c.levels[it.level]; return lv ? lv.label+(it.count>1?' x'+it.count+' lần':'') : ''; }).filter(Boolean).join('; ');
-  }
-  if(c.key==='giaohang'){
-    const items=giaohangItems(p);
-    if(!items.length) return c.levels[0].label;
-    const label=items.map(it=>{ const lv=c.levels[it.level]; return lv ? lv.label+(it.count>1?' x'+it.count+' lần':'') : ''; }).filter(Boolean).join('; ');
-    return label+(giaohangHasCase(p)?' · Có Case sự vụ':' · Không có Case → không trừ điểm');
-  }
-  const lvl=pickLevel(p); return (c.levels[lvl]||c.levels[0]).label;
-}
+/* Cùng cấu trúc cột với card "Kết quả đánh giá NCC" (Tiêu chí | Điểm cơ sở | Trừ | Cộng | Điểm đạt) để
+   popup xem lại 1 kỳ đánh giá cũ (chấm tay) nhất quán giao diện với kết quả đánh giá từ Đợt đánh giá mới. */
 function nccCriteriaRowsHTML(picks){
-  const {per,total,autoExclude}=nccEvalScores(picks); const g=nccGrade(total);
+  const {per,total,autoExclude}=nccEvalScores(picks);
   let rows=NCC_CRITERIA.map(c=>{
-    const val=nccPickLabel(c,picks[c.key]);
-    return `<tr><td><b>${c.name}</b><div class="wf-muted" style="font-size:10px">${c.dept}</div></td><td class="num">${c.max}</td><td class="num"><b>${per[c.key]}</b></td><td>${val}</td></tr>`;
+    const base=c.bonus?0:c.max, val=per[c.key], delta=val-base;
+    const deduction=delta<0?-delta:0, bonus=delta>0?delta:0;
+    return `<tr><td><b>${c.name}</b><div class="wf-muted" style="font-size:10px">${c.dept}</div></td><td class="num">${base}</td><td class="num">${deduction?'-'+deduction:'0'}</td><td class="num">${bonus?'+'+bonus:'0'}</td><td class="num"><b>${val}</b></td></tr>`;
   }).join('');
-  rows+=`<tr style="font-weight:700;background:var(--bg)"><td>TỔNG ĐIỂM</td><td class="num">100</td><td class="num">${total}</td><td>Xếp loại ${g} — ${nccGradeLabel(g)}</td></tr>`;
-  return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm tối đa</th><th class="num">Điểm đạt</th><th>Mức đã chọn</th></tr></thead><tbody>${rows}</tbody></table></div>`
+  rows+=`<tr style="font-weight:700;background:var(--bg)"><td>TỔNG ĐIỂM</td><td class="num">100</td><td></td><td></td><td class="num">${total}</td></tr>`;
+  return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm cơ sở</th><th class="num">Trừ</th><th class="num">Cộng</th><th class="num">Điểm đạt</th></tr></thead><tbody>${rows}</tbody></table></div>`
     + (autoExclude.length?`<div class="po-hint" style="color:var(--err)">⚠ Cảnh báo tự động: ${autoExclude.join('; ')}</div>`:'');
 }
 let NCC_EVALS=[
@@ -2592,17 +2580,17 @@ function npfScore(profile,picks){
   return {per,total};
 }
 function npfGrade(profile,total){ for(const g of profile.grades){ if(total>=g.min) return g; } return profile.grades[profile.grades.length-1]; }
-function npfPickLabel(c,val){
-  if(c.type==='select') return (c.levels[val||0]||c.levels[0]).label;
-  if(c.type==='bool') return val ? 'Không đáp ứng ('+c.desc+')' : 'Đáp ứng đầy đủ';
-  return val ? 'Đạt ('+c.desc+')' : 'Chưa đạt / chưa có bằng chứng';
-}
+/* Cùng cấu trúc cột với card "Kết quả đánh giá NCC" — xem ghi chú ở nccCriteriaRowsHTML. */
 function npfCriteriaRowsHTML(type,picks){
   const profile=NCC_PROFILES[type];
-  const {per,total}=npfScore(profile,picks); const g=npfGrade(profile,total);
-  let rows=profile.criteria.map(c=>`<tr><td><b>${c.name}</b></td><td class="num">${c.max}</td><td class="num"><b>${per[c.key]}</b></td><td>${npfPickLabel(c,picks[c.key])}</td></tr>`).join('');
-  rows+=`<tr style="font-weight:700;background:var(--bg)"><td>TỔNG ĐIỂM</td><td class="num">100</td><td class="num">${total}</td><td>Xếp loại ${g.g} — ${g.label}</td></tr>`;
-  return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm tối đa</th><th class="num">Điểm đạt</th><th>Mức đã chọn</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  const {per,total}=npfScore(profile,picks);
+  let rows=profile.criteria.map(c=>{
+    const base=c.max, val=per[c.key], delta=val-base;
+    const deduction=delta<0?-delta:0, bonus=delta>0?delta:0;
+    return `<tr><td><b>${c.name}</b></td><td class="num">${base}</td><td class="num">${deduction?'-'+deduction:'0'}</td><td class="num">${bonus?'+'+bonus:'0'}</td><td class="num"><b>${val}</b></td></tr>`;
+  }).join('');
+  rows+=`<tr style="font-weight:700;background:var(--bg)"><td>TỔNG ĐIỂM</td><td class="num">100</td><td></td><td></td><td class="num">${total}</td></tr>`;
+  return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm cơ sở</th><th class="num">Trừ</th><th class="num">Cộng</th><th class="num">Điểm đạt</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function npfGradePill(profile,g){ return pill(g==='A'||g==='B'?'ok':(g==='C'?'info':'err'), g+' — '+(profile.grades.find(x=>x.g===g)||{}).label); }
 let NCC_EVALS_EXT=[
@@ -3935,8 +3923,8 @@ function secVendorResultCardHTML(vendorName){
   const exclusionBanner = supplier.exclusionTriggered
     ? banner('err', `<b>⚠ Cờ loại trừ đã kích hoạt</b> — ${supplier.exclusionReason||'Chạm ngưỡng tái phạm theo cấu hình Rule'}. Cần người phê duyệt xem xét quyết định có loại NCC hay không.`)
     : '';
-  return card('Kết quả đánh giá NCC — '+batch.name, `${exclusionBanner}
-    <div class="wf-muted" style="font-size:12px;margin-bottom:8px">Tổng điểm: <b>${supplier.totalScore}/100</b> · Xếp loại: ${pill(secResultRatingPillCls(supplier.rating),supplier.rating)} · Khoảng ngày: ${secDateVN(batch.fromDate)} – ${secDateVN(batch.toDate)} · Trạng thái: ${SEC_BATCH_STATUS_LABEL[supplier.status]||supplier.status}</div>
+  return card('Kết quả đánh giá NCC', `${exclusionBanner}
+    <div class="wf-muted" style="font-size:12px;margin-bottom:8px">Tổng điểm: <b>${supplier.totalScore}/100</b> · Xếp loại: ${pill(secResultRatingPillCls(supplier.rating),supplier.rating)} · Trạng thái: ${SEC_BATCH_STATUS_LABEL[supplier.status]||supplier.status}</div>
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm cơ sở</th><th class="num">Trừ</th><th class="num">Cộng</th><th class="num">Điểm đạt</th></tr></thead><tbody>${rows}</tbody></table></div>
     <div style="margin-top:8px"><a onclick="openSecBatchModal(${batch.id})" style="cursor:pointer">Xem chi tiết Đợt đánh giá "${batch.name}" →</a></div>`,
     {n:String(supplier.results.length)});
