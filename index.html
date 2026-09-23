@@ -4671,7 +4671,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
      if(!e){
        return `<div class="sf-body narrow">
        ${hl({crumb:'<span data-go="vendor_list">Đánh giá Nhà cung cấp</span> &rsaquo;',ico:'⭐',color:'#2e844a',title:vendorName,sub:'NCC nội địa · Chưa có đánh giá',
-         actions:[{t:'Đánh giá NCC',pri:true,fn:`openNccEvalModal('${vendorName}')`},vpbActionBtn(vendorName),'Sửa']})}
+         actions:[vpbActionBtn(vendorName),'Sửa']})}
        <div class="cols-side act-tab"><div>
        ${card('Thông tin nhà cung cấp', fg([['Tên NCC',vendorName],['Mã số thuế',info.mst],['Loại NCC','Nội địa'],
          ['Nhóm hàng cung cấp',info.nhom],['Người liên hệ',info.contact],['Điện thoại',info.phone],
@@ -4685,7 +4685,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
      return `<div class="sf-body narrow">
      ${hl({crumb:'<span data-go="vendor_list">Đánh giá Nhà cung cấp</span> &rsaquo;',ico:'⭐',color:'#2e844a',title:vendorName,sub:'NCC nội địa · Điểm đánh giá tổng: '+total+'/100 · Xếp loại '+g+' — '+nccGradeLabel(g),
        fields:[['Điểm',total+'/100'],['Xếp loại',nccGradePill(g)],['Hành động',nccGradeAction(g)],['Kỳ đánh giá',e.period]],
-       actions:[{t:'Đánh giá NCC',pri:true,fn:`openNccEvalModal('${vendorName}')`},{t:'Ghi nhận sự cố'},vpbActionBtn(vendorName),'Sửa']})}
+       actions:[{t:'Ghi nhận sự cố'},vpbActionBtn(vendorName),'Sửa']})}
      <div class="cols-side act-tab">
        <div>
        ${card('Thông tin nhà cung cấp', fg([['Tên NCC',vendorName],['Mã số thuế',info.mst],['Loại NCC','Nội địa'],
@@ -4707,7 +4707,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
    if(!e){
      return `<div class="sf-body narrow">
      ${hl({crumb:'<span data-go="vendor_list">Đánh giá Nhà cung cấp</span> &rsaquo;',ico:profile.ico,color:profile.color,title:vendorName,sub:profile.label+' · Chưa có đánh giá',
-       actions:[{t:'Đánh giá NCC',pri:true,fn:`openNpfEvalModal('${type}','${vendorName.replace(/'/g,"\\'")}')`},...(vpbAllowed(type)?[vpbActionBtn(vendorName)]:[]),'Sửa']})}
+       actions:[...(vpbAllowed(type)?[vpbActionBtn(vendorName)]:[]),'Sửa']})}
      <div class="cols-side act-tab"><div>
      ${card('Thông tin nhà cung cấp', fg([['Tên NCC',vendorName],['Mã số thuế',info.mst],['Loại NCC',loaiLabel],
        ['Nhóm hàng/dịch vụ',info.nhom],['Người liên hệ',info.contact],['Điện thoại',info.phone],
@@ -4721,7 +4721,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
    return `<div class="sf-body narrow">
    ${hl({crumb:'<span data-go="vendor_list">Đánh giá Nhà cung cấp</span> &rsaquo;',ico:profile.ico,color:profile.color,title:vendorName,sub:profile.label+' · Điểm đánh giá tổng: '+total+'/100 · Xếp loại '+g.g+' — '+g.label,
      fields:[['Điểm',total+'/100'],['Xếp loại',npfGradePill(profile,g.g)],['Kỳ đánh giá',e.period]],
-     actions:[{t:'Đánh giá NCC',pri:true,fn:`openNpfEvalModal('${type}','${vendorName.replace(/'/g,"\\'")}')`},{t:'Ghi nhận sự cố'},...(vpbAllowed(type)?[vpbActionBtn(vendorName)]:[]),'Sửa']})}
+     actions:[{t:'Ghi nhận sự cố'},...(vpbAllowed(type)?[vpbActionBtn(vendorName)]:[]),'Sửa']})}
    <div class="cols-side act-tab">
      <div>
      ${card('Thông tin nhà cung cấp', fg([['Tên NCC',vendorName],['Mã số thuế',info.mst],['Loại NCC',loaiLabel],
