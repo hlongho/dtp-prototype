@@ -1525,7 +1525,8 @@ const NAV = [
    ['account','↳ Chi tiết Khách hàng (Account)','','record'],
    ['vendor_list','Nhà cung cấp (NCC · Account)','Admin','list'],
    ['vendor','↳ Chi tiết Nhà cung cấp (NCC)','','record'],
-   ['sec_config','Cấu hình Đánh giá NCC (Setup)','Admin','custom']]},
+   ['sec_config','Cấu hình Đánh giá NCC (Setup)','Admin','custom'],
+   ['evalbatch_list','Đợt đánh giá NCC','Admin','list']]},
  {g:'Bán hàng nội địa', items:[
    ['lead_list','Lead','Sales','list'],
    ['lead','↳ Chi tiết Lead (kiểm tra trùng)','','record'],
@@ -4166,18 +4167,6 @@ let SEC_BATCHES=[
 ];
 let SEC_BATCH_DRAFT=null;
 function secDateVN(iso){ return iso? iso.split('-').reverse().join('/') : '—'; }
-function secBatchListRows(){
-  return SEC_BATCHES.map(b=>`<tr><td><a onclick="openSecBatchModal(${b.id})" style="cursor:pointer">${b.name}</a></td>
-    <td>${secDateVN(b.fromDate)} – ${secDateVN(b.toDate)}</td><td class="num">${b.suppliers.length}</td>
-    <td>${pill(b.status==='Approved'?'ok':(b.status==='Rejected'?'err':'info'),SEC_BATCH_STATUS_LABEL[b.status]||b.status)}</td></tr>`).join('');
-}
-function secBatchListHTML(){
-  return card('Đợt đánh giá', SEC_BATCHES.length
-    ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tên đợt</th><th>Khoảng ngày</th><th class="num">Số NCC</th><th>Trạng thái</th></tr></thead><tbody>${secBatchListRows()}</tbody></table></div>`
-    : `<div class="po-hint">Chưa có đợt đánh giá nào.</div>`,
-    {n:String(SEC_BATCHES.length),r:'<button class="btn sm pri" onclick="openSecBatchModal()">＋ Thêm đợt đánh giá</button>'});
-}
-function secRenderBatchList(){ const c=document.getElementById('sec-batch-list'); if(c) c.innerHTML=secBatchListHTML(); }
 function secBatchSuggestHTML(q){
   const nq=norm(q||'');
   const picked=new Set(SEC_BATCH_DRAFT.suppliers.map(s=>s.name));
@@ -4237,10 +4226,19 @@ function confirmSecBatchModal(){
   if(SEC_BATCH_DRAFT.id==null){ SEC_BATCH_DRAFT.id=secBatchId(); SEC_BATCHES.push(SEC_BATCH_DRAFT); }
   else { const idx=SEC_BATCHES.findIndex(b=>b.id===SEC_BATCH_DRAFT.id); if(idx>-1) SEC_BATCHES[idx]=SEC_BATCH_DRAFT; }
   toast('Đã lưu đợt đánh giá "'+name+'" · '+SEC_BATCH_DRAFT.suppliers.length+' NCC');
-  closeSecBatchModal(); secRenderBatchList();
+  closeSecBatchModal(); go('evalbatch_list');
 }
+S.evalbatch_list = ()=> appnav('Dữ liệu nền tảng','Đợt đánh giá NCC',TAB_MD,'Đợt đánh giá NCC')
+ + `<div class="sf-body">${lv({crumb:'Đợt đánh giá NCC',ico:'📋',object:'Đợt đánh giá NCC (Batch)',view:'Tất cả đợt',count:String(SEC_BATCHES.length),newLabel:'＋ Thêm đợt đánh giá',newFn:'openSecBatchModal()',
+   cols:[{t:'Tên đợt'},{t:'Khoảng ngày'},{t:'Số NCC',num:true},{t:'Trạng thái'}],
+   rows: SEC_BATCHES.map(b=>({cells:[
+     `<a onclick="openSecBatchModal(${b.id})" style="cursor:pointer">${b.name}</a>`,
+     secDateVN(b.fromDate)+' – '+secDateVN(b.toDate),
+     String(b.suppliers.length),
+     pill(b.status==='Approved'?'ok':(b.status==='Rejected'?'err':'info'),SEC_BATCH_STATUS_LABEL[b.status]||b.status)
+   ]}))})}</div>`;
 S.sec_config = ()=> appnav('Dữ liệu nền tảng','Cấu hình Đánh giá NCC',TAB_MD,'Cấu hình Đánh giá NCC')
- + `<div class="sf-body narrow"><div id="sec-batch-list">${secBatchListHTML()}</div><div id="sec-body">${secBodyHTML()}</div></div>`;
+ + `<div class="sf-body narrow"><div id="sec-body">${secBodyHTML()}</div></div>`;
 
 const VENDOR_INFO={
  'Cty Hóa chất Tân Tiến':{mst:'0388445511',nhom:'Hóa chất, keo công nghiệp',contact:'Ông Phạm Văn K',phone:'028 xxx xxxx',email:'muahang@tantien.vn',address:'KCN Sóng Thần, Bình Dương',tt:'Net 30'},
@@ -4983,7 +4981,7 @@ S.reports = ()=> appnav('Báo cáo & Dashboard','',['Trang chủ','Dashboard','B
  </div>`;
 
 /* ============ List View component + screens ============ */
-function lv({crumb,ico,color,object,view,count,cols,rows,newLabel,views,bulk,head}){
+function lv({crumb,ico,color,object,view,count,cols,rows,newLabel,newFn,views,bulk,head}){
   const cur=view||'Tất cả';
   let vlist=views||[cur,'Của tôi','Tất cả','Xem gần đây']; vlist=[...new Set(vlist)];
   return `<div class="slds-page-header slds-page-header_object-home">
@@ -5006,7 +5004,7 @@ function lv({crumb,ico,color,object,view,count,cols,rows,newLabel,views,bulk,hea
       <div class="slds-page-header__col-actions"><div class="slds-page-header__controls"><div class="slds-page-header__control" style="display:flex;align-items:center;gap:8px">
         ${bulk?`<span id="lv-selcount" class="wf-muted" style="font-size:12px"></span>${bulk.map(b=>`<button class="slds-button slds-button_neutral lv-bulk-btn" onclick="${b.fn}" disabled>${b.label}</button>`).join('')}`:''}
         ${(head||[]).map(b=>`<button class="slds-button slds-button_neutral" onclick="${b.fn}">${b.label}</button>`).join('')}
-        ${newLabel?`<ul class="slds-button-group-list"><li><button class="slds-button slds-button_brand">${newLabel}</button></li></ul>`:''}
+        ${newLabel?`<ul class="slds-button-group-list"><li><button class="slds-button slds-button_brand" ${newFn?`onclick="${newFn}"`:''}>${newLabel}</button></li></ul>`:''}
       </div></div></div>
     </div>
     <div class="slds-page-header__row"><p class="slds-page-header__meta-text wf-muted">${count||rows.length} mục · Cập nhật vài giây trước</p></div>
@@ -5031,7 +5029,7 @@ const TAB_SALES=['Trang chủ','Lead','Cơ hội','Báo giá','Sample Request','
 const TAB_EX=['Trang chủ','Báo giá XK','PO','Sales Contract','SO','Phiếu xuất kho','Kế hoạch SX','Chứng từ','Thanh toán','Cước Logistics'];
 const TAB_PUR=['Trang chủ','Phiếu yêu cầu','Đơn mua (PO)','NCC'];
 const TAB_IM=['Trang chủ','Kế hoạch NVL','Sales Contract','Đơn mua (PO)','Shipment','Claim / Khiếu nại','Payment','Payment Term','Payment Term Item'];
-const TAB_MD=['Bảng giá','Bảng giá custom','Biến động giá','Hợp đồng','Sản phẩm','Khách hàng','NCC','Cấu hình Đánh giá NCC'];
+const TAB_MD=['Bảng giá','Bảng giá custom','Biến động giá','Hợp đồng','Sản phẩm','Khách hàng','NCC','Cấu hình Đánh giá NCC','Đợt đánh giá NCC'];
 S.product_list = ()=> appnav('Dữ liệu nền tảng','Sản phẩm',TAB_MD,'Sản phẩm')
  + `<div class="sf-body">${lv({crumb:'Sản phẩm',ico:'📦',color:'#5867e8',object:'Sản phẩm (Product)',view:'Tất cả sản phẩm',count:'8',newLabel:'Sản phẩm mới',
    cols:[{t:'Mã SP'},{t:'Tên sản phẩm'},{t:'Loại giấy'},{t:'Định lượng'},{t:'Khổ'},{t:'ĐVT'},{t:'Trạng thái'}],
@@ -5975,7 +5973,7 @@ function setupSearch(){
 /* ---- in-page interactivity ---- */
 const TAB2ID={'Trang chủ':'home','Lead':'lead_list','Cơ hội':'opp_list','Báo giá':'quote_list','Sample Request':'sample_list','Opportunity PO':'oppo_list','Đơn hàng':'order_list','Khách hàng':'account_list',
  'NCC':'vendor_list','Case':'case_list','Báo cáo':'reports','Dashboard':'reports','Cảnh báo':'reports',
- 'Bảng giá':'pricebook_list','Bảng giá custom':'pbec_list','Biến động giá':'pricerpt','Hợp đồng':'contract_list','Sản phẩm':'product_list','Cấu hình Đánh giá NCC':'sec_config','Báo giá XK':'exquote_list','SO':'exso_list','Phiếu xuất kho':'issuenote_list','Chứng từ':'excontract_list',
+ 'Bảng giá':'pricebook_list','Bảng giá custom':'pbec_list','Biến động giá':'pricerpt','Hợp đồng':'contract_list','Sản phẩm':'product_list','Cấu hình Đánh giá NCC':'sec_config','Đợt đánh giá NCC':'evalbatch_list','Báo giá XK':'exquote_list','SO':'exso_list','Phiếu xuất kho':'issuenote_list','Chứng từ':'excontract_list',
  'Thanh toán':'lc','Cước Logistics':'freight','Thống kê ĐNMH':'rpt_dnmh','Doanh số 3 tháng':'rpt_sales3','Top 10 NCC':'rpt_ncctop','Đánh giá NCC':'rpt_ncceval','Phiếu yêu cầu':'pr_list','Đơn mua (PO)':'ppo_list','Kế hoạch NVL':'matinv',
  'Shipment':'shipment_list','Knowledge':'case_list','Kế hoạch SX':'explan_list','Claim / Khiếu nại':'claimrpt','Payment':'payment_list','Payment Term':'pterm_list','Payment Term Item':'pitem_list'};
 function resolveTab(app,label){
