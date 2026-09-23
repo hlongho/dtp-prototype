@@ -3936,15 +3936,43 @@ function secVendorResultCardHTML(vendorName){
     return card('Kết quả đánh giá NCC', `<div class="po-hint">NCC này chưa có kết quả đánh giá nào (chưa thuộc Đợt đánh giá nào đã tính điểm). <a onclick="go('evalbatch_list')" style="cursor:pointer">Xem Đợt đánh giá →</a></div>`);
   }
   const {batch,supplier}=m;
-  const rows=supplier.results.map(r=>`<tr><td>${r.criteria}</td><td class="num">${r.base}</td><td class="num">${r.deduction?'-'+r.deduction:'0'}</td><td class="num">${r.bonus?'+'+r.bonus:'0'}</td><td class="num"><b>${r.final}</b></td></tr>`).join('');
+  const hasManual=supplier.results.some(r=>secManualCriteriaMode(supplier.group,r.code)==='Manual');
+  const rows=supplier.results.map(r=>{
+    const isManual=secManualCriteriaMode(supplier.group,r.code)==='Manual';
+    if(isManual){
+      return `<tr><td>${r.criteria} ${pill('info','Nhập tay')}</td><td class="num">${r.base}</td><td class="num">—</td><td class="num">—</td>
+        <td class="num"><input type="number" min="0" max="${r.base}" class="mass-sel num" style="width:70px" id="sec-manual-${r.code}" value="${r.final}"></td></tr>`;
+    }
+    return `<tr><td>${r.criteria}</td><td class="num">${r.base}</td><td class="num">${r.deduction?'-'+r.deduction:'0'}</td><td class="num">${r.bonus?'+'+r.bonus:'0'}</td><td class="num"><b>${r.final}</b></td></tr>`;
+  }).join('');
   const exclusionBanner = supplier.exclusionTriggered
     ? banner('err', `<b>⚠ Cờ loại trừ đã kích hoạt</b> — ${supplier.exclusionReason||'Chạm ngưỡng tái phạm theo cấu hình Rule'}. Cần người phê duyệt xem xét quyết định có loại NCC hay không.`)
     : '';
   return card('Kết quả đánh giá NCC', `${exclusionBanner}
     <div class="wf-muted" style="font-size:12px;margin-bottom:8px">Tổng điểm: <b>${supplier.totalScore}/100</b> · Xếp loại: ${pill(secResultRatingPillCls(supplier.rating),supplier.rating)} · Trạng thái: ${SEC_BATCH_STATUS_LABEL[supplier.status]||supplier.status}</div>
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm cơ sở</th><th class="num">Trừ</th><th class="num">Cộng</th><th class="num">Điểm đạt</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${hasManual?`<div class="wf-muted" style="font-size:11px;margin-top:6px">Dòng "Nhập tay": để trống rồi Lưu = tự động lấy điểm tròn (tối đa).</div>
+    <div style="margin-top:6px"><button class="btn sm pri" onclick="secSaveManualScores('${vendorName.replace(/'/g,"\\'")}')">Lưu điểm tay</button></div>`:''}
     <div style="margin-top:8px"><a onclick="openSecBatchModal(${batch.id})" style="cursor:pointer">Xem chi tiết Đợt đánh giá "${batch.name}" →</a></div>`,
     {n:String(supplier.results.length)});
+}
+function secManualCriteriaMode(group,code){ const c=(SEC_CRITERIA_DATA[group]||[]).find(x=>x.code===code); return c?c.scoringMode:'Automatic'; }
+function secSaveManualScores(vendorName){
+  const m=secFindLatestResult(vendorName); if(!m) return;
+  const {supplier}=m;
+  supplier.results.forEach(r=>{
+    if(secManualCriteriaMode(supplier.group,r.code)!=='Manual') return;
+    const inp=document.getElementById('sec-manual-'+r.code); if(!inp) return;
+    let val=(inp.value==='')? r.base : parseFloat(inp.value);
+    if(isNaN(val)) val=r.base;
+    val=Math.max(0,Math.min(r.base,val));
+    r.final=val; r.deduction=Math.max(0,r.base-val); r.bonus=0;
+  });
+  supplier.totalScore=supplier.results.reduce((s,r)=>s+r.final,0);
+  const thresh=(SEC_THRESHOLDS[supplier.group]||[]).slice().sort((a,b)=>b.min-a.min).find(t=>supplier.totalScore>=t.min);
+  if(thresh) supplier.rating=thresh.name;
+  toast('Đã lưu điểm tay — Tổng điểm mới: '+supplier.totalScore+'/100'+(thresh?' · Xếp loại '+thresh.name:''));
+  go('vendor');
 }
 function secRulesViewHTML(){
   const list=SEC_CRITERIA_DATA[SEC_TAB];
@@ -4244,30 +4272,41 @@ let SEC_BATCHES=[
      {name:'Cty Hóa chất Tân Tiến',group:'noidia',status:'Calculated',totalScore:56,rating:'E',
       exclusionTriggered:true,exclusionReason:'Vi phạm Chất lượng Mức 1 – Nhẹ lần thứ 3 trong kỳ (tái phạm)',
       results:[
-       {criteria:'Chất lượng hàng hóa/dịch vụ',base:40,deduction:70,bonus:0,final:0},
-       {criteria:'Giao hàng đúng hạn, linh hoạt theo yêu cầu',base:10,deduction:4,bonus:0,final:6},
-       {criteria:'Giá bán, kèm phương thức giao nhận',base:15,deduction:0,bonus:0,final:15},
-       {criteria:'Phương thức thanh toán',base:10,deduction:0,bonus:0,final:10},
-       {criteria:'Dịch vụ sau bán hàng (hỗ trợ KT, xử lý sự cố, chuyển giao CN)',base:10,deduction:0,bonus:0,final:10},
-       {criteria:'Ổn định nguồn cung, đáp ứng nhanh, kịp thời',base:5,deduction:0,bonus:0,final:5},
-       {criteria:'Chứng nhận môi trường, hoạt động ESG và uy tín NCC',base:5,deduction:0,bonus:0,final:5},
-       {criteria:'Hỗ trợ nổi trội',base:5,deduction:0,bonus:1,final:5},
+       {criteria:'Chất lượng hàng hóa/dịch vụ',code:'CHATLUONG',base:40,deduction:70,bonus:0,final:0},
+       {criteria:'Giao hàng đúng hạn, linh hoạt theo yêu cầu',code:'GIAOHANG',base:10,deduction:4,bonus:0,final:6},
+       {criteria:'Giá bán, kèm phương thức giao nhận',code:'GIABAN',base:15,deduction:0,bonus:0,final:15},
+       {criteria:'Phương thức thanh toán',code:'THANHTOAN',base:10,deduction:0,bonus:0,final:10},
+       {criteria:'Dịch vụ sau bán hàng (hỗ trợ KT, xử lý sự cố, chuyển giao CN)',code:'DICHVU',base:10,deduction:0,bonus:0,final:10},
+       {criteria:'Ổn định nguồn cung, đáp ứng nhanh, kịp thời',code:'ONCUNG',base:5,deduction:0,bonus:0,final:5},
+       {criteria:'Chứng nhận môi trường, hoạt động ESG và uy tín NCC',code:'MOITRUONG',base:5,deduction:0,bonus:0,final:5},
+       {criteria:'Hỗ trợ nổi trội',code:'HOTRO',base:5,deduction:0,bonus:1,final:5},
      ]},
      /* Ví dụ "đánh giá bình thường" — vài lỗi nhỏ rải rác nhưng không tái phạm, không chạm ngưỡng loại
         trừ. Điểm trừ lấy đúng theo file gốc: giao trễ dưới 5 ngày -2, giá cao hơn tham chiếu ≤5% -5,
         đặt cọc/trả trước một phần -5, thiếu 1 chứng nhận ESG -1. Tổng 87đ → Xếp loại B "Tốt". */
      {name:'Cty TM Hải Đăng',group:'noidia',status:'Calculated',totalScore:87,rating:'B',
       results:[
-       {criteria:'Chất lượng hàng hóa/dịch vụ',base:40,deduction:0,bonus:0,final:40},
-       {criteria:'Giao hàng đúng hạn, linh hoạt theo yêu cầu',base:10,deduction:2,bonus:0,final:8},
-       {criteria:'Giá bán, kèm phương thức giao nhận',base:15,deduction:5,bonus:0,final:10},
-       {criteria:'Phương thức thanh toán',base:10,deduction:5,bonus:0,final:5},
-       {criteria:'Dịch vụ sau bán hàng (hỗ trợ KT, xử lý sự cố, chuyển giao CN)',base:10,deduction:0,bonus:0,final:10},
-       {criteria:'Ổn định nguồn cung, đáp ứng nhanh, kịp thời',base:5,deduction:0,bonus:0,final:5},
-       {criteria:'Chứng nhận môi trường, hoạt động ESG và uy tín NCC',base:5,deduction:1,bonus:0,final:4},
-       {criteria:'Hỗ trợ nổi trội',base:5,deduction:0,bonus:0,final:5},
+       {criteria:'Chất lượng hàng hóa/dịch vụ',code:'CHATLUONG',base:40,deduction:0,bonus:0,final:40},
+       {criteria:'Giao hàng đúng hạn, linh hoạt theo yêu cầu',code:'GIAOHANG',base:10,deduction:2,bonus:0,final:8},
+       {criteria:'Giá bán, kèm phương thức giao nhận',code:'GIABAN',base:15,deduction:5,bonus:0,final:10},
+       {criteria:'Phương thức thanh toán',code:'THANHTOAN',base:10,deduction:5,bonus:0,final:5},
+       {criteria:'Dịch vụ sau bán hàng (hỗ trợ KT, xử lý sự cố, chuyển giao CN)',code:'DICHVU',base:10,deduction:0,bonus:0,final:10},
+       {criteria:'Ổn định nguồn cung, đáp ứng nhanh, kịp thời',code:'ONCUNG',base:5,deduction:0,bonus:0,final:5},
+       {criteria:'Chứng nhận môi trường, hoạt động ESG và uy tín NCC',code:'MOITRUONG',base:5,deduction:1,bonus:0,final:4},
+       {criteria:'Hỗ trợ nổi trội',code:'HOTRO',base:5,deduction:0,bonus:0,final:5},
      ]},
-     {name:'ONE Line',group:'dichvu',status:'Chưa tính'},
+     /* Minh hoạ tiêu chí Nhập tay (Scoring_Mode__c=Manual): "Khả năng xử lý sự cố" chưa ai nhập gì nên
+        mặc định điểm tròn (10/10); "Mức độ hợp tác tốt" đã có người nhập tay 3/5 (đánh giá chủ quan). */
+     {name:'ONE Line',group:'dichvu',status:'Calculated',totalScore:88,rating:'B',results:[
+       {criteria:'Chất lượng dịch vụ',code:'CHATLUONG',base:40,deduction:10,bonus:0,final:30},
+       {criteria:'Tiến độ thực hiện',code:'TIENDO',base:15,deduction:0,bonus:0,final:15},
+       {criteria:'Giá dịch vụ',code:'GIA',base:15,deduction:0,bonus:0,final:15},
+       {criteria:'Độ chính xác chứng từ',code:'CHUNGTU',base:5,deduction:0,bonus:0,final:5},
+       {criteria:'Khả năng xử lý sự cố',code:'XULYSUCO',base:10,deduction:0,bonus:0,final:10},
+       {criteria:'Khả năng phản hồi',code:'PHANHOI',base:5,deduction:0,bonus:0,final:5},
+       {criteria:'Tuân thủ và có năng lực',code:'TUANTHU',base:5,deduction:0,bonus:0,final:5},
+       {criteria:'Mức độ hợp tác tốt',code:'HOPTAC',base:5,deduction:2,bonus:0,final:3},
+     ]},
    ]},
 ];
 let SEC_BATCH_DRAFT=null;
