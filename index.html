@@ -3906,20 +3906,30 @@ function secCriteriaCardView(c){
     : `<div class="po-hint">Chưa có quy tắc nào cho tiêu chí này.</div>`;
   return card(`${c.seq}. ${c.name}`, `<div class="wf-muted" style="font-size:12px;margin-bottom:8px">Điểm tối đa: <b>${c.maxScore}</b> · Tỷ trọng: <b>${c.weight}%</b>${c.active===false?' · Tạm ngưng':''}</div>${body}`, {n:String(c.rules.length)});
 }
-/* Card "Tiêu chí đánh giá NCC" trên trang Chi tiết NCC — đọc thẳng từ cấu hình Setup (SEC_CRITERIA_DATA)
-   theo đúng nhóm NCC, thay vì bộ tiêu chí rời rạc cũ (NCC_CRITERIA/NCC_PROFILES) — tránh 2 nguồn tiêu
-   chí khác nhau cho cùng 1 NCC. Chỉ hiển thị (read-only) + link sang màn hình Setup để sửa thật sự. */
 function secGoToConfig(group){ SEC_TAB=group; SEC_SUBTAB='rules'; SEC_EDIT=false; go('sec_config'); }
-function secVendorCriteriaRowsHTML(group){
-  return (SEC_CRITERIA_DATA[group]||[]).map(c=>`<tr><td>${c.seq}. ${c.name}</td><td class="num">${c.maxScore}</td><td class="num">${c.weight}%</td><td class="num">${c.rules.length}</td><td>${c.active!==false?pill('ok','Active'):pill('mut','Ngưng')}</td></tr>`).join('');
+/* Card "Kết quả đánh giá NCC" trên trang Chi tiết NCC — thay cho card "Tiêu chí đánh giá NCC" cũ.
+   Đọc kết quả tính điểm gần nhất (breakdown theo Criteria, đúng field của Supplier_Evaluation_Result__c:
+   Base_Score/Total_Deduction/Total_Bonus/Final_Score) từ Đợt đánh giá (SEC_BATCHES) mà NCC này đã tham
+   gia — NCC nào chưa có Đợt nào tính xong thì hiện trạng thái rỗng. */
+function secFindLatestResult(vendorName){
+  const matches=[];
+  SEC_BATCHES.forEach(b=>{ const s=b.suppliers.find(x=>x.name===vendorName); if(s&&s.results&&s.results.length) matches.push({batch:b,supplier:s}); });
+  matches.sort((a,b)=>(b.batch.toDate||'').localeCompare(a.batch.toDate||''));
+  return matches[0]||null;
 }
-function secVendorCriteriaCardHTML(group){
-  const list=SEC_CRITERIA_DATA[group]||[];
-  const body = list.length
-    ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm tối đa</th><th class="num">Tỷ trọng</th><th class="num">Số Rule</th><th>Trạng thái</th></tr></thead><tbody>${secVendorCriteriaRowsHTML(group)}</tbody></table></div>
-       <div style="margin-top:8px"><a onclick="secGoToConfig('${group}')" style="cursor:pointer">Xem/Sửa cấu hình đầy đủ tại màn hình Cấu hình Đánh giá NCC →</a></div>`
-    : `<div class="po-hint">Nhóm NCC này chưa có tiêu chí nào được cấu hình. <a onclick="secGoToConfig('${group}')" style="cursor:pointer">Cấu hình ngay →</a></div>`;
-  return card('Tiêu chí đánh giá NCC (theo cấu hình Setup)', body, {n:String(list.length)});
+function secResultRatingPillCls(rating){ return rating==='A'||rating==='B'?'ok':(rating==='C'?'info':'err'); }
+function secVendorResultCardHTML(vendorName){
+  const m=secFindLatestResult(vendorName);
+  if(!m){
+    return card('Kết quả đánh giá NCC', `<div class="po-hint">NCC này chưa có kết quả đánh giá nào (chưa thuộc Đợt đánh giá nào đã tính điểm). <a onclick="go('evalbatch_list')" style="cursor:pointer">Xem Đợt đánh giá →</a></div>`);
+  }
+  const {batch,supplier}=m;
+  const rows=supplier.results.map(r=>`<tr><td>${r.criteria}</td><td class="num">${r.base}</td><td class="num">${r.deduction?'-'+r.deduction:'0'}</td><td class="num">${r.bonus?'+'+r.bonus:'0'}</td><td class="num"><b>${r.final}</b></td></tr>`).join('');
+  return card('Kết quả đánh giá NCC — '+batch.name, `
+    <div class="wf-muted" style="font-size:12px;margin-bottom:8px">Tổng điểm: <b>${supplier.totalScore}/100</b> · Xếp loại: ${pill(secResultRatingPillCls(supplier.rating),supplier.rating)} · Khoảng ngày: ${secDateVN(batch.fromDate)} – ${secDateVN(batch.toDate)} · Trạng thái: ${SEC_BATCH_STATUS_LABEL[supplier.status]||supplier.status}</div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm cơ sở</th><th class="num">Trừ</th><th class="num">Cộng</th><th class="num">Điểm đạt</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div style="margin-top:8px"><a onclick="openSecBatchModal(${batch.id})" style="cursor:pointer">Xem chi tiết Đợt đánh giá "${batch.name}" →</a></div>`,
+    {n:String(supplier.results.length)});
 }
 function secRulesViewHTML(){
   const list=SEC_CRITERIA_DATA[SEC_TAB];
@@ -4184,8 +4194,22 @@ const SEC_VENDOR_DIRECTORY=[
 ];
 const SEC_BATCH_STATUS_LABEL={Draft:'Nháp',Calculating:'Đang tính điểm',Calculated:'Đã tính điểm',Approved:'Đã duyệt',Rejected:'Từ chối'};
 let SEC_BATCHES=[
-  {id:secBatchId(),name:'Đánh giá NCC Quý 1/2026',fromDate:'2026-01-01',toDate:'2026-03-31',status:'Draft',
-   suppliers:[{name:'Cty Hóa chất Tân Tiến',group:'noidia',status:'Chưa tính'},{name:'ONE Line',group:'dichvu',status:'Chưa tính'}]},
+  {id:secBatchId(),name:'Đánh giá NCC Quý 1/2026',fromDate:'2026-01-01',toDate:'2026-03-31',status:'Calculating',
+   suppliers:[
+     /* Minh hoạ theo đúng kịch bản mục 7 của spec: 3 Case lỗi "Mức 1 – Nhẹ" tái phạm trong kỳ (Chất lượng
+        bị trừ nhiều), 1 Shipment trễ do lỗi NCC (Giao hàng bị trừ) + 1 Shipment giao gấp (được cộng lại). */
+     {name:'Cty Hóa chất Tân Tiến',group:'noidia',status:'Calculated',totalScore:65,rating:'D',results:[
+       {criteria:'Chất lượng hàng hóa/dịch vụ',base:40,deduction:30,bonus:0,final:10},
+       {criteria:'Giao hàng đúng hạn, linh hoạt theo yêu cầu',base:10,deduction:10,bonus:5,final:5},
+       {criteria:'Giá bán, kèm phương thức giao nhận',base:15,deduction:0,bonus:0,final:15},
+       {criteria:'Phương thức thanh toán',base:10,deduction:0,bonus:0,final:10},
+       {criteria:'Dịch vụ sau bán hàng (hỗ trợ KT, xử lý sự cố, chuyển giao CN)',base:10,deduction:0,bonus:0,final:10},
+       {criteria:'Ổn định nguồn cung, đáp ứng nhanh, kịp thời',base:5,deduction:0,bonus:0,final:5},
+       {criteria:'Chứng nhận môi trường, hoạt động ESG và uy tín NCC',base:5,deduction:0,bonus:0,final:5},
+       {criteria:'Hỗ trợ nổi trội',base:5,deduction:0,bonus:0,final:5},
+     ]},
+     {name:'ONE Line',group:'dichvu',status:'Chưa tính'},
+   ]},
 ];
 let SEC_BATCH_DRAFT=null;
 function secDateVN(iso){ return iso? iso.split('-').reverse().join('/') : '—'; }
@@ -4432,7 +4456,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
        ${card('Thông tin nhà cung cấp', fg([['Tên NCC',vendorName],['Mã số thuế',info.mst],['Loại NCC','Nội địa'],
          ['Nhóm hàng cung cấp',info.nhom],['Người liên hệ',info.contact],['Điện thoại',info.phone],
          ['Email',info.email],['Địa chỉ',info.address],['Điều khoản TT',info.tt],['Trạng thái',pill('ok','Đang hợp tác')]]))}
-       ${secVendorCriteriaCardHTML('noidia')}
+       ${secVendorResultCardHTML(vendorName)}
        ${card('Lịch sử đánh giá', '<div class="po-hint">Chưa có kỳ đánh giá nào cho NCC này.</div>', {r:`<button class="btn sm" onclick="openNccEvalModal('${vendorName}')">＋ Đánh giá NCC</button>`})}
        ${vpbCardHTML(vendorName)}
        </div>${activity([])}</div></div>`;
@@ -4448,7 +4472,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
          ['Nhóm hàng cung cấp',info.nhom],['Người liên hệ',info.contact],['Điện thoại',info.phone],
          ['Email',info.email],['Địa chỉ',info.address],['Điều khoản TT',info.tt],
          ['Đánh giá tổng',total+'/100 · Xếp loại '+g],['Trạng thái',pill('ok','Đang hợp tác')]]))}
-       ${secVendorCriteriaCardHTML('noidia')}
+       ${secVendorResultCardHTML(vendorName)}
        ${card('Lịch sử đánh giá', tbl([{t:'Kỳ đánh giá'},{t:'Ngày'},{t:'Điểm'},{t:'Xếp loại'},{t:'Người đánh giá'},{t:'Kết luận'}], nccEvalsListRows(vendorName)),{n:String(NCC_EVALS.filter(x=>x.vendor===vendorName).length),r:`<button class="btn sm" onclick="openNccEvalModal('${vendorName}')">＋ Đánh giá NCC</button>`})}
        ${vpbCardHTML(vendorName)}
        </div>
@@ -4468,7 +4492,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
      ${card('Thông tin nhà cung cấp', fg([['Tên NCC',vendorName],['Mã số thuế',info.mst],['Loại NCC',loaiLabel],
        ['Nhóm hàng/dịch vụ',info.nhom],['Người liên hệ',info.contact],['Điện thoại',info.phone],
        ['Email',info.email],['Địa chỉ',info.address],['Điều khoản TT',info.tt],['Trạng thái',pill('ok','Đang hợp tác')]]))}
-     ${secVendorCriteriaCardHTML(type)}
+     ${secVendorResultCardHTML(vendorName)}
      ${card('Lịch sử đánh giá', '<div class="po-hint">Chưa có kỳ đánh giá nào cho NCC này.</div>', {r:`<button class="btn sm" onclick="openNpfEvalModal('${type}','${vendorName.replace(/'/g,"\\'")}')">＋ Đánh giá NCC</button>`})}
      ${vpbAllowed(type)?vpbCardHTML(vendorName):''}
      </div>${activity([])}</div></div>`;
@@ -4484,7 +4508,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
        ['Nhóm hàng/dịch vụ',info.nhom],['Người liên hệ',info.contact],['Điện thoại',info.phone],
        ['Email',info.email],['Địa chỉ',info.address],['Điều khoản TT',info.tt],
        ['Đánh giá tổng',total+'/100 · Xếp loại '+g.g],['Trạng thái',pill('ok','Đang hợp tác')]]))}
-     ${secVendorCriteriaCardHTML(type)}
+     ${secVendorResultCardHTML(vendorName)}
      ${card('Lịch sử đánh giá', tbl([{t:'Kỳ đánh giá'},{t:'Ngày'},{t:'Điểm'},{t:'Xếp loại'},{t:'Người đánh giá'}], npfEvalsListRows(type,vendorName)),{n:String(NCC_EVALS_EXT.filter(x=>x.type===type&&x.vendor===vendorName).length),r:`<button class="btn sm" onclick="openNpfEvalModal('${type}','${vendorName.replace(/'/g,"\\'")}')">＋ Đánh giá NCC</button>`})}
      ${vpbAllowed(type)?vpbCardHTML(vendorName):''}
      </div>
