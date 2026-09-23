@@ -3776,9 +3776,12 @@ S.impo = ()=> appnav('Mua hàng nhập khẩu','Đơn mua (PO)',TAB_IM,'Đơn mu
 let SEC_SEQ=1; function secId(){ return SEC_SEQ++; }
 function secRule(o){ return Object.assign({id:secId(),name:'',object:'',supplierField:'',points:0,applyMode:'Per_Occurrence',
   maxOccPerPeriod:1,worstCaseGroup:'',escalationGroup:'',escalationMultiplier:1,maxOccBeforeAction:'',
-  actionOnMax:'None',dateField:'',snapshotAll:false,active:true,logicMode:'AND',customLogic:'',hasHistory:false,conditions:[]},o); }
+  actionOnMax:'None',dateField:'',snapshotAll:false,active:true,logicMode:'AND',customLogic:'',hasHistory:false,countTiers:[],conditions:[]},o); }
 function secCond(o){ return Object.assign({id:secId(),field:'',operator:'=',value:'',valueMax:'',
   compareToField:'',compareMode:false},o); }
+/* Supplier_Evaluation_Rule_Count_Tier__c — chỉ dùng khi Rule.Apply_Mode__c=Count_Tier. min/max = số lần vi
+   phạm trong kỳ (max='' = "trở lên"), points = điểm áp 1 lần duy nhất cho cả kỳ nếu N rơi vào khoảng này. */
+function secTier(o){ return Object.assign({id:secId(),min:0,max:'',points:0},o); }
 const SEC_OBJECT_OPTIONS=['Case','Shipment__c','Quote__c','PurchaseOrder__c','Account'];
 /* Danh sách field minh hoạ — bản thật sẽ dùng dropdown động qua lightning/uiObjectInfoApi (xem mục 6.2
    của tài liệu spec: cần rà soát field thật đã có trên từng object trước khi build Rule Condition thật). */
@@ -3799,7 +3802,7 @@ const SEC_SUPPLIER_LINK_FIELDS={
 };
 const SEC_OPERATOR_OPTIONS=[['=','bằng'],['!=','khác'],['>','lớn hơn'],['>=','lớn hơn hoặc bằng'],['<','nhỏ hơn'],['<=','nhỏ hơn hoặc bằng'],['between','trong khoảng'],['contains','chứa']];
 const SEC_OP_LABEL=Object.fromEntries(SEC_OPERATOR_OPTIONS);
-const SEC_APPLY_MODE_OPTIONS=[['Per_Occurrence','Mỗi lần'],['Once_Per_Period','1 lần/kỳ'],['Worst_Case_Only','Mức nặng nhất']];
+const SEC_APPLY_MODE_OPTIONS=[['Per_Occurrence','Mỗi lần'],['Once_Per_Period','1 lần/kỳ'],['Worst_Case_Only','Mức nặng nhất'],['Count_Tier','Theo số lần vi phạm (bậc thang)']];
 const SEC_ACTION_OPTIONS=[['None','Không có'],['Exclude_Supplier','Đề xuất loại NCC'],['Flag_For_Review','Gắn cờ cần xem xét']];
 const SEC_GROUP_LABEL={noidia:'Nội địa',nhapkhau:'Nhập khẩu',dichvu:'Dịch vụ'};
 const SEC_GROUP_ICO={noidia:'⭐',nhapkhau:'🚢',dichvu:'🛠️'};
@@ -3844,6 +3847,13 @@ secAttachRules(SEC_CRITERIA_DATA.nhapkhau,'CHATLUONG',[
     conditions:[secCond({field:'Severity__c',operator:'=',value:'Có lỗi nhỏ nhưng chấp nhận được'})]}),
   secRule({name:'Trả hàng/khiếu nại nghiêm trọng',object:'Case',supplierField:'AccountId',points:-40,dateField:'CreatedDate',
     conditions:[secCond({field:'Severity__c',operator:'=',value:'Trả hàng hoặc khiếu nại nghiêm trọng'})]}),
+]);
+/* Minh hoạ Apply_Mode=Count_Tier — đúng mẫu "Vi phạm 1-2 lần: -5, 3-4 lần: -10, 5 lần trở lên: -15" trong
+   file ".docs/ĐÁNH GIÁ NCC NHẬP KHẨU VÀ DỊCH VỤ.xls" (tiêu chí Tiến độ giao hàng). */
+secAttachRules(SEC_CRITERIA_DATA.nhapkhau,'TIENDO',[
+  secRule({name:'Vi phạm tiến độ giao hàng',object:'Shipment__c',supplierField:'Supplier__c',applyMode:'Count_Tier',dateField:'Actual_Delivery_Date__c',
+    countTiers:[secTier({min:1,max:2,points:-5}),secTier({min:3,max:4,points:-10}),secTier({min:5,max:'',points:-15})],
+    conditions:[secCond({field:'Delay_Reason__c',operator:'=',value:'Lỗi NCC'})]}),
 ]);
 secAttachRules(SEC_CRITERIA_DATA.dichvu,'CHATLUONG',[
   secRule({name:'Có lỗi ảnh hưởng tiến độ',object:'Case',supplierField:'AccountId',points:-10,dateField:'CreatedDate',
@@ -3902,10 +3912,11 @@ function secWeightBannerInner(list){
   return banner(ok?'ok':'err', `Tổng tỷ trọng (các tiêu chí đang Active): <b>${t}%</b> ${ok?'✅':'— phải bằng 100% mới được Lưu'}`);
 }
 function secRefreshWeightBanner(){ const el=document.getElementById('sec-weight-banner'); if(el) el.innerHTML=secWeightBannerInner(SEC_DRAFT_CRITERIA); }
-function secApplyModeBadge(m){ const map={Per_Occurrence:'Mỗi lần',Once_Per_Period:'1 lần/kỳ',Worst_Case_Only:'Mức nặng nhất'}; return pill('info',map[m]||m); }
+function secApplyModeBadge(m){ const map={Per_Occurrence:'Mỗi lần',Once_Per_Period:'1 lần/kỳ',Worst_Case_Only:'Mức nặng nhất',Count_Tier:'Theo bậc thang'}; return pill('info',map[m]||m); }
 function secRuleRowView(r){
+  const ptsCell = r.applyMode==='Count_Tier' ? (r.countTiers.length+' bậc') : (r.points>0?'+'+r.points:String(r.points));
   return `<tr><td>${r.name}${r.active===false?' <span class="wf-muted" style="font-size:11px">(tạm ngưng)</span>':''}</td><td>${r.object}</td>
-    <td class="num">${r.points>0?'+':''}${r.points}</td><td>${secApplyModeBadge(r.applyMode)}</td>
+    <td class="num">${ptsCell}</td><td>${secApplyModeBadge(r.applyMode)}</td>
     <td>${r.active!==false?pill('ok','Active'):pill('mut','Ngưng')}</td></tr>`;
 }
 function secCriteriaCardView(c){
@@ -4049,6 +4060,13 @@ function secRuleSentence(r){
     condText = r.conditions.map(co=>secCondPhrase(r.object,co)).join(joiner);
   }
   const timeText = r.snapshotAll ? 'tại thời điểm tính điểm' : 'phát sinh trong khoảng ngày đánh giá';
+  if(r.applyMode==='Count_Tier'){
+    const tiers=(r.countTiers||[]).slice().sort((a,b)=>a.min-b.min);
+    const tierText = tiers.length
+      ? tiers.map(t=>`${t.min}${(t.max===''||t.max===null)?' lần trở lên':'–'+t.max+' lần'}: ${t.points>0?'+':''}${t.points}đ`).join('; ')
+      : '(chưa cấu hình bậc nào)';
+    return `<em>"Nếu ${r.object||'(chưa chọn object)'} có ${condText}, ${timeText} — đếm tổng số lần khớp trong kỳ rồi tính theo bậc thang: ${tierText} (áp dụng 1 lần duy nhất cho cả kỳ theo đúng bậc tương ứng)."</em>`;
+  }
   const ptsText = (Number(r.points)<0? 'trừ '+Math.abs(r.points) : 'cộng '+r.points) + ' điểm';
   let modeText='mỗi lần';
   if(r.applyMode==='Once_Per_Period') modeText='tối đa '+(r.maxOccPerPeriod||1)+' lần/kỳ';
@@ -4123,14 +4141,14 @@ function secRuleEditBlock(cid,r){
       ${r.object && r.object!=='Account' ? `<select class="mass-sel" style="max-width:200px" onchange="secSetRuleField(${cid},${r.id},'supplierField',this.value)">
         <option value="">-- Field liên kết NCC * --</option>${(SEC_SUPPLIER_LINK_FIELDS[r.object]||[]).map(f=>`<option value="${f.v}" ${r.supplierField===f.v?'selected':''}>${f.t}</option>`).join('')}
       </select>` : ''}
-      <div style="display:flex;align-items:stretch;gap:0">
+      ${r.applyMode!=='Count_Tier'?`<div style="display:flex;align-items:stretch;gap:0">
         <div style="display:flex;flex-direction:column;justify-content:center;line-height:1.1">
           <label style="display:flex;align-items:center;gap:2px;font-size:10px"><input type="radio" name="sec-sign-${r.id}" ${Number(r.points)<=0?'checked':''} onchange="secSetRulePointsSign(${cid},${r.id},-1)"> ➖</label>
           <label style="display:flex;align-items:center;gap:2px;font-size:10px"><input type="radio" name="sec-sign-${r.id}" ${Number(r.points)>0?'checked':''} onchange="secSetRulePointsSign(${cid},${r.id},1)"> ➕</label>
         </div>
         <input type="number" min="0" class="mass-sel" style="width:64px" value="${Math.abs(r.points)}" oninput="secSetRuleMagnitude(${cid},${r.id},this.value)">
-      </div>
-      <select class="mass-sel" style="max-width:140px" onchange="secSetRuleField(${cid},${r.id},'applyMode',this.value);secRenderBody()">
+      </div>`:''}
+      <select class="mass-sel" style="max-width:140px" onchange="secSetApplyMode(${cid},${r.id},this.value)">
         ${SEC_APPLY_MODE_OPTIONS.map(o=>`<option value="${o[0]}" ${r.applyMode===o[0]?'selected':''}>${o[1]}</option>`).join('')}
       </select>
       <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" ${r.active!==false?'checked':''} onchange="secSetRuleField(${cid},${r.id},'active',this.checked)">Active</label>
@@ -4138,10 +4156,56 @@ function secRuleEditBlock(cid,r){
     </div>
     ${r.applyMode==='Once_Per_Period'?`<div class="ptf-row" style="margin-top:4px"><span class="wf-muted" style="font-size:12px">Số lần tối đa tính điểm/kỳ:</span><input type="number" min="1" class="mass-sel" style="width:70px" value="${r.maxOccPerPeriod||1}" oninput="secSetRuleField(${cid},${r.id},'maxOccPerPeriod',this.value)"></div>`:''}
     ${r.applyMode==='Worst_Case_Only'?`<div class="ptf-row" style="margin-top:4px"><span class="wf-muted" style="font-size:12px">Nhóm loại trừ lẫn nhau:</span><input class="mass-sel" style="max-width:200px" value="${(r.worstCaseGroup||'').replace(/"/g,'&quot;')}" oninput="secSetRuleField(${cid},${r.id},'worstCaseGroup',this.value)"></div>`:''}
+    ${r.applyMode==='Count_Tier'?secTierEditorHTML(cid,r):''}
     <div style="margin-top:6px"><a onclick="secToggleCondEditor(${r.id})" style="cursor:pointer;font-size:12.5px">Điều kiện (${r.conditions.length}) ${condExpanded?'▾':'▸'}</a>${condExpanded?secCondEditorHTML(cid,r):''}</div>
-    <div style="margin-top:6px"><button class="btn sm" onclick="secToggleAdv(${r.id})">${advExpanded?'▾':'▸'} Cài đặt nâng cao: Tái phạm</button>${advExpanded?secAdvEditorHTML(cid,r):''}</div>
+    ${r.applyMode!=='Count_Tier'?`<div style="margin-top:6px"><button class="btn sm" onclick="secToggleAdv(${r.id})">${advExpanded?'▾':'▸'} Cài đặt nâng cao: Tái phạm</button>${advExpanded?secAdvEditorHTML(cid,r):''}</div>`:''}
     <div id="sec-prev-${r.id}" class="wf-muted" style="font-size:12px;margin-top:8px;padding:8px;background:var(--bg);border-radius:6px">${secRuleSentence(r)}</div>
   </div>`;
+}
+function secSetApplyMode(cid,rid,mode){
+  const r=secRuleGet(cid,rid); if(!r) return;
+  r.applyMode=mode;
+  if(mode==='Count_Tier' && !r.countTiers.length) r.countTiers=[secTier({min:1,max:2,points:-5}),secTier({min:3,max:4,points:-10}),secTier({min:5,max:'',points:-15})];
+  secRenderBody();
+}
+function secTierEditorHTML(cid,r){
+  const rows=(r.countTiers||[]).map(t=>`<div class="ptf-row" style="gap:6px;margin-top:4px;align-items:center;flex-wrap:wrap">
+    <span class="wf-muted" style="font-size:11px">Từ</span><input type="number" min="0" class="mass-sel" style="width:56px" value="${t.min}" oninput="secSetTierField(${cid},${r.id},${t.id},'min',this.value)">
+    <span class="wf-muted" style="font-size:11px">đến</span><input type="number" min="0" class="mass-sel" style="width:56px" placeholder="∞" value="${t.max===''||t.max===null?'':t.max}" oninput="secSetTierField(${cid},${r.id},${t.id},'max',this.value)">
+    <span class="wf-muted" style="font-size:11px">lần (để trống "đến" = trở lên) → Điểm:</span>
+    <input type="number" class="mass-sel" style="width:64px" value="${t.points}" oninput="secSetTierField(${cid},${r.id},${t.id},'points',this.value)">
+    <button class="btn sm" onclick="secRemoveTier(${cid},${r.id},${t.id})">🗑</button>
+  </div>`).join('') || '<div class="po-hint">Chưa có bậc nào.</div>';
+  return `<div style="margin-top:6px;padding:8px 10px;background:var(--bg);border-radius:6px">
+    <div class="wf-muted" style="font-size:11px;margin-bottom:2px">Bậc thang theo tổng số lần vi phạm trong kỳ — điểm áp dụng 1 lần duy nhất cho cả kỳ theo đúng bậc</div>
+    ${rows}
+    <button class="btn sm" style="margin-top:6px" onclick="secAddTier(${cid},${r.id})">＋ Thêm bậc</button>
+  </div>`;
+}
+function secAddTier(cid,rid){
+  const r=secRuleGet(cid,rid); if(!r) return;
+  const last=r.countTiers[r.countTiers.length-1];
+  const nextMin=last?((last.max===''||last.max===null)?Number(last.min)+1:Number(last.max)+1):0;
+  r.countTiers.push(secTier({min:nextMin,max:'',points:0}));
+  secRenderBody();
+}
+function secRemoveTier(cid,rid,tid){ const r=secRuleGet(cid,rid); if(!r) return; r.countTiers=r.countTiers.filter(t=>t.id!==tid); secRenderBody(); }
+function secSetTierField(cid,rid,tid,field,val){
+  const r=secRuleGet(cid,rid); if(!r) return; const t=r.countTiers.find(x=>x.id===tid); if(!t) return;
+  t[field] = field==='max' ? (val===''?'':parseFloat(val)) : parseFloat(val)||0;
+  secRefreshRulePreview(cid,rid);
+}
+function secValidateTiers(tiers){
+  if(!tiers.length) return 'chưa cấu hình bậc nào';
+  const list=tiers.slice().sort((a,b)=>a.min-b.min);
+  for(const t of list){ if(t.max!==''&&t.max!==null&&Number(t.min)>Number(t.max)) return 'bậc '+t.min+'-'+t.max+' có Từ lớn hơn Đến'; }
+  for(let i=0;i<list.length-1;i++){
+    const a=list[i], b=list[i+1];
+    const aMax=(a.max===''||a.max===null)?Infinity:Number(a.max);
+    if(aMax>=Number(b.min)) return 'bậc chồng lấn giữa '+a.min+'-'+(a.max===''?'∞':a.max)+' và '+b.min+'-'+(b.max===''?'∞':b.max);
+    if(aMax+1<Number(b.min)) return 'có khoảng trống giữa '+a.min+'-'+(a.max===''?'∞':a.max)+' và '+b.min;
+  }
+  return null;
 }
 function secSetCritScoringMode(cid,mode){
   const c=secCritGet(cid); if(!c) return;
@@ -4207,6 +4271,10 @@ function secSaveRules(){
       if(r.logicMode==='CUSTOM'){
         const err=secValidateCustomLogic(r.customLogic,r.conditions.length);
         if(err){ toast('Logic tuỳ chỉnh của rule "'+(r.name||'(chưa đặt tên)')+'" không hợp lệ: '+err); return; }
+      }
+      if(r.applyMode==='Count_Tier'){
+        const err=secValidateTiers(r.countTiers);
+        if(err){ toast('Bậc thang của rule "'+(r.name||'(chưa đặt tên)')+'" không hợp lệ: '+err); return; }
       }
     }
   }
