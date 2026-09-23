@@ -3817,22 +3817,29 @@ let SEC_CRITERIA_DATA={
   dichvu: secBuildCriteria(NCC_PROFILES.dichvu.criteria),
 };
 function secAttachRules(list,code,rules){ const c=list.find(x=>x.code===code); if(c) c.rules=rules; }
-/* Ví dụ minh hoạ theo mục 7 (Data mẫu) của spec: Case lỗi "Mức 1 – Nhẹ" tái phạm trong kỳ (nhân đôi dần,
-   lần 3 tự đề xuất loại NCC); Shipment giao trễ do lỗi NCC (trừ điểm) vs giao trễ khách quan (không trừ
-   nhờ điều kiện kép AND — ở đây minh hoạ bằng field Delay_Reason__c); Shipment giao gấp hoàn thành (cộng
-   điểm, giới hạn 1 lần/kỳ). QUALITY còn minh hoạ "hasHistory" (đã có Evidence lịch sử) để demo hành vi
-   chặn xoá cứng — chỉ cho tắt Active. */
+/* Điểm trừ/cộng lấy đúng theo file nguồn ".docs/ĐÁNH GIÁ NCC NỘI ĐỊA.xlsx" (sheet "Quy tắc trừ điểm"):
+   Chất lượng Mức 1/-10, Mức 2/-20, Mức 3/-40 (tái phạm Mức 1 nhân đôi dần theo Escalation_Multiplier=2,
+   loại khi vi phạm lần 3); Giao hàng trễ hạn <5 ngày/-2, 5–<10 ngày/-4 (theo lỗi NCC, không trừ nếu
+   khách quan); "Giao gấp/ngoài giờ" +1 (tối đa 1 lần/kỳ) thuộc tiêu chí Hỗ trợ nổi trội (HOTRO), không
+   phải Giao hàng. QUALITY còn minh hoạ "hasHistory" (đã có Evidence lịch sử) để demo hành vi chặn xoá
+   cứng — chỉ cho tắt Active. */
 secAttachRules(SEC_CRITERIA_DATA.noidia,'CHATLUONG',[
   secRule({name:'Mức 1 – Nhẹ',object:'Case',points:-10,dateField:'CreatedDate',escalationGroup:'QUALITY_MINOR',
     escalationMultiplier:2,maxOccBeforeAction:3,actionOnMax:'Exclude_Supplier',hasHistory:true,
     conditions:[secCond({field:'Severity__c',operator:'=',value:'Mức 1 – Nhẹ'})]}),
   secRule({name:'Mức 2 – Nặng',object:'Case',points:-20,dateField:'CreatedDate',
     conditions:[secCond({field:'Severity__c',operator:'=',value:'Mức 2 – Nặng'})]}),
+  secRule({name:'Mức 3 – Nghiêm trọng',object:'Case',points:-40,dateField:'CreatedDate',actionOnMax:'Exclude_Supplier',maxOccBeforeAction:1,
+    conditions:[secCond({field:'Severity__c',operator:'=',value:'Mức 3 – Nghiêm trọng'})]}),
 ]);
 secAttachRules(SEC_CRITERIA_DATA.noidia,'GIAOHANG',[
-  secRule({name:'Giao trễ do lỗi NCC',object:'Shipment__c',points:-10,dateField:'Actual_Delivery_Date__c',
-    conditions:[secCond({field:'Delay_Reason__c',operator:'=',value:'Lỗi NCC'}),secCond({field:'Delay_Days__c',operator:'>',value:'0'})]}),
-  secRule({name:'Giao gấp hoàn thành tốt',object:'Shipment__c',points:5,applyMode:'Once_Per_Period',maxOccPerPeriod:1,
+  secRule({name:'Trễ hạn dưới 5 ngày',object:'Shipment__c',points:-2,dateField:'Actual_Delivery_Date__c',
+    conditions:[secCond({field:'Delay_Reason__c',operator:'=',value:'Lỗi NCC'}),secCond({field:'Delay_Days__c',operator:'<',value:'5'})]}),
+  secRule({name:'Trễ hạn 5–<10 ngày',object:'Shipment__c',points:-4,dateField:'Actual_Delivery_Date__c',
+    conditions:[secCond({field:'Delay_Reason__c',operator:'=',value:'Lỗi NCC'}),secCond({field:'Delay_Days__c',operator:'between',value:'5',valueMax:'9'})]}),
+]);
+secAttachRules(SEC_CRITERIA_DATA.noidia,'HOTRO',[
+  secRule({name:'Giao gấp/ngoài giờ (2–4h, lễ/CN)',object:'Shipment__c',points:1,applyMode:'Once_Per_Period',maxOccPerPeriod:1,
     dateField:'Actual_Delivery_Date__c',conditions:[secCond({field:'Urgent_Delivery__c',operator:'=',value:'true'})]}),
 ]);
 secAttachRules(SEC_CRITERIA_DATA.nhapkhau,'CHATLUONG',[
@@ -3925,7 +3932,10 @@ function secVendorResultCardHTML(vendorName){
   }
   const {batch,supplier}=m;
   const rows=supplier.results.map(r=>`<tr><td>${r.criteria}</td><td class="num">${r.base}</td><td class="num">${r.deduction?'-'+r.deduction:'0'}</td><td class="num">${r.bonus?'+'+r.bonus:'0'}</td><td class="num"><b>${r.final}</b></td></tr>`).join('');
-  return card('Kết quả đánh giá NCC — '+batch.name, `
+  const exclusionBanner = supplier.exclusionTriggered
+    ? banner('err', `<b>⚠ Cờ loại trừ đã kích hoạt</b> — ${supplier.exclusionReason||'Chạm ngưỡng tái phạm theo cấu hình Rule'}. Cần người phê duyệt xem xét quyết định có loại NCC hay không.`)
+    : '';
+  return card('Kết quả đánh giá NCC — '+batch.name, `${exclusionBanner}
     <div class="wf-muted" style="font-size:12px;margin-bottom:8px">Tổng điểm: <b>${supplier.totalScore}/100</b> · Xếp loại: ${pill(secResultRatingPillCls(supplier.rating),supplier.rating)} · Khoảng ngày: ${secDateVN(batch.fromDate)} – ${secDateVN(batch.toDate)} · Trạng thái: ${SEC_BATCH_STATUS_LABEL[supplier.status]||supplier.status}</div>
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm cơ sở</th><th class="num">Trừ</th><th class="num">Cộng</th><th class="num">Điểm đạt</th></tr></thead><tbody>${rows}</tbody></table></div>
     <div style="margin-top:8px"><a onclick="openSecBatchModal(${batch.id})" style="cursor:pointer">Xem chi tiết Đợt đánh giá "${batch.name}" →</a></div>`,
@@ -4196,17 +4206,23 @@ const SEC_BATCH_STATUS_LABEL={Draft:'Nháp',Calculating:'Đang tính điểm',Ca
 let SEC_BATCHES=[
   {id:secBatchId(),name:'Đánh giá NCC Quý 1/2026',fromDate:'2026-01-01',toDate:'2026-03-31',status:'Calculating',
    suppliers:[
-     /* Minh hoạ theo đúng kịch bản mục 7 của spec: 3 Case lỗi "Mức 1 – Nhẹ" tái phạm trong kỳ (Chất lượng
-        bị trừ nhiều), 1 Shipment trễ do lỗi NCC (Giao hàng bị trừ) + 1 Shipment giao gấp (được cộng lại). */
-     {name:'Cty Hóa chất Tân Tiến',group:'noidia',status:'Calculated',totalScore:65,rating:'D',results:[
-       {criteria:'Chất lượng hàng hóa/dịch vụ',base:40,deduction:30,bonus:0,final:10},
-       {criteria:'Giao hàng đúng hạn, linh hoạt theo yêu cầu',base:10,deduction:10,bonus:5,final:5},
+     /* Minh hoạ theo đúng kịch bản mục 7 của spec + đúng điểm trừ/cộng thật lấy từ
+        ".docs/ĐÁNH GIÁ NCC NỘI ĐỊA.xlsx": 3 Case lỗi "Mức 1 – Nhẹ" tái phạm trong kỳ → -10, -20 (x2), -40 (x4)
+        = -70, vượt quá điểm cơ sở 40 nên Điểm đạt clamp về 0 và tự kích hoạt cờ loại trừ (đúng ngưỡng "loại
+        khi vi phạm lần thứ 3" trong file gốc); 1 Shipment trễ hạn 5–<10 ngày do lỗi NCC (-4); 1 Shipment
+        giao gấp hoàn thành (+1, thuộc Hỗ trợ nổi trội, giới hạn 1 lần/kỳ). Tổng 56đ → Xếp loại E (0–dưới 60,
+        "Không đạt" theo đúng bảng Xếp loại trong file gốc). */
+     {name:'Cty Hóa chất Tân Tiến',group:'noidia',status:'Calculated',totalScore:56,rating:'E',
+      exclusionTriggered:true,exclusionReason:'Vi phạm Chất lượng Mức 1 – Nhẹ lần thứ 3 trong kỳ (tái phạm)',
+      results:[
+       {criteria:'Chất lượng hàng hóa/dịch vụ',base:40,deduction:70,bonus:0,final:0},
+       {criteria:'Giao hàng đúng hạn, linh hoạt theo yêu cầu',base:10,deduction:4,bonus:0,final:6},
        {criteria:'Giá bán, kèm phương thức giao nhận',base:15,deduction:0,bonus:0,final:15},
        {criteria:'Phương thức thanh toán',base:10,deduction:0,bonus:0,final:10},
        {criteria:'Dịch vụ sau bán hàng (hỗ trợ KT, xử lý sự cố, chuyển giao CN)',base:10,deduction:0,bonus:0,final:10},
        {criteria:'Ổn định nguồn cung, đáp ứng nhanh, kịp thời',base:5,deduction:0,bonus:0,final:5},
        {criteria:'Chứng nhận môi trường, hoạt động ESG và uy tín NCC',base:5,deduction:0,bonus:0,final:5},
-       {criteria:'Hỗ trợ nổi trội',base:5,deduction:0,bonus:0,final:5},
+       {criteria:'Hỗ trợ nổi trội',base:5,deduction:0,bonus:1,final:5},
      ]},
      {name:'ONE Line',group:'dichvu',status:'Chưa tính'},
    ]},
