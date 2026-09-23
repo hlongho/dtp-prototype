@@ -3966,7 +3966,7 @@ function secVendorResultCardHTML(vendorName){
     const isManual=secManualCriteriaMode(supplier.group,r.code)==='Manual';
     if(isManual){
       return `<tr><td>${r.criteria} ${pill('info','Nhập tay')}</td><td class="num">${r.base}</td><td class="num">—</td><td class="num">—</td>
-        <td class="num"><input type="number" min="0" max="${r.base}" class="mass-sel num" style="width:70px" id="sec-manual-${r.code}" value="${r.final}"></td></tr>`;
+        <td class="num"><input type="number" min="0" max="${r.base}" class="mass-sel num" style="width:70px" id="sec-manual-${r.code}" data-orig="${r.final}" value="${r.final}" oninput="secCheckManualDirty()"></td></tr>`;
     }
     const hasEvidence = r.evidence && r.evidence.length>0;
     const key = vendorName+'|'+batch.id+'|'+r.code;
@@ -3990,11 +3990,20 @@ function secVendorResultCardHTML(vendorName){
     <div class="wf-muted" style="font-size:12px;margin-bottom:8px">Tổng điểm: <b>${supplier.totalScore}/100</b> · Xếp loại: ${pill(secResultRatingPillCls(supplier.rating),supplier.rating)} · Trạng thái: ${SEC_BATCH_STATUS_LABEL[supplier.status]||supplier.status}</div>
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm cơ sở</th><th class="num">Trừ</th><th class="num">Cộng</th><th class="num">Điểm đạt</th></tr></thead><tbody>${rows}</tbody></table></div>
     ${hasManual?`<div class="wf-muted" style="font-size:11px;margin-top:6px">Dòng "Nhập tay": để trống rồi Lưu = tự động lấy điểm tròn (tối đa).</div>
-    <div style="margin-top:6px"><button class="btn sm pri" onclick="secSaveManualScores('${vendorName.replace(/'/g,"\\'")}')">Lưu điểm tay</button></div>`:''}
+    <div style="margin-top:6px"><button id="sec-save-manual-btn" class="btn sm pri" disabled onclick="secSaveManualScores('${vendorName.replace(/'/g,"\\'")}')">Lưu điểm tay</button></div>`:''}
     <div style="margin-top:8px"><a onclick="openSecBatchModal(${batch.id})" style="cursor:pointer">Xem chi tiết Đợt đánh giá "${batch.name}" →</a></div>`,
     {n:String(supplier.results.length)});
 }
 function secManualCriteriaMode(group,code){ const c=(SEC_CRITERIA_DATA[group]||[]).find(x=>x.code===code); return c?c.scoringMode:'Automatic'; }
+/* Chỉ bật nút "Lưu điểm tay" khi có ít nhất 1 ô Nhập tay đang khác giá trị đã lưu (data-orig) — tránh
+   lưu vô ích khi chưa ai sửa gì. */
+function secCheckManualDirty(){
+  const inputs=document.querySelectorAll('input[id^="sec-manual-"]');
+  const btn=document.getElementById('sec-save-manual-btn'); if(!btn) return;
+  let dirty=false;
+  inputs.forEach(inp=>{ if(String(inp.value)!==String(inp.dataset.orig)) dirty=true; });
+  btn.disabled=!dirty;
+}
 function secSaveManualScores(vendorName){
   const m=secFindLatestResult(vendorName); if(!m) return;
   const {supplier}=m;
