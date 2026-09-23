@@ -3906,6 +3906,21 @@ function secCriteriaCardView(c){
     : `<div class="po-hint">Chưa có quy tắc nào cho tiêu chí này.</div>`;
   return card(`${c.seq}. ${c.name}`, `<div class="wf-muted" style="font-size:12px;margin-bottom:8px">Điểm tối đa: <b>${c.maxScore}</b> · Tỷ trọng: <b>${c.weight}%</b>${c.active===false?' · Tạm ngưng':''}</div>${body}`, {n:String(c.rules.length)});
 }
+/* Card "Tiêu chí đánh giá NCC" trên trang Chi tiết NCC — đọc thẳng từ cấu hình Setup (SEC_CRITERIA_DATA)
+   theo đúng nhóm NCC, thay vì bộ tiêu chí rời rạc cũ (NCC_CRITERIA/NCC_PROFILES) — tránh 2 nguồn tiêu
+   chí khác nhau cho cùng 1 NCC. Chỉ hiển thị (read-only) + link sang màn hình Setup để sửa thật sự. */
+function secGoToConfig(group){ SEC_TAB=group; SEC_SUBTAB='rules'; SEC_EDIT=false; go('sec_config'); }
+function secVendorCriteriaRowsHTML(group){
+  return (SEC_CRITERIA_DATA[group]||[]).map(c=>`<tr><td>${c.seq}. ${c.name}</td><td class="num">${c.maxScore}</td><td class="num">${c.weight}%</td><td class="num">${c.rules.length}</td><td>${c.active!==false?pill('ok','Active'):pill('mut','Ngưng')}</td></tr>`).join('');
+}
+function secVendorCriteriaCardHTML(group){
+  const list=SEC_CRITERIA_DATA[group]||[];
+  const body = list.length
+    ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm tối đa</th><th class="num">Tỷ trọng</th><th class="num">Số Rule</th><th>Trạng thái</th></tr></thead><tbody>${secVendorCriteriaRowsHTML(group)}</tbody></table></div>
+       <div style="margin-top:8px"><a onclick="secGoToConfig('${group}')" style="cursor:pointer">Xem/Sửa cấu hình đầy đủ tại màn hình Cấu hình Đánh giá NCC →</a></div>`
+    : `<div class="po-hint">Nhóm NCC này chưa có tiêu chí nào được cấu hình. <a onclick="secGoToConfig('${group}')" style="cursor:pointer">Cấu hình ngay →</a></div>`;
+  return card('Tiêu chí đánh giá NCC (theo cấu hình Setup)', body, {n:String(list.length)});
+}
 function secRulesViewHTML(){
   const list=SEC_CRITERIA_DATA[SEC_TAB];
   return `<div id="sec-weight-banner">${secWeightBannerInner(list)}</div>
@@ -4417,6 +4432,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
        ${card('Thông tin nhà cung cấp', fg([['Tên NCC',vendorName],['Mã số thuế',info.mst],['Loại NCC','Nội địa'],
          ['Nhóm hàng cung cấp',info.nhom],['Người liên hệ',info.contact],['Điện thoại',info.phone],
          ['Email',info.email],['Địa chỉ',info.address],['Điều khoản TT',info.tt],['Trạng thái',pill('ok','Đang hợp tác')]]))}
+       ${secVendorCriteriaCardHTML('noidia')}
        ${card('Lịch sử đánh giá', '<div class="po-hint">Chưa có kỳ đánh giá nào cho NCC này.</div>', {r:`<button class="btn sm" onclick="openNccEvalModal('${vendorName}')">＋ Đánh giá NCC</button>`})}
        ${vpbCardHTML(vendorName)}
        </div>${activity([])}</div></div>`;
@@ -4432,7 +4448,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
          ['Nhóm hàng cung cấp',info.nhom],['Người liên hệ',info.contact],['Điện thoại',info.phone],
          ['Email',info.email],['Địa chỉ',info.address],['Điều khoản TT',info.tt],
          ['Đánh giá tổng',total+'/100 · Xếp loại '+g],['Trạng thái',pill('ok','Đang hợp tác')]]))}
-       ${card('Tiêu chí đánh giá NCC (kỳ '+e.period+')', nccCriteriaRowsHTML(e.picks), {n:'8'})}
+       ${secVendorCriteriaCardHTML('noidia')}
        ${card('Lịch sử đánh giá', tbl([{t:'Kỳ đánh giá'},{t:'Ngày'},{t:'Điểm'},{t:'Xếp loại'},{t:'Người đánh giá'},{t:'Kết luận'}], nccEvalsListRows(vendorName)),{n:String(NCC_EVALS.filter(x=>x.vendor===vendorName).length),r:`<button class="btn sm" onclick="openNccEvalModal('${vendorName}')">＋ Đánh giá NCC</button>`})}
        ${vpbCardHTML(vendorName)}
        </div>
@@ -4452,6 +4468,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
      ${card('Thông tin nhà cung cấp', fg([['Tên NCC',vendorName],['Mã số thuế',info.mst],['Loại NCC',loaiLabel],
        ['Nhóm hàng/dịch vụ',info.nhom],['Người liên hệ',info.contact],['Điện thoại',info.phone],
        ['Email',info.email],['Địa chỉ',info.address],['Điều khoản TT',info.tt],['Trạng thái',pill('ok','Đang hợp tác')]]))}
+     ${secVendorCriteriaCardHTML(type)}
      ${card('Lịch sử đánh giá', '<div class="po-hint">Chưa có kỳ đánh giá nào cho NCC này.</div>', {r:`<button class="btn sm" onclick="openNpfEvalModal('${type}','${vendorName.replace(/'/g,"\\'")}')">＋ Đánh giá NCC</button>`})}
      ${vpbAllowed(type)?vpbCardHTML(vendorName):''}
      </div>${activity([])}</div></div>`;
@@ -4467,7 +4484,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
        ['Nhóm hàng/dịch vụ',info.nhom],['Người liên hệ',info.contact],['Điện thoại',info.phone],
        ['Email',info.email],['Địa chỉ',info.address],['Điều khoản TT',info.tt],
        ['Đánh giá tổng',total+'/100 · Xếp loại '+g.g],['Trạng thái',pill('ok','Đang hợp tác')]]))}
-     ${card('Tiêu chí đánh giá NCC (kỳ '+e.period+')', npfCriteriaRowsHTML(type,e.picks), {n:String(profile.criteria.length)})}
+     ${secVendorCriteriaCardHTML(type)}
      ${card('Lịch sử đánh giá', tbl([{t:'Kỳ đánh giá'},{t:'Ngày'},{t:'Điểm'},{t:'Xếp loại'},{t:'Người đánh giá'}], npfEvalsListRows(type,vendorName)),{n:String(NCC_EVALS_EXT.filter(x=>x.type===type&&x.vendor===vendorName).length),r:`<button class="btn sm" onclick="openNpfEvalModal('${type}','${vendorName.replace(/'/g,"\\'")}')">＋ Đánh giá NCC</button>`})}
      ${vpbAllowed(type)?vpbCardHTML(vendorName):''}
      </div>
