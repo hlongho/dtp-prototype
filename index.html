@@ -3797,8 +3797,9 @@ const SEC_GROUP_LABEL={noidia:'Nội địa',nhapkhau:'Nhập khẩu',dichvu:'D�
 const SEC_GROUP_ICO={noidia:'⭐',nhapkhau:'🚢',dichvu:'🛠️'};
 function secBuildCriteria(list){
   return list.map((c,i)=>({id:secId(),code:(c.key||c.name).toString().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,15),
-    name:c.name,maxScore:c.max,weight:c.max,seq:i+1,active:true,hasHistory:false,rules:[]}));
+    name:c.name,maxScore:c.max,weight:c.max,seq:i+1,active:true,hasHistory:false,scoringMode:'Automatic',rules:[]}));
 }
+function secSetScoringMode(list,code,mode){ const c=list.find(x=>x.code===code); if(c){ c.scoringMode=mode; if(mode==='Manual') c.rules=[]; } }
 let SEC_CRITERIA_DATA={
   noidia: secBuildCriteria(NCC_CRITERIA),
   nhapkhau: secBuildCriteria(NCC_PROFILES.nhapkhau.criteria),
@@ -3840,6 +3841,11 @@ secAttachRules(SEC_CRITERIA_DATA.dichvu,'CHATLUONG',[
   secRule({name:'Có lỗi ảnh hưởng tiến độ',object:'Case',points:-10,dateField:'CreatedDate',
     conditions:[secCond({field:'Severity__c',operator:'=',value:'Có lỗi ảnh hưởng tiến độ'})]}),
 ]);
+/* "Khả năng xử lý sự cố" và "Mức độ hợp tác tốt" (NCC dịch vụ) không có field/điều kiện định lượng được
+   trong file nguồn — thuần đánh giá chủ quan của người chấm ("Chủ động xử lý...", "Thái độ hợp tác tốt"...)
+   → đánh dấu Nhập tay (Scoring_Mode__c=Manual) ngay từ Setup, không cấu hình Rule cho 2 tiêu chí này. */
+secSetScoringMode(SEC_CRITERIA_DATA.dichvu,'XULYSUCO','Manual');
+secSetScoringMode(SEC_CRITERIA_DATA.dichvu,'HOPTAC','Manual');
 let SEC_THRESH_SEQ=1;
 let SEC_THRESHOLDS={
   noidia:[
@@ -3895,11 +3901,14 @@ function secRuleRowView(r){
     <td>${r.active!==false?pill('ok','Active'):pill('mut','Ngưng')}</td></tr>`;
 }
 function secCriteriaCardView(c){
-  const body = c.rules.length
-    ? `<div class="tbl-wrap"><table class="tbl sm"><thead><tr><th>Tên mức</th><th>Object nguồn</th><th class="num">Điểm</th><th>Cách áp dụng</th><th>Trạng thái</th></tr></thead>
+  const isManual = c.scoringMode==='Manual';
+  const body = isManual
+    ? `<div class="po-hint">Nhập tay khi đánh giá (không cấu hình Rule) — nếu người đánh giá không nhập gì, mặc định lấy điểm tròn (tối đa ${c.maxScore}đ).</div>`
+    : (c.rules.length
+      ? `<div class="tbl-wrap"><table class="tbl sm"><thead><tr><th>Tên mức</th><th>Object nguồn</th><th class="num">Điểm</th><th>Cách áp dụng</th><th>Trạng thái</th></tr></thead>
        <tbody>${c.rules.map(secRuleRowView).join('')}</tbody></table></div>`
-    : `<div class="po-hint">Chưa có quy tắc nào cho tiêu chí này.</div>`;
-  return card(`${c.seq}. ${c.name}`, `<div class="wf-muted" style="font-size:12px;margin-bottom:8px">Điểm tối đa: <b>${c.maxScore}</b> · Tỷ trọng: <b>${c.weight}%</b>${c.active===false?' · Tạm ngưng':''}</div>${body}`, {n:String(c.rules.length)});
+      : `<div class="po-hint">Chưa có quy tắc nào cho tiêu chí này.</div>`);
+  return card(`${c.seq}. ${c.name}`, `<div class="wf-muted" style="font-size:12px;margin-bottom:8px">Điểm tối đa: <b>${c.maxScore}</b> · Tỷ trọng: <b>${c.weight}%</b> · ${isManual?pill('info','Nhập tay'):pill('mut','Tự động (Rule)')}${c.active===false?' · Tạm ngưng':''}</div>${body}`, {n: isManual?'':String(c.rules.length)});
 }
 function secGoToConfig(group){ SEC_TAB=group; SEC_SUBTAB='rules'; SEC_EDIT=false; go('sec_config'); }
 /* Card "Kết quả đánh giá NCC" trên trang Chi tiết NCC — thay cho card "Tiêu chí đánh giá NCC" cũ.
@@ -3949,7 +3958,7 @@ function secCritGet(cid){ return SEC_DRAFT_CRITERIA.find(c=>c.id===cid); }
 function secRuleGet(cid,rid){ const c=secCritGet(cid); return c&&c.rules.find(r=>r.id===rid); }
 function secCondGet(cid,rid,coid){ const r=secRuleGet(cid,rid); return r&&r.conditions.find(x=>x.id===coid); }
 function secSetCritField(cid,field,val){ const c=secCritGet(cid); if(!c) return; c[field]=(field==='maxScore'||field==='weight')?(parseFloat(val)||0):(field==='active'?val:val); secRefreshWeightBanner(); }
-function secAddCriteria(){ SEC_DRAFT_CRITERIA.push({id:secId(),code:'NEW'+secId(),name:'',maxScore:0,weight:0,seq:SEC_DRAFT_CRITERIA.length+1,active:true,hasHistory:false,rules:[]}); secRenderBody(); }
+function secAddCriteria(){ SEC_DRAFT_CRITERIA.push({id:secId(),code:'NEW'+secId(),name:'',maxScore:0,weight:0,seq:SEC_DRAFT_CRITERIA.length+1,active:true,hasHistory:false,scoringMode:'Automatic',rules:[]}); secRenderBody(); }
 function secRemoveCriteria(cid){
   const c=secCritGet(cid); if(!c) return;
   if(c.hasHistory){ toast('Không thể xoá — tiêu chí đã có dữ liệu đánh giá lịch sử. Hãy tắt Active thay vì xoá.'); return; }
@@ -4091,8 +4100,18 @@ function secRuleEditBlock(cid,r){
     <div id="sec-prev-${r.id}" class="wf-muted" style="font-size:12px;margin-top:8px;padding:8px;background:var(--bg);border-radius:6px">${secRuleSentence(r)}</div>
   </div>`;
 }
+function secSetCritScoringMode(cid,mode){
+  const c=secCritGet(cid); if(!c) return;
+  c.scoringMode=mode;
+  if(mode==='Manual') c.rules=[];
+  secRenderBody();
+}
 function secCritEditBlock(c){
+  const isManual=c.scoringMode==='Manual';
   const rulesHtml=c.rules.map(r=>secRuleEditBlock(c.id,r)).join('') || '<div class="po-hint">Chưa có mức nào.</div>';
+  const bodyInner = isManual
+    ? `<div class="po-hint">Nhập tay khi đánh giá — không cấu hình Rule cho tiêu chí này. Nếu người đánh giá không nhập gì, mặc định lấy điểm tròn (tối đa ${c.maxScore}đ).</div>`
+    : `${rulesHtml}<button class="btn sm" onclick="secAddRule(${c.id})">＋ Thêm mức</button>`;
   return `<div class="po-card" style="margin-bottom:10px">
     <div class="po-card-h" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span style="font-weight:700">${c.seq}.</span>
@@ -4102,7 +4121,11 @@ function secCritEditBlock(c){
       <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" ${c.active!==false?'checked':''} onchange="secSetCritField(${c.id},'active',this.checked)">Active</label>
       <button class="btn sm" style="margin-left:auto" onclick="secRemoveCriteria(${c.id})">🗑 Xoá tiêu chí</button>
     </div>
-    <div style="padding:10px 12px">${rulesHtml}<button class="btn sm" onclick="secAddRule(${c.id})">＋ Thêm mức</button></div>
+    <div class="ptf-row" style="padding:8px 12px 0;gap:16px;font-size:12px">
+      <label style="display:flex;align-items:center;gap:4px"><input type="radio" name="sec-scoremode-${c.id}" ${!isManual?'checked':''} onchange="secSetCritScoringMode(${c.id},'Automatic')">Tự động (theo Rule)</label>
+      <label style="display:flex;align-items:center;gap:4px"><input type="radio" name="sec-scoremode-${c.id}" ${isManual?'checked':''} onchange="secSetCritScoringMode(${c.id},'Manual')">Nhập tay khi đánh giá</label>
+    </div>
+    <div style="padding:10px 12px">${bodyInner}</div>
   </div>`;
 }
 function secRulesEditHTML(){
