@@ -4475,7 +4475,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
          ['Nhóm hàng cung cấp',info.nhom],['Người liên hệ',info.contact],['Điện thoại',info.phone],
          ['Email',info.email],['Địa chỉ',info.address],['Điều khoản TT',info.tt],['Trạng thái',pill('ok','Đang hợp tác')]]))}
        ${secVendorResultCardHTML(vendorName)}
-       ${card('Lịch sử đánh giá', '<div class="po-hint">Chưa có kỳ đánh giá nào cho NCC này.</div>', {r:`<button class="btn sm" onclick="openNccEvalModal('${vendorName}')">＋ Đánh giá NCC</button>`})}
+       ${card('Lịch sử đánh giá', '<div class="po-hint">Chưa có kỳ đánh giá nào cho NCC này.</div>')}
        ${vpbCardHTML(vendorName)}
        </div>${activity([])}</div></div>`;
      }
@@ -4491,7 +4491,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
          ['Email',info.email],['Địa chỉ',info.address],['Điều khoản TT',info.tt],
          ['Đánh giá tổng',total+'/100 · Xếp loại '+g],['Trạng thái',pill('ok','Đang hợp tác')]]))}
        ${secVendorResultCardHTML(vendorName)}
-       ${card('Lịch sử đánh giá', tbl([{t:'Kỳ đánh giá'},{t:'Ngày'},{t:'Điểm'},{t:'Xếp loại'},{t:'Người đánh giá'},{t:'Kết luận'}], nccEvalsListRows(vendorName)),{n:String(NCC_EVALS.filter(x=>x.vendor===vendorName).length),r:`<button class="btn sm" onclick="openNccEvalModal('${vendorName}')">＋ Đánh giá NCC</button>`})}
+       ${card('Lịch sử đánh giá', tbl([{t:'Kỳ đánh giá'},{t:'Ngày'},{t:'Điểm'},{t:'Xếp loại'},{t:'Người đánh giá'},{t:'Kết luận'}], nccEvalsListRows(vendorName)),{n:String(NCC_EVALS.filter(x=>x.vendor===vendorName).length)})}
        ${vpbCardHTML(vendorName)}
        </div>
        ${activity([['⚠','QA ghi nhận lô keo lỗi','QA · 06/2026'],['📦','17 đơn mua hoàn tất','—']])}
@@ -4511,7 +4511,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
        ['Nhóm hàng/dịch vụ',info.nhom],['Người liên hệ',info.contact],['Điện thoại',info.phone],
        ['Email',info.email],['Địa chỉ',info.address],['Điều khoản TT',info.tt],['Trạng thái',pill('ok','Đang hợp tác')]]))}
      ${secVendorResultCardHTML(vendorName)}
-     ${card('Lịch sử đánh giá', '<div class="po-hint">Chưa có kỳ đánh giá nào cho NCC này.</div>', {r:`<button class="btn sm" onclick="openNpfEvalModal('${type}','${vendorName.replace(/'/g,"\\'")}')">＋ Đánh giá NCC</button>`})}
+     ${card('Lịch sử đánh giá', '<div class="po-hint">Chưa có kỳ đánh giá nào cho NCC này.</div>')}
      ${vpbAllowed(type)?vpbCardHTML(vendorName):''}
      </div>${activity([])}</div></div>`;
    }
@@ -4527,7 +4527,7 @@ S.vendor = ()=> appnav('Mua hàng','NCC',['Trang chủ','Phiếu yêu cầu','Đ
        ['Email',info.email],['Địa chỉ',info.address],['Điều khoản TT',info.tt],
        ['Đánh giá tổng',total+'/100 · Xếp loại '+g.g],['Trạng thái',pill('ok','Đang hợp tác')]]))}
      ${secVendorResultCardHTML(vendorName)}
-     ${card('Lịch sử đánh giá', tbl([{t:'Kỳ đánh giá'},{t:'Ngày'},{t:'Điểm'},{t:'Xếp loại'},{t:'Người đánh giá'}], npfEvalsListRows(type,vendorName)),{n:String(NCC_EVALS_EXT.filter(x=>x.type===type&&x.vendor===vendorName).length),r:`<button class="btn sm" onclick="openNpfEvalModal('${type}','${vendorName.replace(/'/g,"\\'")}')">＋ Đánh giá NCC</button>`})}
+     ${card('Lịch sử đánh giá', tbl([{t:'Kỳ đánh giá'},{t:'Ngày'},{t:'Điểm'},{t:'Xếp loại'},{t:'Người đánh giá'}], npfEvalsListRows(type,vendorName)),{n:String(NCC_EVALS_EXT.filter(x=>x.type===type&&x.vendor===vendorName).length)})}
      ${vpbAllowed(type)?vpbCardHTML(vendorName):''}
      </div>
      ${activity([['📦','Đơn hàng gần nhất đã hoàn tất','—']])}
