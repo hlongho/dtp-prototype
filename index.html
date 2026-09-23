@@ -3842,6 +3842,18 @@ secAttachRules(SEC_CRITERIA_DATA.noidia,'HOTRO',[
   secRule({name:'Giao gấp/ngoài giờ (2–4h, lễ/CN)',object:'Shipment__c',supplierField:'Supplier__c',points:1,applyMode:'Once_Per_Period',maxOccPerPeriod:1,
     dateField:'Actual_Delivery_Date__c',conditions:[secCond({field:'Urgent_Delivery__c',operator:'=',value:'true'})]}),
 ]);
+secAttachRules(SEC_CRITERIA_DATA.noidia,'GIABAN',[
+  secRule({name:'Giá cao hơn tham chiếu ≤5%',object:'Quote__c',supplierField:'Account__c',points:-5,dateField:'Quote_Date__c',
+    conditions:[secCond({field:'Unit_Price__c',operator:'>',compareMode:true,compareToField:'Reference_Price__c'})]}),
+]);
+secAttachRules(SEC_CRITERIA_DATA.noidia,'THANHTOAN',[
+  secRule({name:'Đặt cọc/trả trước một phần',object:'PurchaseOrder__c',supplierField:'Supplier__c',points:-5,dateField:'Order_Date__c',
+    conditions:[secCond({field:'Payment_Term__c',operator:'=',value:'Đặt cọc trước'})]}),
+]);
+secAttachRules(SEC_CRITERIA_DATA.noidia,'MOITRUONG',[
+  secRule({name:'Thiếu 1 chứng nhận ESG',object:'Account',points:-1,snapshotAll:true,
+    conditions:[secCond({field:'ESG_Certified__c',operator:'=',value:'false'})]}),
+]);
 secAttachRules(SEC_CRITERIA_DATA.nhapkhau,'CHATLUONG',[
   secRule({name:'Có lỗi nhỏ nhưng chấp nhận được',object:'Case',supplierField:'AccountId',points:-5,dateField:'CreatedDate',
     conditions:[secCond({field:'Severity__c',operator:'=',value:'Có lỗi nhỏ nhưng chấp nhận được'})]}),
@@ -3934,6 +3946,8 @@ function secGoToConfig(group){ SEC_TAB=group; SEC_SUBTAB='rules'; SEC_EDIT=false
    Đọc kết quả tính điểm gần nhất (breakdown theo Criteria, đúng field của Supplier_Evaluation_Result__c:
    Base_Score/Total_Deduction/Total_Bonus/Final_Score) từ Đợt đánh giá (SEC_BATCHES) mà NCC này đã tham
    gia — NCC nào chưa có Đợt nào tính xong thì hiện trạng thái rỗng. */
+let SEC_EXPANDED_RESULT=new Set();
+function secToggleResultExpand(key){ if(SEC_EXPANDED_RESULT.has(key)) SEC_EXPANDED_RESULT.delete(key); else SEC_EXPANDED_RESULT.add(key); go('vendor'); }
 function secFindLatestResult(vendorName){
   const matches=[];
   SEC_BATCHES.forEach(b=>{ const s=b.suppliers.find(x=>x.name===vendorName); if(s&&s.results&&s.results.length) matches.push({batch:b,supplier:s}); });
@@ -3954,7 +3968,20 @@ function secVendorResultCardHTML(vendorName){
       return `<tr><td>${r.criteria} ${pill('info','Nhập tay')}</td><td class="num">${r.base}</td><td class="num">—</td><td class="num">—</td>
         <td class="num"><input type="number" min="0" max="${r.base}" class="mass-sel num" style="width:70px" id="sec-manual-${r.code}" value="${r.final}"></td></tr>`;
     }
-    return `<tr><td>${r.criteria}</td><td class="num">${r.base}</td><td class="num">${r.deduction?'-'+r.deduction:'0'}</td><td class="num">${r.bonus?'+'+r.bonus:'0'}</td><td class="num"><b>${r.final}</b></td></tr>`;
+    const hasEvidence = r.evidence && r.evidence.length>0;
+    const key = vendorName+'|'+batch.id+'|'+r.code;
+    const expanded = hasEvidence && SEC_EXPANDED_RESULT.has(key);
+    const nameCell = hasEvidence
+      ? `<a onclick="secToggleResultExpand('${key.replace(/'/g,"\\'")}')" style="cursor:pointer">${r.criteria} <span class="wf-muted" style="font-size:10px">${expanded?'▾':'▸'} Chi tiết</span></a>`
+      : r.criteria;
+    let out=`<tr><td>${nameCell}</td><td class="num">${r.base}</td><td class="num">${r.deduction?'-'+r.deduction:'0'}</td><td class="num">${r.bonus?'+'+r.bonus:'0'}</td><td class="num"><b>${r.final}</b></td></tr>`;
+    if(expanded){
+      const evRows=r.evidence.map(e=>`<tr><td class="wf-muted">↳ ${e.source}</td><td class="wf-muted">${e.rule}</td><td class="wf-muted">${e.date?secDateVN(e.date):'—'}</td><td class="num">${e.points>0?'+':''}${e.points}</td></tr>`).join('');
+      out+=`<tr><td colspan="5" style="padding:0 0 8px 20px;background:var(--bg)">
+        <div class="tbl-wrap"><table class="tbl sm" style="margin:0"><thead><tr><th>Record nguồn</th><th>Rule áp dụng</th><th>Ngày xảy ra</th><th class="num">Điểm áp dụng</th></tr></thead><tbody>${evRows}</tbody></table></div>
+      </td></tr>`;
+    }
+    return out;
   }).join('');
   const exclusionBanner = supplier.exclusionTriggered
     ? banner('err', `<b>⚠ Cờ loại trừ đã kích hoạt</b> — ${supplier.exclusionReason||'Chạm ngưỡng tái phạm theo cấu hình Rule'}. Cần người phê duyệt xem xét quyết định có loại NCC hay không.`)
@@ -4340,14 +4367,22 @@ let SEC_BATCHES=[
      {name:'Cty Hóa chất Tân Tiến',group:'noidia',status:'Calculated',totalScore:56,rating:'E',
       exclusionTriggered:true,exclusionReason:'Vi phạm Chất lượng Mức 1 – Nhẹ lần thứ 3 trong kỳ (tái phạm)',
       results:[
-       {criteria:'Chất lượng hàng hóa/dịch vụ',code:'CHATLUONG',base:40,deduction:70,bonus:0,final:0},
-       {criteria:'Giao hàng đúng hạn, linh hoạt theo yêu cầu',code:'GIAOHANG',base:10,deduction:4,bonus:0,final:6},
+       {criteria:'Chất lượng hàng hóa/dịch vụ',code:'CHATLUONG',base:40,deduction:70,bonus:0,final:0,evidence:[
+         {source:'Case CS-2026-0031',rule:'Mức 1 – Nhẹ (lần 1)',date:'2026-01-12',points:-10},
+         {source:'Case CS-2026-0045',rule:'Mức 1 – Nhẹ (lần 2, tái phạm ×2)',date:'2026-02-03',points:-20},
+         {source:'Case CS-2026-0058',rule:'Mức 1 – Nhẹ (lần 3, tái phạm ×4)',date:'2026-03-10',points:-40},
+       ]},
+       {criteria:'Giao hàng đúng hạn, linh hoạt theo yêu cầu',code:'GIAOHANG',base:10,deduction:4,bonus:0,final:6,evidence:[
+         {source:'Shipment SHP-2026-0087',rule:'Trễ hạn 5–<10 ngày',date:'2026-02-20',points:-4},
+       ]},
        {criteria:'Giá bán, kèm phương thức giao nhận',code:'GIABAN',base:15,deduction:0,bonus:0,final:15},
        {criteria:'Phương thức thanh toán',code:'THANHTOAN',base:10,deduction:0,bonus:0,final:10},
        {criteria:'Dịch vụ sau bán hàng (hỗ trợ KT, xử lý sự cố, chuyển giao CN)',code:'DICHVU',base:10,deduction:0,bonus:0,final:10},
        {criteria:'Ổn định nguồn cung, đáp ứng nhanh, kịp thời',code:'ONCUNG',base:5,deduction:0,bonus:0,final:5},
        {criteria:'Chứng nhận môi trường, hoạt động ESG và uy tín NCC',code:'MOITRUONG',base:5,deduction:0,bonus:0,final:5},
-       {criteria:'Hỗ trợ nổi trội',code:'HOTRO',base:5,deduction:0,bonus:1,final:5},
+       {criteria:'Hỗ trợ nổi trội',code:'HOTRO',base:5,deduction:0,bonus:1,final:5,evidence:[
+         {source:'Shipment SHP-2026-0102',rule:'Giao gấp/ngoài giờ (2–4h, lễ/CN)',date:'2026-03-05',points:1},
+       ]},
      ]},
      /* Ví dụ "đánh giá bình thường" — vài lỗi nhỏ rải rác nhưng không tái phạm, không chạm ngưỡng loại
         trừ. Điểm trừ lấy đúng theo file gốc: giao trễ dưới 5 ngày -2, giá cao hơn tham chiếu ≤5% -5,
@@ -4355,18 +4390,28 @@ let SEC_BATCHES=[
      {name:'Cty TM Hải Đăng',group:'noidia',status:'Calculated',totalScore:87,rating:'B',
       results:[
        {criteria:'Chất lượng hàng hóa/dịch vụ',code:'CHATLUONG',base:40,deduction:0,bonus:0,final:40},
-       {criteria:'Giao hàng đúng hạn, linh hoạt theo yêu cầu',code:'GIAOHANG',base:10,deduction:2,bonus:0,final:8},
-       {criteria:'Giá bán, kèm phương thức giao nhận',code:'GIABAN',base:15,deduction:5,bonus:0,final:10},
-       {criteria:'Phương thức thanh toán',code:'THANHTOAN',base:10,deduction:5,bonus:0,final:5},
+       {criteria:'Giao hàng đúng hạn, linh hoạt theo yêu cầu',code:'GIAOHANG',base:10,deduction:2,bonus:0,final:8,evidence:[
+         {source:'Shipment SHP-2026-0055',rule:'Trễ hạn dưới 5 ngày',date:'2026-01-18',points:-2},
+       ]},
+       {criteria:'Giá bán, kèm phương thức giao nhận',code:'GIABAN',base:15,deduction:5,bonus:0,final:10,evidence:[
+         {source:'Quote QUO-2026-0219',rule:'Giá cao hơn tham chiếu ≤5%',date:'2026-01-25',points:-5},
+       ]},
+       {criteria:'Phương thức thanh toán',code:'THANHTOAN',base:10,deduction:5,bonus:0,final:5,evidence:[
+         {source:'PO PO-2026-0140',rule:'Đặt cọc/trả trước một phần',date:'2026-02-08',points:-5},
+       ]},
        {criteria:'Dịch vụ sau bán hàng (hỗ trợ KT, xử lý sự cố, chuyển giao CN)',code:'DICHVU',base:10,deduction:0,bonus:0,final:10},
        {criteria:'Ổn định nguồn cung, đáp ứng nhanh, kịp thời',code:'ONCUNG',base:5,deduction:0,bonus:0,final:5},
-       {criteria:'Chứng nhận môi trường, hoạt động ESG và uy tín NCC',code:'MOITRUONG',base:5,deduction:1,bonus:0,final:4},
+       {criteria:'Chứng nhận môi trường, hoạt động ESG và uy tín NCC',code:'MOITRUONG',base:5,deduction:1,bonus:0,final:4,evidence:[
+         {source:'Cty TM Hải Đăng (Account)',rule:'Thiếu 1 chứng nhận ESG',date:'',points:-1},
+       ]},
        {criteria:'Hỗ trợ nổi trội',code:'HOTRO',base:5,deduction:0,bonus:0,final:5},
      ]},
      /* Minh hoạ tiêu chí Nhập tay (Scoring_Mode__c=Manual): "Khả năng xử lý sự cố" chưa ai nhập gì nên
         mặc định điểm tròn (10/10); "Mức độ hợp tác tốt" đã có người nhập tay 3/5 (đánh giá chủ quan). */
      {name:'ONE Line',group:'dichvu',status:'Calculated',totalScore:88,rating:'B',results:[
-       {criteria:'Chất lượng dịch vụ',code:'CHATLUONG',base:40,deduction:10,bonus:0,final:30},
+       {criteria:'Chất lượng dịch vụ',code:'CHATLUONG',base:40,deduction:10,bonus:0,final:30,evidence:[
+         {source:'Case CS-2026-0072',rule:'Có lỗi ảnh hưởng tiến độ',date:'2026-01-30',points:-10},
+       ]},
        {criteria:'Tiến độ thực hiện',code:'TIENDO',base:15,deduction:0,bonus:0,final:15},
        {criteria:'Giá dịch vụ',code:'GIA',base:15,deduction:0,bonus:0,final:15},
        {criteria:'Độ chính xác chứng từ',code:'CHUNGTU',base:5,deduction:0,bonus:0,final:5},
