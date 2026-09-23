@@ -3774,7 +3774,7 @@ S.impo = ()=> appnav('Mua hàng nhập khẩu','Đơn mua (PO)',TAB_IM,'Đơn mu
    Account (ở đây là NAV context noidia/nhapkhau/dichvu đã dùng chung toàn app). Tiêu chí+Rule+Threshold
    khởi tạo lại từ NCC_CRITERIA/NCC_PROFILES (mục tiêu: tổng tỷ trọng mỗi nhóm luôn = 100%). */
 let SEC_SEQ=1; function secId(){ return SEC_SEQ++; }
-function secRule(o){ return Object.assign({id:secId(),name:'',object:'',points:0,applyMode:'Per_Occurrence',
+function secRule(o){ return Object.assign({id:secId(),name:'',object:'',supplierField:'',points:0,applyMode:'Per_Occurrence',
   maxOccPerPeriod:1,worstCaseGroup:'',escalationGroup:'',escalationMultiplier:1,maxOccBeforeAction:'',
   actionOnMax:'None',dateField:'',snapshotAll:false,active:true,logicMode:'AND',customLogic:'',hasHistory:false,conditions:[]},o); }
 function secCond(o){ return Object.assign({id:secId(),field:'',operator:'=',value:'',valueMax:'',
@@ -3788,6 +3788,14 @@ const SEC_OBJECT_FIELDS={
   'Quote__c':[{v:'Unit_Price__c',t:'Đơn giá (Unit_Price__c)'},{v:'Reference_Price__c',t:'Giá tham chiếu (Reference_Price__c)'},{v:'Quote_Date__c',t:'Ngày báo giá (Quote_Date__c)'}],
   'PurchaseOrder__c':[{v:'Payment_Term__c',t:'Điều khoản TT (Payment_Term__c)'},{v:'Document_Error__c',t:'Sai chứng từ (Document_Error__c)'},{v:'Order_Date__c',t:'Ngày đặt hàng (Order_Date__c)'}],
   'Account':[{v:'ESG_Certified__c',t:'Chứng chỉ ESG (ESG_Certified__c)'},{v:'Active__c',t:'Đang hợp tác (Active__c)'}],
+};
+/* Field liên kết NCC (Supplier_Field_API_Name__c) — field trên Object nguồn dùng để lọc đúng record thuộc
+   về NCC đang tính điểm trong Period. Bắt buộc trừ khi Object nguồn = Account (lọc thẳng theo Id). */
+const SEC_SUPPLIER_LINK_FIELDS={
+  'Case':[{v:'AccountId',t:'Account NCC (AccountId)'}],
+  'Shipment__c':[{v:'Supplier__c',t:'Nhà cung cấp (Supplier__c)'},{v:'Purchase_Order__r.Supplier__c',t:'NCC qua PO (Purchase_Order__r.Supplier__c)'}],
+  'Quote__c':[{v:'Account__c',t:'Nhà cung cấp (Account__c)'}],
+  'PurchaseOrder__c':[{v:'Supplier__c',t:'Nhà cung cấp (Supplier__c)'}],
 };
 const SEC_OPERATOR_OPTIONS=[['=','bằng'],['!=','khác'],['>','lớn hơn'],['>=','lớn hơn hoặc bằng'],['<','nhỏ hơn'],['<=','nhỏ hơn hoặc bằng'],['between','trong khoảng'],['contains','chứa']];
 const SEC_OP_LABEL=Object.fromEntries(SEC_OPERATOR_OPTIONS);
@@ -3813,32 +3821,32 @@ function secAttachRules(list,code,rules){ const c=list.find(x=>x.code===code); i
    phải Giao hàng. QUALITY còn minh hoạ "hasHistory" (đã có Evidence lịch sử) để demo hành vi chặn xoá
    cứng — chỉ cho tắt Active. */
 secAttachRules(SEC_CRITERIA_DATA.noidia,'CHATLUONG',[
-  secRule({name:'Mức 1 – Nhẹ',object:'Case',points:-10,dateField:'CreatedDate',escalationGroup:'QUALITY_MINOR',
+  secRule({name:'Mức 1 – Nhẹ',object:'Case',supplierField:'AccountId',points:-10,dateField:'CreatedDate',escalationGroup:'QUALITY_MINOR',
     escalationMultiplier:2,maxOccBeforeAction:3,actionOnMax:'Exclude_Supplier',hasHistory:true,
     conditions:[secCond({field:'Severity__c',operator:'=',value:'Mức 1 – Nhẹ'})]}),
-  secRule({name:'Mức 2 – Nặng',object:'Case',points:-20,dateField:'CreatedDate',
+  secRule({name:'Mức 2 – Nặng',object:'Case',supplierField:'AccountId',points:-20,dateField:'CreatedDate',
     conditions:[secCond({field:'Severity__c',operator:'=',value:'Mức 2 – Nặng'})]}),
-  secRule({name:'Mức 3 – Nghiêm trọng',object:'Case',points:-40,dateField:'CreatedDate',actionOnMax:'Exclude_Supplier',maxOccBeforeAction:1,
+  secRule({name:'Mức 3 – Nghiêm trọng',object:'Case',supplierField:'AccountId',points:-40,dateField:'CreatedDate',actionOnMax:'Exclude_Supplier',maxOccBeforeAction:1,
     conditions:[secCond({field:'Severity__c',operator:'=',value:'Mức 3 – Nghiêm trọng'})]}),
 ]);
 secAttachRules(SEC_CRITERIA_DATA.noidia,'GIAOHANG',[
-  secRule({name:'Trễ hạn dưới 5 ngày',object:'Shipment__c',points:-2,dateField:'Actual_Delivery_Date__c',
+  secRule({name:'Trễ hạn dưới 5 ngày',object:'Shipment__c',supplierField:'Supplier__c',points:-2,dateField:'Actual_Delivery_Date__c',
     conditions:[secCond({field:'Delay_Reason__c',operator:'=',value:'Lỗi NCC'}),secCond({field:'Delay_Days__c',operator:'<',value:'5'})]}),
-  secRule({name:'Trễ hạn 5–<10 ngày',object:'Shipment__c',points:-4,dateField:'Actual_Delivery_Date__c',
+  secRule({name:'Trễ hạn 5–<10 ngày',object:'Shipment__c',supplierField:'Supplier__c',points:-4,dateField:'Actual_Delivery_Date__c',
     conditions:[secCond({field:'Delay_Reason__c',operator:'=',value:'Lỗi NCC'}),secCond({field:'Delay_Days__c',operator:'between',value:'5',valueMax:'9'})]}),
 ]);
 secAttachRules(SEC_CRITERIA_DATA.noidia,'HOTRO',[
-  secRule({name:'Giao gấp/ngoài giờ (2–4h, lễ/CN)',object:'Shipment__c',points:1,applyMode:'Once_Per_Period',maxOccPerPeriod:1,
+  secRule({name:'Giao gấp/ngoài giờ (2–4h, lễ/CN)',object:'Shipment__c',supplierField:'Supplier__c',points:1,applyMode:'Once_Per_Period',maxOccPerPeriod:1,
     dateField:'Actual_Delivery_Date__c',conditions:[secCond({field:'Urgent_Delivery__c',operator:'=',value:'true'})]}),
 ]);
 secAttachRules(SEC_CRITERIA_DATA.nhapkhau,'CHATLUONG',[
-  secRule({name:'Có lỗi nhỏ nhưng chấp nhận được',object:'Case',points:-5,dateField:'CreatedDate',
+  secRule({name:'Có lỗi nhỏ nhưng chấp nhận được',object:'Case',supplierField:'AccountId',points:-5,dateField:'CreatedDate',
     conditions:[secCond({field:'Severity__c',operator:'=',value:'Có lỗi nhỏ nhưng chấp nhận được'})]}),
-  secRule({name:'Trả hàng/khiếu nại nghiêm trọng',object:'Case',points:-40,dateField:'CreatedDate',
+  secRule({name:'Trả hàng/khiếu nại nghiêm trọng',object:'Case',supplierField:'AccountId',points:-40,dateField:'CreatedDate',
     conditions:[secCond({field:'Severity__c',operator:'=',value:'Trả hàng hoặc khiếu nại nghiêm trọng'})]}),
 ]);
 secAttachRules(SEC_CRITERIA_DATA.dichvu,'CHATLUONG',[
-  secRule({name:'Có lỗi ảnh hưởng tiến độ',object:'Case',points:-10,dateField:'CreatedDate',
+  secRule({name:'Có lỗi ảnh hưởng tiến độ',object:'Case',supplierField:'AccountId',points:-10,dateField:'CreatedDate',
     conditions:[secCond({field:'Severity__c',operator:'=',value:'Có lỗi ảnh hưởng tiến độ'})]}),
 ]);
 /* "Khả năng xử lý sự cố" và "Mức độ hợp tác tốt" (NCC dịch vụ) không có field/điều kiện định lượng được
@@ -4081,9 +4089,12 @@ function secRuleEditBlock(cid,r){
   return `<div class="ptf-item" style="margin-bottom:8px">
     <div class="ptf-row" style="flex-wrap:wrap;gap:8px;align-items:center">
       <input class="mass-sel" style="max-width:190px" value="${(r.name||'').replace(/"/g,'&quot;')}" placeholder="Tên mức" oninput="secSetRuleField(${cid},${r.id},'name',this.value)">
-      <select class="mass-sel" style="max-width:150px" onchange="secSetRuleField(${cid},${r.id},'object',this.value);secRenderBody()">
+      <select class="mass-sel" style="max-width:150px" onchange="secSetRuleField(${cid},${r.id},'object',this.value);secSetRuleField(${cid},${r.id},'supplierField','');secRenderBody()">
         <option value="">-- Object nguồn --</option>${SEC_OBJECT_OPTIONS.map(o=>`<option value="${o}" ${r.object===o?'selected':''}>${o}</option>`).join('')}
       </select>
+      ${r.object && r.object!=='Account' ? `<select class="mass-sel" style="max-width:200px" onchange="secSetRuleField(${cid},${r.id},'supplierField',this.value)">
+        <option value="">-- Field liên kết NCC * --</option>${(SEC_SUPPLIER_LINK_FIELDS[r.object]||[]).map(f=>`<option value="${f.v}" ${r.supplierField===f.v?'selected':''}>${f.t}</option>`).join('')}
+      </select>` : ''}
       <label style="display:flex;align-items:center;gap:3px;font-size:12px"><input type="radio" name="sec-sign-${r.id}" ${Number(r.points)<=0?'checked':''} onchange="secSetRulePointsSign(${cid},${r.id},-1)"> ➖</label>
       <input type="number" min="0" class="mass-sel" style="width:64px" value="${Math.abs(r.points)}" oninput="secSetRuleMagnitude(${cid},${r.id},this.value)">
       <label style="display:flex;align-items:center;gap:3px;font-size:12px"><input type="radio" name="sec-sign-${r.id}" ${Number(r.points)>0?'checked':''} onchange="secSetRulePointsSign(${cid},${r.id},1)"> ➕</label>
@@ -4158,6 +4169,9 @@ function secSaveRules(){
   for(const c of list){
     if(!((c.name||'').trim())){ toast('Nhập Tên tiêu chí cho tất cả các dòng'); return; }
     for(const r of c.rules){
+      if(r.object && r.object!=='Account' && !r.supplierField){
+        toast('Chọn Field liên kết NCC cho rule "'+(r.name||'(chưa đặt tên)')+'" (bắt buộc trừ khi Object nguồn = Account)'); return;
+      }
       if(r.logicMode==='CUSTOM'){
         const err=secValidateCustomLogic(r.customLogic,r.conditions.length);
         if(err){ toast('Logic tuỳ chỉnh của rule "'+(r.name||'(chưa đặt tên)')+'" không hợp lệ: '+err); return; }
