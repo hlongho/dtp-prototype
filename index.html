@@ -3960,8 +3960,7 @@ function secVendorResultCardHTML(vendorName){
     : '';
   return card('Kết quả đánh giá NCC', `${exclusionBanner}
     <div class="wf-muted" style="font-size:12px;margin-bottom:8px">Tổng điểm: <b>${supplier.totalScore}/100</b> · Xếp loại: ${pill(secResultRatingPillCls(supplier.rating),supplier.rating)} · Trạng thái: ${SEC_BATCH_STATUS_LABEL[supplier.status]||supplier.status}</div>
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm cơ sở</th><th class="num">Trừ</th><th class="num">Cộng</th><th class="num">Điểm đạt</th></tr></thead><tbody>${rows}</tbody></table></div>
-    <div style="margin-top:8px"><a data-go="evalbatch" onclick="SEC_BATCH_CTX=${batch.id}">Xem chi tiết Đợt đánh giá "${batch.name}" →</a></div>`,
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm cơ sở</th><th class="num">Trừ</th><th class="num">Cộng</th><th class="num">Điểm đạt</th></tr></thead><tbody>${rows}</tbody></table></div>`,
     {n:String(supplier.results.length)});
 }
 function secRulesViewHTML(){
