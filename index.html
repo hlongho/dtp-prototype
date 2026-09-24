@@ -2330,13 +2330,49 @@ function nccEvalScores(picks){
   return {per,total,autoExclude};
 }
 /* Cùng cấu trúc cột với card "Kết quả đánh giá NCC" (Tiêu chí | Điểm cơ sở | Trừ | Cộng | Điểm đạt) để
-   popup xem lại 1 kỳ đánh giá cũ (chấm tay) nhất quán giao diện với kết quả đánh giá từ Đợt đánh giá mới. */
-function nccCriteriaRowsHTML(picks){
+   popup xem lại 1 kỳ đánh giá cũ (chấm tay) nhất quán giao diện với kết quả đánh giá từ Đợt đánh giá mới —
+   kể cả phần mở rộng "▸ Chi tiết" xem lý do bị trừ/cộng điểm (suy ra trực tiếp từ picks đã chấm, không có
+   Evidence/record nguồn cụ thể như bên engine vì đây là chấm tay theo mức, không gắn record). */
+function nccPickEvidenceItems(c,p){
+  if(c.bonus){ const idxs=Array.isArray(p)?p:[]; return idxs.map(i=>c.levels[i]).filter(Boolean).map(l=>({label:l.label,pt:l.pt})); }
+  if(c.key==='giaohang'){
+    const items=giaohangItems(p), hasCase=giaohangHasCase(p);
+    if(items.length>0 && !hasCase) return [];
+    return items.map(it=>{ const l=c.levels[it.level]; return l?{label:l.label,pt:l.pt*(it.count||1)}:null; }).filter(Boolean);
+  }
+  if(c.key==='chatluong'){
+    const items=pickMultiItems(p);
+    return items.map(it=>{ const l=c.levels[it.level]; if(!l) return null;
+      const pt=(it.level===1)?(it.count>=2?l.pt*2:l.pt):l.pt*(it.count||1);
+      return {label:l.label+(it.level===1&&it.count>=2?' (tái phạm ×2)':''),pt}; }).filter(Boolean);
+  }
+  const items=pickMultiItems(p);
+  return items.map(it=>{ const l=c.levels[it.level]; return l?{label:l.label,pt:l.pt*(it.count||1)}:null; }).filter(Boolean);
+}
+let NCC_EVAL_EXPANDED=new Set();
+function nccToggleEvalExpand(key,vendor,period){
+  if(NCC_EVAL_EXPANDED.has(key)) NCC_EVAL_EXPANDED.delete(key); else NCC_EVAL_EXPANDED.add(key);
+  openEvalModal(vendor,period);
+}
+function nccCriteriaRowsHTML(picks,ctx){
   const {per,total,autoExclude}=nccEvalScores(picks);
   let rows=NCC_CRITERIA.map(c=>{
     const base=c.bonus?0:c.max, val=per[c.key], delta=val-base;
     const deduction=delta<0?-delta:0, bonus=delta>0?delta:0;
-    return `<tr><td><b>${c.name}</b><div class="wf-muted" style="font-size:10px">${c.dept}</div></td><td class="num">${base}</td><td class="num">${deduction?'-'+deduction:'0'}</td><td class="num">${bonus?'+'+bonus:'0'}</td><td class="num"><b>${val}</b></td></tr>`;
+    const items=ctx?nccPickEvidenceItems(c,picks[c.key]):[];
+    const key=ctx?(ctx.vendor+'|'+ctx.period+'|'+c.key):'';
+    const expanded=items.length>0 && NCC_EVAL_EXPANDED.has(key);
+    const nameCell = items.length>0
+      ? `<a onclick="nccToggleEvalExpand('${key.replace(/'/g,"\\'")}','${ctx.vendor.replace(/'/g,"\\'")}','${ctx.period.replace(/'/g,"\\'")}')" style="cursor:pointer">${c.name} <span class="wf-muted" style="font-size:10px">${expanded?'▾':'▸'} Chi tiết</span></a><div class="wf-muted" style="font-size:10px">${c.dept}</div>`
+      : `<b>${c.name}</b><div class="wf-muted" style="font-size:10px">${c.dept}</div>`;
+    let out=`<tr><td>${nameCell}</td><td class="num">${base}</td><td class="num">${deduction?'-'+deduction:'0'}</td><td class="num">${bonus?'+'+bonus:'0'}</td><td class="num"><b>${val}</b></td></tr>`;
+    if(expanded){
+      const evRows=items.map(it=>`<tr><td class="wf-muted">↳ Chấm tay · ${ctx.period}</td><td class="wf-muted">${it.label}</td><td class="wf-muted">${ctx.date?ctx.date:'—'}</td><td class="num">${it.pt>0?'+':''}${it.pt}</td></tr>`).join('');
+      out+=`<tr><td colspan="5" style="padding:0 0 8px 20px;background:var(--bg)">
+        <div class="tbl-wrap"><table class="tbl sm" style="margin:0"><thead><tr><th>Record nguồn</th><th>Rule áp dụng</th><th>Ngày xảy ra</th><th class="num">Điểm áp dụng</th></tr></thead><tbody>${evRows}</tbody></table></div>
+      </td></tr>`;
+    }
+    return out;
   }).join('');
   rows+=`<tr style="font-weight:700;background:var(--bg)"><td>TỔNG ĐIỂM</td><td class="num">100</td><td></td><td></td><td class="num">${total}</td></tr>`;
   return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm cơ sở</th><th class="num">Trừ</th><th class="num">Cộng</th><th class="num">Điểm đạt</th></tr></thead><tbody>${rows}</tbody></table></div>`
@@ -2374,7 +2410,7 @@ function openEvalModal(vendor,period){
   const {total}=nccEvalScores(e.picks); const g=nccGrade(total);
   document.getElementById('eval-title').textContent=e.period+' · '+total+'/100 · Xếp loại '+g;
   const evalNote=(e.note?`Ghi chú: ${e.note}`:'')+(e.exclude&&e.exclude.length?'<br><span style="color:var(--err)">⚠ Vi phạm điều kiện loại trừ: '+e.exclude.join('; ')+'</span>':'');
-  document.getElementById('eval-body').innerHTML=(evalNote?`<p class="po-hint">${evalNote}</p>`:'')+nccCriteriaRowsHTML(e.picks);
+  document.getElementById('eval-body').innerHTML=(evalNote?`<p class="po-hint">${evalNote}</p>`:'')+nccCriteriaRowsHTML(e.picks,{vendor:e.vendor,period:e.period,date:e.date});
   document.getElementById('evalback').classList.add('show');
   document.getElementById('evalmodal').classList.add('show');
 }
@@ -2568,13 +2604,36 @@ function npfScore(profile,picks){
 }
 function npfGrade(profile,total){ for(const g of profile.grades){ if(total>=g.min) return g; } return profile.grades[profile.grades.length-1]; }
 /* Cùng cấu trúc cột với card "Kết quả đánh giá NCC" — xem ghi chú ở nccCriteriaRowsHTML. */
-function npfCriteriaRowsHTML(type,picks){
+function npfPickEvidenceItems(c,p){
+  if(c.type==='select'){ const idx=p||0; const l=c.levels[idx]; return (l&&l.pt)?[{label:l.label,pt:l.pt}]:[]; }
+  if(c.type==='bool'){ return p?[{label:'Không đáp ứng: '+(c.desc||c.name),pt:-5}]:[]; }
+  return p?[{label:c.desc||c.name,pt:c.max}]:[]; // bonusBool
+}
+let NPF_EVAL_EXPANDED=new Set();
+function npfToggleEvalExpand(key,type,vendor,period){
+  if(NPF_EVAL_EXPANDED.has(key)) NPF_EVAL_EXPANDED.delete(key); else NPF_EVAL_EXPANDED.add(key);
+  openNpfHistoryModal(type,vendor,period);
+}
+function npfCriteriaRowsHTML(type,picks,ctx){
   const profile=NCC_PROFILES[type];
   const {per,total}=npfScore(profile,picks);
   let rows=profile.criteria.map(c=>{
     const base=c.max, val=per[c.key], delta=val-base;
     const deduction=delta<0?-delta:0, bonus=delta>0?delta:0;
-    return `<tr><td><b>${c.name}</b></td><td class="num">${base}</td><td class="num">${deduction?'-'+deduction:'0'}</td><td class="num">${bonus?'+'+bonus:'0'}</td><td class="num"><b>${val}</b></td></tr>`;
+    const items=ctx?npfPickEvidenceItems(c,picks[c.key]):[];
+    const key=ctx?(type+'|'+ctx.vendor+'|'+ctx.period+'|'+c.key):'';
+    const expanded=items.length>0 && NPF_EVAL_EXPANDED.has(key);
+    const nameCell = items.length>0
+      ? `<a onclick="npfToggleEvalExpand('${key.replace(/'/g,"\\'")}','${type}','${ctx.vendor.replace(/'/g,"\\'")}','${ctx.period.replace(/'/g,"\\'")}')" style="cursor:pointer">${c.name} <span class="wf-muted" style="font-size:10px">${expanded?'▾':'▸'} Chi tiết</span></a>`
+      : `<b>${c.name}</b>`;
+    let out=`<tr><td>${nameCell}</td><td class="num">${base}</td><td class="num">${deduction?'-'+deduction:'0'}</td><td class="num">${bonus?'+'+bonus:'0'}</td><td class="num"><b>${val}</b></td></tr>`;
+    if(expanded){
+      const evRows=items.map(it=>`<tr><td class="wf-muted">↳ Chấm tay · ${ctx.period}</td><td class="wf-muted">${it.label}</td><td class="wf-muted">${ctx.date?ctx.date:'—'}</td><td class="num">${it.pt>0?'+':''}${it.pt}</td></tr>`).join('');
+      out+=`<tr><td colspan="5" style="padding:0 0 8px 20px;background:var(--bg)">
+        <div class="tbl-wrap"><table class="tbl sm" style="margin:0"><thead><tr><th>Record nguồn</th><th>Rule áp dụng</th><th>Ngày xảy ra</th><th class="num">Điểm áp dụng</th></tr></thead><tbody>${evRows}</tbody></table></div>
+      </td></tr>`;
+    }
+    return out;
   }).join('');
   rows+=`<tr style="font-weight:700;background:var(--bg)"><td>TỔNG ĐIỂM</td><td class="num">100</td><td></td><td></td><td class="num">${total}</td></tr>`;
   return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm cơ sở</th><th class="num">Trừ</th><th class="num">Cộng</th><th class="num">Điểm đạt</th></tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -2612,7 +2671,7 @@ function openNpfHistoryModal(type,vendor,period){
   const e=NCC_EVALS_EXT.find(x=>x.type===type&&x.vendor===vendor&&x.period===period); if(!e) return;
   const profile=NCC_PROFILES[type]; const {total}=npfScore(profile,e.picks); const g=npfGrade(profile,total);
   document.getElementById('eval-title').textContent=profile.label+' · '+e.period+' · '+total+'/100 · Xếp loại '+g.g;
-  document.getElementById('eval-body').innerHTML=(e.note?`<p class="po-hint">Ghi chú: ${e.note}</p>`:'')+npfCriteriaRowsHTML(type,e.picks);
+  document.getElementById('eval-body').innerHTML=(e.note?`<p class="po-hint">Ghi chú: ${e.note}</p>`:'')+npfCriteriaRowsHTML(type,e.picks,{vendor:e.vendor,period:e.period,date:e.date});
   document.getElementById('evalback').classList.add('show');
   document.getElementById('evalmodal').classList.add('show');
 }
