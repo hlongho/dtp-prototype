@@ -2398,8 +2398,9 @@ let NCC_EVALS=[
 ];
 function nccLatestEval(vendor){ const list=NCC_EVALS.filter(e=>e.vendor===vendor); return list[list.length-1]||null; }
 function nccCombinedExclude(e){ const {autoExclude}=nccEvalScores(e.picks); return [...new Set([...(e.exclude||[]),...autoExclude])]; }
+function vnDateSortKey(d){ const [dd,mm,yyyy]=(d||'').split('/'); return yyyy&&mm&&dd ? yyyy+mm+dd : ''; }
 function nccEvalsListRows(vendor){
-  return NCC_EVALS.filter(e=>e.vendor===vendor).map(e=>{ const {total}=nccEvalScores(e.picks); const g=nccGrade(total);
+  return NCC_EVALS.filter(e=>e.vendor===vendor).sort((a,b)=>vnDateSortKey(b.date).localeCompare(vnDateSortKey(a.date))).map(e=>{ const {total}=nccEvalScores(e.picks); const g=nccGrade(total);
     const excl=nccCombinedExclude(e);
     const ket=excl.length?'Xem xét loại khỏi danh sách ('+excl.join('; ')+')':nccGradeAction(g);
     return [`<a style="cursor:pointer" onclick="openEvalModal('${e.vendor.replace(/'/g,"\\'")}','${e.period}')">${e.period}</a>`, e.date, total+'/100', nccGradePill(g), e.by, ket];
@@ -2656,7 +2657,7 @@ let NCC_EVALS_EXT=[
 function npfLatestEval(type,vendor){ const list=NCC_EVALS_EXT.filter(e=>e.type===type&&e.vendor===vendor); return list[list.length-1]||null; }
 function npfEvalsListRows(type,vendor){
   const profile=NCC_PROFILES[type];
-  return NCC_EVALS_EXT.filter(e=>e.type===type&&e.vendor===vendor).map(e=>{ const {total}=npfScore(profile,e.picks); const g=npfGrade(profile,total);
+  return NCC_EVALS_EXT.filter(e=>e.type===type&&e.vendor===vendor).sort((a,b)=>vnDateSortKey(b.date).localeCompare(vnDateSortKey(a.date))).map(e=>{ const {total}=npfScore(profile,e.picks); const g=npfGrade(profile,total);
     return [`<a style="cursor:pointer" onclick="openNpfHistoryModal('${type}','${vendor.replace(/'/g,"\\'")}','${e.period}')">${e.period}</a>`, e.date, total+'/100', npfGradePill(profile,g.g), e.by];
   });
 }
