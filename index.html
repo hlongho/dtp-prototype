@@ -4364,7 +4364,7 @@ function secDateVN(iso){ return iso? iso.split('-').reverse().join('/') : '—';
    kèm lý do (nguồn phát sinh) khiến NCC đó được đưa vào đợt. */
 function secBatchSuppliersRowsHTML(b){
   if(!b.suppliers.length) return `<tr><td colspan="3" class="wf-muted" style="text-align:center;padding:12px">Không có NCC nào phát sinh giao dịch trong tháng này.</td></tr>`;
-  return b.suppliers.map(s=>`<tr><td>${s.name}</td><td>${SEC_GROUP_LABEL[s.group]}</td><td class="wf-muted" style="font-size:12px">${s.source||'—'}</td></tr>`).join('');
+  return b.suppliers.map(s=>`<tr><td><a data-go="vendor" data-vendor="${s.name.replace(/"/g,'&quot;')}" data-vtype="${s.group}">${s.name}</a></td><td>${SEC_GROUP_LABEL[s.group]}</td><td class="wf-muted" style="font-size:12px">${s.source||'—'}</td></tr>`).join('');
 }
 let SEC_BATCH_CTX=null;
 S.evalbatch_list = ()=> appnav('Dữ liệu nền tảng','Đợt đánh giá NCC',TAB_MD,'Đợt đánh giá NCC')
