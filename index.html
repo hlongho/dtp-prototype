@@ -782,13 +782,6 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     <div class="pm-body" id="vpb-body"></div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeVpbModal()">Hủy</button><button class="btn pri" onclick="confirmVpbModal()">Lưu bảng giá</button></div></div>
   </div>
-  <!-- Modal xem chi tiết đợt đánh giá NCC (read-only — đợt tự sinh hàng tháng, không tạo/sửa tay) -->
-  <div class="modal-back" id="secbatchback" onclick="closeSecBatchModal()" style="z-index:135"></div>
-  <div class="po-modal" id="secbatchmodal" style="z-index:140;width:min(760px,96vw);max-height:88vh;overflow:auto">
-    <div class="pm-head"><h3 id="secbatch-title">Đợt đánh giá</h3><button title="Đóng" onclick="closeSecBatchModal()">✕</button></div>
-    <div class="pm-body" id="secbatch-body"></div>
-    <div class="pm-foot"><div class="pm-actions"><button class="btn pri" onclick="closeSecBatchModal()">Đóng</button></div></div>
-  </div>
 </div>
 
 <script>
@@ -3967,7 +3960,7 @@ function secVendorResultCardHTML(vendorName){
   return card('Kết quả đánh giá NCC', `${exclusionBanner}
     <div class="wf-muted" style="font-size:12px;margin-bottom:8px">Tổng điểm: <b>${supplier.totalScore}/100</b> · Xếp loại: ${pill(secResultRatingPillCls(supplier.rating),supplier.rating)} · Trạng thái: ${SEC_BATCH_STATUS_LABEL[supplier.status]||supplier.status}</div>
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm cơ sở</th><th class="num">Trừ</th><th class="num">Cộng</th><th class="num">Điểm đạt</th></tr></thead><tbody>${rows}</tbody></table></div>
-    <div style="margin-top:8px"><a onclick="openSecBatchModal(${batch.id})" style="cursor:pointer">Xem chi tiết Đợt đánh giá "${batch.name}" →</a></div>`,
+    <div style="margin-top:8px"><a data-go="evalbatch" onclick="SEC_BATCH_CTX=${batch.id}">Xem chi tiết Đợt đánh giá "${batch.name}" →</a></div>`,
     {n:String(supplier.results.length)});
 }
 function secRulesViewHTML(){
@@ -4373,31 +4366,34 @@ function secBatchSuppliersRowsHTML(b){
   if(!b.suppliers.length) return `<tr><td colspan="3" class="wf-muted" style="text-align:center;padding:12px">Không có NCC nào phát sinh giao dịch trong tháng này.</td></tr>`;
   return b.suppliers.map(s=>`<tr><td>${s.name}</td><td>${SEC_GROUP_LABEL[s.group]}</td><td class="wf-muted" style="font-size:12px">${s.source||'—'}</td></tr>`).join('');
 }
-function openSecBatchModal(batchId){
-  const b=SEC_BATCHES.find(x=>x.id===batchId); if(!b) return;
-  document.getElementById('secbatch-title').textContent='Đợt đánh giá · '+b.name;
-  document.getElementById('secbatch-body').innerHTML=`
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-      <div style="grid-column:1/-1"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Tên đợt đánh giá</label><div class="mass-sel" style="background:var(--bg)">${b.name}</div></div>
-      <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Từ ngày</label><div class="mass-sel" style="background:var(--bg)">${secDateVN(b.fromDate)}</div></div>
-      <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Đến ngày</label><div class="mass-sel" style="background:var(--bg)">${secDateVN(b.toDate)}</div></div>
-      <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Trạng thái</label><div class="mass-sel" style="background:var(--bg)">${SEC_BATCH_STATUS_LABEL[b.status]||b.status}</div></div>
-    </div>
-    <div class="wf-muted" style="font-size:12px;font-weight:700;margin-bottom:4px">Danh sách NCC trong đợt — tự sinh theo giao dịch phát sinh trong tháng, không sửa được</div>
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>NCC</th><th>Nhóm</th><th>Nguồn phát sinh</th></tr></thead><tbody>${secBatchSuppliersRowsHTML(b)}</tbody></table></div>`;
-  document.getElementById('secbatchback').classList.add('show');
-  document.getElementById('secbatchmodal').classList.add('show');
-}
-function closeSecBatchModal(){ const b=document.getElementById('secbatchback'),m=document.getElementById('secbatchmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
+let SEC_BATCH_CTX=null;
 S.evalbatch_list = ()=> appnav('Dữ liệu nền tảng','Đợt đánh giá NCC',TAB_MD,'Đợt đánh giá NCC')
  + `<div class="sf-body">${lv({crumb:'Đợt đánh giá NCC',ico:'📋',object:'Đợt đánh giá NCC (Batch) — tự sinh hàng tháng',view:'Tất cả đợt',count:String(SEC_BATCHES.length),
    cols:[{t:'Tên đợt'},{t:'Khoảng ngày'},{t:'Số NCC',num:true},{t:'Trạng thái'}],
    rows: SEC_BATCHES.map(b=>({cells:[
-     `<a onclick="openSecBatchModal(${b.id})" style="cursor:pointer">${b.name}</a>`,
+     `<a data-go="evalbatch" onclick="SEC_BATCH_CTX=${b.id}">${b.name}</a>`,
      secDateVN(b.fromDate)+' – '+secDateVN(b.toDate),
      String(b.suppliers.length),
      pill(b.status==='Approved'?'ok':(b.status==='Rejected'?'err':'info'),SEC_BATCH_STATUS_LABEL[b.status]||b.status)
    ]}))})}</div>`;
+S.evalbatch = ()=> {
+  const b=SEC_BATCHES.find(x=>x.id===SEC_BATCH_CTX) || SEC_BATCHES[0];
+  return appnav('Dữ liệu nền tảng','Đợt đánh giá NCC',TAB_MD,'Đợt đánh giá NCC')
+   + `<div class="sf-body narrow">
+   ${hl({crumb:'<span data-go="evalbatch_list">Đợt đánh giá NCC</span> &rsaquo;',ico:'📋',color:'#706e6b',title:b.name,
+     sub:'Đợt đánh giá NCC · '+secDateVN(b.fromDate)+' – '+secDateVN(b.toDate),
+     fields:[['Trạng thái',SEC_BATCH_STATUS_LABEL[b.status]||b.status],['Số NCC',String(b.suppliers.length)]],
+     actions:[]})}
+   <div class="cols-side act-tab">
+     <div>
+     ${card('Thông tin đợt đánh giá', fg([['Tên đợt đánh giá',b.name],['Từ ngày',secDateVN(b.fromDate)],['Đến ngày',secDateVN(b.toDate)],['Trạng thái',SEC_BATCH_STATUS_LABEL[b.status]||b.status]]))}
+     ${card('Danh sách NCC trong đợt — tự sinh theo giao dịch phát sinh trong tháng, không sửa được',
+       `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>NCC</th><th>Nhóm</th><th>Nguồn phát sinh</th></tr></thead><tbody>${secBatchSuppliersRowsHTML(b)}</tbody></table></div>`,
+       {n:String(b.suppliers.length)})}
+     </div>
+     ${activity([])}
+   </div></div>`;
+};
 S.sec_config = ()=> appnav('Dữ liệu nền tảng','Cấu hình Đánh giá NCC',TAB_MD,'Cấu hình Đánh giá NCC')
  + `<div class="sf-body narrow"><div id="sec-body">${secBodyHTML()}</div></div>`;
 
@@ -6130,7 +6126,7 @@ function setupSearch(){
   dd.addEventListener('click',e=>{const it=e.target.closest('.sr-item'); if(it) pickSearch(it.dataset.id);});
   document.addEventListener('click',e=>{ if(!e.target.closest('.g-search')) dd.classList.remove('show'); });
   document.getElementById('lmsearch').addEventListener('input',e=>renderLauncher(e.target.value));
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeSupModal(); closeMass(); closePO(); closeLauncher(); closeShipModal(); closeSlipModal(); closeEvalModal(); closeLogFeeModal(); closeQuoteModal(); closeApproveModal(); closeSampleModal(); closeVpbModal(); closeSecBatchModal(); } });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeSupModal(); closeMass(); closePO(); closeLauncher(); closeShipModal(); closeSlipModal(); closeEvalModal(); closeLogFeeModal(); closeQuoteModal(); closeApproveModal(); closeSampleModal(); closeVpbModal(); } });
 }
 
 /* ---- in-page interactivity ---- */
