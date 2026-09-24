@@ -3808,9 +3808,8 @@ const SEC_GROUP_LABEL={noidia:'Nội địa',nhapkhau:'Nhập khẩu',dichvu:'D�
 const SEC_GROUP_ICO={noidia:'⭐',nhapkhau:'🚢',dichvu:'🛠️'};
 function secBuildCriteria(list){
   return list.map((c,i)=>({id:secId(),code:(c.key||c.name).toString().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,15),
-    name:c.name,maxScore:c.max,weight:c.max,seq:i+1,active:true,hasHistory:false,scoringMode:'Automatic',rules:[]}));
+    name:c.name,maxScore:c.max,weight:c.max,seq:i+1,active:true,hasHistory:false,rules:[]}));
 }
-function secSetScoringMode(list,code,mode){ const c=list.find(x=>x.code===code); if(c){ c.scoringMode=mode; if(mode==='Manual') c.rules=[]; } }
 let SEC_CRITERIA_DATA={
   noidia: secBuildCriteria(NCC_CRITERIA),
   nhapkhau: secBuildCriteria(NCC_PROFILES.nhapkhau.criteria),
@@ -3871,11 +3870,6 @@ secAttachRules(SEC_CRITERIA_DATA.dichvu,'CHATLUONG',[
   secRule({name:'Có lỗi ảnh hưởng tiến độ',object:'Case',supplierField:'AccountId',points:-10,dateField:'CreatedDate',
     conditions:[secCond({field:'Severity__c',operator:'=',value:'Có lỗi ảnh hưởng tiến độ'})]}),
 ]);
-/* "Khả năng xử lý sự cố" và "Mức độ hợp tác tốt" (NCC dịch vụ) không có field/điều kiện định lượng được
-   trong file nguồn — thuần đánh giá chủ quan của người chấm ("Chủ động xử lý...", "Thái độ hợp tác tốt"...)
-   → đánh dấu Nhập tay (Scoring_Mode__c=Manual) ngay từ Setup, không cấu hình Rule cho 2 tiêu chí này. */
-secSetScoringMode(SEC_CRITERIA_DATA.dichvu,'XULYSUCO','Manual');
-secSetScoringMode(SEC_CRITERIA_DATA.dichvu,'HOPTAC','Manual');
 let SEC_THRESH_SEQ=1;
 let SEC_THRESHOLDS={
   noidia:[
@@ -3932,14 +3926,11 @@ function secRuleRowView(r){
     <td>${r.active!==false?pill('ok','Active'):pill('mut','Ngưng')}</td></tr>`;
 }
 function secCriteriaCardView(c){
-  const isManual = c.scoringMode==='Manual';
-  const body = isManual
-    ? `<div class="po-hint">Nhập tay khi đánh giá (không cấu hình Rule) — nếu người đánh giá không nhập gì, mặc định lấy điểm tròn (tối đa ${c.maxScore}đ).</div>`
-    : (c.rules.length
-      ? `<div class="tbl-wrap"><table class="tbl sm"><thead><tr><th>Tên mức</th><th>Object nguồn</th><th class="num">Điểm</th><th>Cách áp dụng</th><th>Trạng thái</th></tr></thead>
+  const body = c.rules.length
+    ? `<div class="tbl-wrap"><table class="tbl sm"><thead><tr><th>Tên mức</th><th>Object nguồn</th><th class="num">Điểm</th><th>Cách áp dụng</th><th>Trạng thái</th></tr></thead>
        <tbody>${c.rules.map(secRuleRowView).join('')}</tbody></table></div>`
-      : `<div class="po-hint">Chưa có quy tắc nào cho tiêu chí này.</div>`);
-  return card(`${c.seq}. ${c.name}`, `<div class="wf-muted" style="font-size:12px;margin-bottom:8px">Điểm tối đa: <b>${c.maxScore}</b> · Tỷ trọng: <b>${c.weight}%</b> · ${isManual?pill('info','Nhập tay'):pill('mut','Tự động (Rule)')}${c.active===false?' · Tạm ngưng':''}</div>${body}`, {n: isManual?'':String(c.rules.length)});
+    : `<div class="po-hint">Chưa có quy tắc nào cho tiêu chí này.</div>`;
+  return card(`${c.seq}. ${c.name}`, `<div class="wf-muted" style="font-size:12px;margin-bottom:8px">Điểm tối đa: <b>${c.maxScore}</b> · Tỷ trọng: <b>${c.weight}%</b>${c.active===false?' · Tạm ngưng':''}</div>${body}`, {n:String(c.rules.length)});
 }
 function secGoToConfig(group){ SEC_TAB=group; SEC_SUBTAB='rules'; SEC_EDIT=false; go('sec_config'); }
 /* Card "Kết quả đánh giá NCC" trên trang Chi tiết NCC — thay cho card "Tiêu chí đánh giá NCC" cũ.
@@ -3961,13 +3952,7 @@ function secVendorResultCardHTML(vendorName){
     return card('Kết quả đánh giá NCC', `<div class="po-hint">NCC này chưa có kết quả đánh giá nào (chưa thuộc Đợt đánh giá nào đã tính điểm). <a onclick="go('evalbatch_list')" style="cursor:pointer">Xem Đợt đánh giá →</a></div>`);
   }
   const {batch,supplier}=m;
-  const hasManual=supplier.results.some(r=>secManualCriteriaMode(supplier.group,r.code)==='Manual');
   const rows=supplier.results.map(r=>{
-    const isManual=secManualCriteriaMode(supplier.group,r.code)==='Manual';
-    if(isManual){
-      return `<tr><td>${r.criteria} ${pill('info','Nhập tay')}</td><td class="num">${r.base}</td><td class="num">—</td><td class="num">—</td>
-        <td class="num"><input type="number" min="0" max="${r.base}" class="mass-sel num" style="width:70px" id="sec-manual-${r.code}" data-orig="${r.final}" value="${r.final}" oninput="secCheckManualDirty()"></td></tr>`;
-    }
     const hasEvidence = r.evidence && r.evidence.length>0;
     const key = vendorName+'|'+batch.id+'|'+r.code;
     const expanded = hasEvidence && SEC_EXPANDED_RESULT.has(key);
@@ -3989,37 +3974,8 @@ function secVendorResultCardHTML(vendorName){
   return card('Kết quả đánh giá NCC', `${exclusionBanner}
     <div class="wf-muted" style="font-size:12px;margin-bottom:8px">Tổng điểm: <b>${supplier.totalScore}/100</b> · Xếp loại: ${pill(secResultRatingPillCls(supplier.rating),supplier.rating)} · Trạng thái: ${SEC_BATCH_STATUS_LABEL[supplier.status]||supplier.status}</div>
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm cơ sở</th><th class="num">Trừ</th><th class="num">Cộng</th><th class="num">Điểm đạt</th></tr></thead><tbody>${rows}</tbody></table></div>
-    ${hasManual?`<div class="wf-muted" style="font-size:11px;margin-top:6px">Dòng "Nhập tay": để trống rồi Lưu = tự động lấy điểm tròn (tối đa).</div>
-    <div style="margin-top:6px"><button id="sec-save-manual-btn" class="btn sm pri" disabled onclick="secSaveManualScores('${vendorName.replace(/'/g,"\\'")}')">Lưu điểm tay</button></div>`:''}
     <div style="margin-top:8px"><a onclick="openSecBatchModal(${batch.id})" style="cursor:pointer">Xem chi tiết Đợt đánh giá "${batch.name}" →</a></div>`,
     {n:String(supplier.results.length)});
-}
-function secManualCriteriaMode(group,code){ const c=(SEC_CRITERIA_DATA[group]||[]).find(x=>x.code===code); return c?c.scoringMode:'Automatic'; }
-/* Chỉ bật nút "Lưu điểm tay" khi có ít nhất 1 ô Nhập tay đang khác giá trị đã lưu (data-orig) — tránh
-   lưu vô ích khi chưa ai sửa gì. */
-function secCheckManualDirty(){
-  const inputs=document.querySelectorAll('input[id^="sec-manual-"]');
-  const btn=document.getElementById('sec-save-manual-btn'); if(!btn) return;
-  let dirty=false;
-  inputs.forEach(inp=>{ if(String(inp.value)!==String(inp.dataset.orig)) dirty=true; });
-  btn.disabled=!dirty;
-}
-function secSaveManualScores(vendorName){
-  const m=secFindLatestResult(vendorName); if(!m) return;
-  const {supplier}=m;
-  supplier.results.forEach(r=>{
-    if(secManualCriteriaMode(supplier.group,r.code)!=='Manual') return;
-    const inp=document.getElementById('sec-manual-'+r.code); if(!inp) return;
-    let val=(inp.value==='')? r.base : parseFloat(inp.value);
-    if(isNaN(val)) val=r.base;
-    val=Math.max(0,Math.min(r.base,val));
-    r.final=val; r.deduction=Math.max(0,r.base-val); r.bonus=0;
-  });
-  supplier.totalScore=supplier.results.reduce((s,r)=>s+r.final,0);
-  const thresh=(SEC_THRESHOLDS[supplier.group]||[]).slice().sort((a,b)=>b.min-a.min).find(t=>supplier.totalScore>=t.min);
-  if(thresh) supplier.rating=thresh.name;
-  toast('Đã lưu điểm tay — Tổng điểm mới: '+supplier.totalScore+'/100'+(thresh?' · Xếp loại '+thresh.name:''));
-  go('vendor');
 }
 function secRulesViewHTML(){
   const list=SEC_CRITERIA_DATA[SEC_TAB];
@@ -4041,7 +3997,7 @@ function secCritGet(cid){ return SEC_DRAFT_CRITERIA.find(c=>c.id===cid); }
 function secRuleGet(cid,rid){ const c=secCritGet(cid); return c&&c.rules.find(r=>r.id===rid); }
 function secCondGet(cid,rid,coid){ const r=secRuleGet(cid,rid); return r&&r.conditions.find(x=>x.id===coid); }
 function secSetCritField(cid,field,val){ const c=secCritGet(cid); if(!c) return; c[field]=(field==='maxScore'||field==='weight')?(parseFloat(val)||0):(field==='active'?val:val); secRefreshWeightBanner(); }
-function secAddCriteria(){ SEC_DRAFT_CRITERIA.push({id:secId(),code:'NEW'+secId(),name:'',maxScore:0,weight:0,seq:SEC_DRAFT_CRITERIA.length+1,active:true,hasHistory:false,scoringMode:'Automatic',rules:[]}); secRenderBody(); }
+function secAddCriteria(){ SEC_DRAFT_CRITERIA.push({id:secId(),code:'NEW'+secId(),name:'',maxScore:0,weight:0,seq:SEC_DRAFT_CRITERIA.length+1,active:true,hasHistory:false,rules:[]}); secRenderBody(); }
 function secRemoveCriteria(cid){
   const c=secCritGet(cid); if(!c) return;
   if(c.hasHistory){ toast('Không thể xoá — tiêu chí đã có dữ liệu đánh giá lịch sử. Hãy tắt Active thay vì xoá.'); return; }
@@ -4243,18 +4199,8 @@ function secValidateTiers(tiers){
   }
   return null;
 }
-function secSetCritScoringMode(cid,mode){
-  const c=secCritGet(cid); if(!c) return;
-  c.scoringMode=mode;
-  if(mode==='Manual') c.rules=[];
-  secRenderBody();
-}
 function secCritEditBlock(c){
-  const isManual=c.scoringMode==='Manual';
   const rulesHtml=c.rules.map(r=>secRuleEditBlock(c.id,r)).join('') || '<div class="po-hint">Chưa có mức nào.</div>';
-  const bodyInner = isManual
-    ? `<div class="po-hint">Nhập tay khi đánh giá — không cấu hình Rule cho tiêu chí này. Nếu người đánh giá không nhập gì, mặc định lấy điểm tròn (tối đa ${c.maxScore}đ).</div>`
-    : `${rulesHtml}<button class="btn sm" onclick="secAddRule(${c.id})">＋ Thêm mức</button>`;
   return `<div class="po-card" style="margin-bottom:10px">
     <div class="po-card-h" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span style="font-weight:700">${c.seq}.</span>
@@ -4264,11 +4210,7 @@ function secCritEditBlock(c){
       <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" ${c.active!==false?'checked':''} onchange="secSetCritField(${c.id},'active',this.checked)">Active</label>
       <button class="btn sm" style="margin-left:auto" onclick="secRemoveCriteria(${c.id})">🗑 Xoá tiêu chí</button>
     </div>
-    <div class="ptf-row" style="padding:8px 12px 0;gap:16px;font-size:12px">
-      <label style="display:flex;align-items:center;gap:4px"><input type="radio" name="sec-scoremode-${c.id}" ${!isManual?'checked':''} onchange="secSetCritScoringMode(${c.id},'Automatic')">Tự động (theo Rule)</label>
-      <label style="display:flex;align-items:center;gap:4px"><input type="radio" name="sec-scoremode-${c.id}" ${isManual?'checked':''} onchange="secSetCritScoringMode(${c.id},'Manual')">Nhập tay khi đánh giá</label>
-    </div>
-    <div style="padding:10px 12px">${bodyInner}</div>
+    <div style="padding:10px 12px">${rulesHtml}<button class="btn sm" onclick="secAddRule(${c.id})">＋ Thêm mức</button></div>
   </div>`;
 }
 function secRulesEditHTML(){
@@ -4415,9 +4357,7 @@ let SEC_BATCHES=[
        ]},
        {criteria:'Hỗ trợ nổi trội',code:'HOTRO',base:5,deduction:0,bonus:0,final:5},
      ]},
-     /* Minh hoạ tiêu chí Nhập tay (Scoring_Mode__c=Manual): "Khả năng xử lý sự cố" chưa ai nhập gì nên
-        mặc định điểm tròn (10/10); "Mức độ hợp tác tốt" đã có người nhập tay 3/5 (đánh giá chủ quan). */
-     {name:'ONE Line',group:'dichvu',status:'Calculated',totalScore:88,rating:'B',results:[
+     {name:'ONE Line',group:'dichvu',status:'Calculated',totalScore:90,rating:'A',results:[
        {criteria:'Chất lượng dịch vụ',code:'CHATLUONG',base:40,deduction:10,bonus:0,final:30,evidence:[
          {source:'Case CS-2026-0072',rule:'Có lỗi ảnh hưởng tiến độ',date:'2026-01-30',points:-10},
        ]},
@@ -4427,7 +4367,7 @@ let SEC_BATCHES=[
        {criteria:'Khả năng xử lý sự cố',code:'XULYSUCO',base:10,deduction:0,bonus:0,final:10},
        {criteria:'Khả năng phản hồi',code:'PHANHOI',base:5,deduction:0,bonus:0,final:5},
        {criteria:'Tuân thủ và có năng lực',code:'TUANTHU',base:5,deduction:0,bonus:0,final:5},
-       {criteria:'Mức độ hợp tác tốt',code:'HOPTAC',base:5,deduction:2,bonus:0,final:3},
+       {criteria:'Mức độ hợp tác tốt',code:'HOPTAC',base:5,deduction:0,bonus:0,final:5},
      ]},
    ]},
 ];
