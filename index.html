@@ -2373,7 +2373,8 @@ function openEvalModal(vendor,period){
   const e=NCC_EVALS.find(x=>x.vendor===vendor && x.period===period); if(!e) return;
   const {total}=nccEvalScores(e.picks); const g=nccGrade(total);
   document.getElementById('eval-title').textContent=e.period+' · '+total+'/100 · Xếp loại '+g;
-  document.getElementById('eval-body').innerHTML=`<p class="po-hint">NCC <b>${e.vendor}</b> · Ngày đánh giá <b>${e.date}</b> · Người đánh giá <b>${e.by}</b>${e.note?' · Ghi chú: '+e.note:''}${e.exclude&&e.exclude.length?'<br><span style="color:var(--err)">⚠ Vi phạm điều kiện loại trừ: '+e.exclude.join('; ')+'</span>':''}</p>`+nccCriteriaRowsHTML(e.picks);
+  const evalNote=(e.note?`Ghi chú: ${e.note}`:'')+(e.exclude&&e.exclude.length?'<br><span style="color:var(--err)">⚠ Vi phạm điều kiện loại trừ: '+e.exclude.join('; ')+'</span>':'');
+  document.getElementById('eval-body').innerHTML=(evalNote?`<p class="po-hint">${evalNote}</p>`:'')+nccCriteriaRowsHTML(e.picks);
   document.getElementById('evalback').classList.add('show');
   document.getElementById('evalmodal').classList.add('show');
 }
@@ -2611,7 +2612,7 @@ function openNpfHistoryModal(type,vendor,period){
   const e=NCC_EVALS_EXT.find(x=>x.type===type&&x.vendor===vendor&&x.period===period); if(!e) return;
   const profile=NCC_PROFILES[type]; const {total}=npfScore(profile,e.picks); const g=npfGrade(profile,total);
   document.getElementById('eval-title').textContent=profile.label+' · '+e.period+' · '+total+'/100 · Xếp loại '+g.g;
-  document.getElementById('eval-body').innerHTML=`<p class="po-hint">NCC <b>${e.vendor}</b> · Ngày đánh giá <b>${e.date}</b> · Người đánh giá <b>${e.by}</b>${e.note?' · Ghi chú: '+e.note:''}</p>`+npfCriteriaRowsHTML(type,e.picks);
+  document.getElementById('eval-body').innerHTML=(e.note?`<p class="po-hint">Ghi chú: ${e.note}</p>`:'')+npfCriteriaRowsHTML(type,e.picks);
   document.getElementById('evalback').classList.add('show');
   document.getElementById('evalmodal').classList.add('show');
 }
