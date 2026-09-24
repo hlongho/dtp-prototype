@@ -782,19 +782,12 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
     <div class="pm-body" id="vpb-body"></div>
     <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeVpbModal()">Hủy</button><button class="btn pri" onclick="confirmVpbModal()">Lưu bảng giá</button></div></div>
   </div>
-  <!-- Modal Thêm vào đợt đánh giá (bulk action từ list view NCC) -->
-  <div class="modal-back" id="secbulkback" onclick="closeSecBulkAddModal()" style="z-index:135"></div>
-  <div class="po-modal sm" id="secbulkmodal" style="z-index:140">
-    <div class="pm-head"><h3>Thêm vào đợt đánh giá</h3><button title="Đóng" onclick="closeSecBulkAddModal()">✕</button></div>
-    <div class="pm-body" id="secbulk-body"></div>
-    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeSecBulkAddModal()">Hủy</button><button class="btn pri" onclick="confirmSecBulkAddModal()">Tiếp tục</button></div></div>
-  </div>
-  <!-- Modal Thêm/Sửa đợt đánh giá NCC -->
+  <!-- Modal xem chi tiết đợt đánh giá NCC (read-only — đợt tự sinh hàng tháng, không tạo/sửa tay) -->
   <div class="modal-back" id="secbatchback" onclick="closeSecBatchModal()" style="z-index:135"></div>
   <div class="po-modal" id="secbatchmodal" style="z-index:140;width:min(760px,96vw);max-height:88vh;overflow:auto">
-    <div class="pm-head"><h3 id="secbatch-title">Thêm đợt đánh giá</h3><button title="Đóng" onclick="closeSecBatchModal()">✕</button></div>
+    <div class="pm-head"><h3 id="secbatch-title">Đợt đánh giá</h3><button title="Đóng" onclick="closeSecBatchModal()">✕</button></div>
     <div class="pm-body" id="secbatch-body"></div>
-    <div class="pm-foot"><div class="pm-actions"><button class="btn" onclick="closeSecBatchModal()">Hủy</button><button class="btn pri" onclick="confirmSecBatchModal()">Lưu đợt đánh giá</button></div></div>
+    <div class="pm-foot"><div class="pm-actions"><button class="btn pri" onclick="closeSecBatchModal()">Đóng</button></div></div>
   </div>
 </div>
 
@@ -4295,36 +4288,33 @@ function secSaveThreshold(){
   SEC_THRESHOLDS[SEC_TAB]=SEC_DRAFT_THRESHOLD; SEC_EDIT=false; SEC_DRAFT_THRESHOLD=null; secRenderBody();
   toast('Đã lưu Bảng xếp loại — '+SEC_GROUP_LABEL[SEC_TAB]);
 }
-/* ===== Đợt đánh giá (Supplier_Evaluation_Batch__c) — tạo trên chính màn hình Config, chứa nhiều NCC
-   (có thể trộn cả 3 nhóm Nội địa/Nhập khẩu/Dịch vụ trong 1 đợt), thêm NCC vào bất kỳ lúc nào bằng cách
-   mở lại đúng đợt đó. Mỗi NCC trong đợt tương ứng 1 dòng Supplier_Evaluation_Period__c con (Master-Detail
-   Batch__c → Batch) — xem cập nhật data model trong .docs/supplier-evaluation-config-screen.md. */
+/* ===== Đợt đánh giá (Supplier_Evaluation_Batch__c) — hệ thống TỰ TẠO đầu mỗi tháng (scheduled job),
+   không có nút tạo tay. Mỗi NCC có giao dịch phát sinh trong tháng (PO nội địa/nhập khẩu, hoặc phí
+   logistics với NCC dịch vụ) được tự thêm vào đúng 1 dòng Supplier_Evaluation_Period__c con (Master-
+   Detail Batch__c → Batch), kèm "nguồn phát sinh" — cố định, không sửa/thêm/xoá tay. Có thể trộn cả 3
+   nhóm NCC trong cùng 1 đợt. Xem data model trong .docs/supplier-evaluation-config-screen.md. */
 let SEC_BATCH_SEQ=1; function secBatchId(){ return SEC_BATCH_SEQ++; }
-const SEC_VENDOR_DIRECTORY=[
-  {name:'Cty Hóa chất Tân Tiến',group:'noidia'},{name:'Cty TM Hải Đăng',group:'noidia'},{name:'Cty Cơ khí Tân Bình',group:'noidia'},
-  {name:'Recycling Corp USA',group:'nhapkhau'},{name:'Green Fiber (Thailand)',group:'nhapkhau'},{name:'Nippon Pulp Co.',group:'nhapkhau'},
-  {name:'ONE Line',group:'dichvu'},{name:'Maersk',group:'dichvu'},{name:'Evergreen',group:'dichvu'},
-];
 const SEC_BATCH_STATUS_LABEL={Draft:'Nháp',Calculating:'Đang tính điểm',Calculated:'Đã tính điểm',Approved:'Đã duyệt',Rejected:'Từ chối'};
 let SEC_BATCHES=[
-  {id:secBatchId(),name:'Đánh giá NCC Quý 1/2026',fromDate:'2026-01-01',toDate:'2026-03-31',status:'Calculating',
+  {id:secBatchId(),name:'Đánh giá NCC Tháng 01/2026',fromDate:'2026-01-01',toDate:'2026-01-31',status:'Calculated',
    suppliers:[
      /* Minh hoạ theo đúng kịch bản mục 7 của spec + đúng điểm trừ/cộng thật lấy từ
-        ".docs/ĐÁNH GIÁ NCC NỘI ĐỊA.xlsx": 3 Case lỗi "Mức 1 – Nhẹ" tái phạm trong kỳ → -10, -20 (x2), -40 (x4)
-        = -70, vượt quá điểm cơ sở 40 nên Điểm đạt clamp về 0 và tự kích hoạt cờ loại trừ (đúng ngưỡng "loại
-        khi vi phạm lần thứ 3" trong file gốc); 1 Shipment trễ hạn 5–<10 ngày do lỗi NCC (-4); 1 Shipment
-        giao gấp hoàn thành (+1, thuộc Hỗ trợ nổi trội, giới hạn 1 lần/kỳ). Tổng 56đ → Xếp loại E (0–dưới 60,
-        "Không đạt" theo đúng bảng Xếp loại trong file gốc). */
+        ".docs/ĐÁNH GIÁ NCC NỘI ĐỊA.xlsx": 3 Case lỗi "Mức 1 – Nhẹ" tái phạm TRONG CÙNG THÁNG → -10, -20 (x2),
+        -40 (x4) = -70, vượt quá điểm cơ sở 40 nên Điểm đạt clamp về 0 và tự kích hoạt cờ loại trừ (đúng
+        ngưỡng "loại khi vi phạm lần thứ 3" trong file gốc); 1 Shipment trễ hạn 5–<10 ngày do lỗi NCC (-4);
+        1 Shipment giao gấp hoàn thành (+1, thuộc Hỗ trợ nổi trội, giới hạn 1 lần/kỳ). Tổng 56đ → Xếp loại E
+        (0–dưới 60, "Không đạt" theo đúng bảng Xếp loại trong file gốc). */
      {name:'Cty Hóa chất Tân Tiến',group:'noidia',status:'Calculated',totalScore:56,rating:'E',
+      source:'Có 2 PO nội địa phát sinh trong tháng (PO-2026-0112, PO-2026-0119)',
       exclusionTriggered:true,exclusionReason:'Vi phạm Chất lượng Mức 1 – Nhẹ lần thứ 3 trong kỳ (tái phạm)',
       results:[
        {criteria:'Chất lượng hàng hóa/dịch vụ',code:'CHATLUONG',base:40,deduction:70,bonus:0,final:0,evidence:[
-         {source:'Case CS-2026-0031',rule:'Mức 1 – Nhẹ (lần 1)',date:'2026-01-12',points:-10},
-         {source:'Case CS-2026-0045',rule:'Mức 1 – Nhẹ (lần 2, tái phạm ×2)',date:'2026-02-03',points:-20},
-         {source:'Case CS-2026-0058',rule:'Mức 1 – Nhẹ (lần 3, tái phạm ×4)',date:'2026-03-10',points:-40},
+         {source:'Case CS-2026-0031',rule:'Mức 1 – Nhẹ (lần 1)',date:'2026-01-05',points:-10},
+         {source:'Case CS-2026-0045',rule:'Mức 1 – Nhẹ (lần 2, tái phạm ×2)',date:'2026-01-15',points:-20},
+         {source:'Case CS-2026-0058',rule:'Mức 1 – Nhẹ (lần 3, tái phạm ×4)',date:'2026-01-28',points:-40},
        ]},
        {criteria:'Giao hàng đúng hạn, linh hoạt theo yêu cầu',code:'GIAOHANG',base:10,deduction:4,bonus:0,final:6,evidence:[
-         {source:'Shipment SHP-2026-0087',rule:'Trễ hạn 5–<10 ngày',date:'2026-02-20',points:-4},
+         {source:'Shipment SHP-2026-0087',rule:'Trễ hạn 5–<10 ngày',date:'2026-01-20',points:-4},
        ]},
        {criteria:'Giá bán, kèm phương thức giao nhận',code:'GIABAN',base:15,deduction:0,bonus:0,final:15},
        {criteria:'Phương thức thanh toán',code:'THANHTOAN',base:10,deduction:0,bonus:0,final:10},
@@ -4332,23 +4322,24 @@ let SEC_BATCHES=[
        {criteria:'Ổn định nguồn cung, đáp ứng nhanh, kịp thời',code:'ONCUNG',base:5,deduction:0,bonus:0,final:5},
        {criteria:'Chứng nhận môi trường, hoạt động ESG và uy tín NCC',code:'MOITRUONG',base:5,deduction:0,bonus:0,final:5},
        {criteria:'Hỗ trợ nổi trội',code:'HOTRO',base:5,deduction:0,bonus:1,final:5,evidence:[
-         {source:'Shipment SHP-2026-0102',rule:'Giao gấp/ngoài giờ (2–4h, lễ/CN)',date:'2026-03-05',points:1},
+         {source:'Shipment SHP-2026-0102',rule:'Giao gấp/ngoài giờ (2–4h, lễ/CN)',date:'2026-01-25',points:1},
        ]},
      ]},
      /* Ví dụ "đánh giá bình thường" — vài lỗi nhỏ rải rác nhưng không tái phạm, không chạm ngưỡng loại
         trừ. Điểm trừ lấy đúng theo file gốc: giao trễ dưới 5 ngày -2, giá cao hơn tham chiếu ≤5% -5,
         đặt cọc/trả trước một phần -5, thiếu 1 chứng nhận ESG -1. Tổng 87đ → Xếp loại B "Tốt". */
      {name:'Cty TM Hải Đăng',group:'noidia',status:'Calculated',totalScore:87,rating:'B',
+      source:'Có 1 PO nội địa phát sinh trong tháng (PO-2026-0108)',
       results:[
        {criteria:'Chất lượng hàng hóa/dịch vụ',code:'CHATLUONG',base:40,deduction:0,bonus:0,final:40},
        {criteria:'Giao hàng đúng hạn, linh hoạt theo yêu cầu',code:'GIAOHANG',base:10,deduction:2,bonus:0,final:8,evidence:[
-         {source:'Shipment SHP-2026-0055',rule:'Trễ hạn dưới 5 ngày',date:'2026-01-18',points:-2},
+         {source:'Shipment SHP-2026-0055',rule:'Trễ hạn dưới 5 ngày',date:'2026-01-10',points:-2},
        ]},
        {criteria:'Giá bán, kèm phương thức giao nhận',code:'GIABAN',base:15,deduction:5,bonus:0,final:10,evidence:[
-         {source:'Quote QUO-2026-0219',rule:'Giá cao hơn tham chiếu ≤5%',date:'2026-01-25',points:-5},
+         {source:'Quote QUO-2026-0219',rule:'Giá cao hơn tham chiếu ≤5%',date:'2026-01-12',points:-5},
        ]},
        {criteria:'Phương thức thanh toán',code:'THANHTOAN',base:10,deduction:5,bonus:0,final:5,evidence:[
-         {source:'PO PO-2026-0140',rule:'Đặt cọc/trả trước một phần',date:'2026-02-08',points:-5},
+         {source:'PO PO-2026-0108',rule:'Đặt cọc/trả trước một phần',date:'2026-01-08',points:-5},
        ]},
        {criteria:'Dịch vụ sau bán hàng (hỗ trợ KT, xử lý sự cố, chuyển giao CN)',code:'DICHVU',base:10,deduction:0,bonus:0,final:10},
        {criteria:'Ổn định nguồn cung, đáp ứng nhanh, kịp thời',code:'ONCUNG',base:5,deduction:0,bonus:0,final:5},
@@ -4357,9 +4348,11 @@ let SEC_BATCHES=[
        ]},
        {criteria:'Hỗ trợ nổi trội',code:'HOTRO',base:5,deduction:0,bonus:0,final:5},
      ]},
-     {name:'ONE Line',group:'dichvu',status:'Calculated',totalScore:90,rating:'A',results:[
+     {name:'ONE Line',group:'dichvu',status:'Calculated',totalScore:90,rating:'A',
+      source:'Có phí logistics phát sinh trong tháng (Shipment Fee INV-2026-0041)',
+      results:[
        {criteria:'Chất lượng dịch vụ',code:'CHATLUONG',base:40,deduction:10,bonus:0,final:30,evidence:[
-         {source:'Case CS-2026-0072',rule:'Có lỗi ảnh hưởng tiến độ',date:'2026-01-30',points:-10},
+         {source:'Case CS-2026-0072',rule:'Có lỗi ảnh hưởng tiến độ',date:'2026-01-22',points:-10},
        ]},
        {criteria:'Tiến độ thực hiện',code:'TIENDO',base:15,deduction:0,bonus:0,final:15},
        {criteria:'Giá dịch vụ',code:'GIA',base:15,deduction:0,bonus:0,final:15},
@@ -4371,125 +4364,33 @@ let SEC_BATCHES=[
      ]},
    ]},
 ];
-let SEC_BATCH_DRAFT=null;
 function secDateVN(iso){ return iso? iso.split('-').reverse().join('/') : '—'; }
-function secBatchSuggestHTML(q){
-  const nq=norm(q||'');
-  const picked=new Set(SEC_BATCH_DRAFT.suppliers.map(s=>s.name));
-  const matches=SEC_VENDOR_DIRECTORY.filter(v=>!picked.has(v.name)&&(!nq||norm(v.name).includes(nq)));
-  return matches.length
-    ? matches.slice(0,8).map(v=>`<div class="dq-sugg-item" onclick="secBatchAddSupplier('${v.name.replace(/'/g,"\\'")}')"><b>${v.name}</b> · ${SEC_GROUP_LABEL[v.group]}</div>`).join('')
-    : `<div class="dq-sugg-item wf-muted">Không tìm thấy NCC phù hợp</div>`;
+/* Đợt đánh giá (Batch) giờ do hệ thống tự tạo đầu mỗi tháng (scheduled job) và tự thêm NCC nào có giao
+   dịch phát sinh trong tháng đó (PO nội địa/nhập khẩu, hoặc phí logistics với NCC dịch vụ) — KHÔNG còn
+   tạo tay/thêm-bớt NCC thủ công. Popup dưới đây chỉ để XEM (read-only): thông tin đợt + danh sách NCC
+   kèm lý do (nguồn phát sinh) khiến NCC đó được đưa vào đợt. */
+function secBatchSuppliersRowsHTML(b){
+  if(!b.suppliers.length) return `<tr><td colspan="3" class="wf-muted" style="text-align:center;padding:12px">Không có NCC nào phát sinh giao dịch trong tháng này.</td></tr>`;
+  return b.suppliers.map(s=>`<tr><td>${s.name}</td><td>${SEC_GROUP_LABEL[s.group]}</td><td class="wf-muted" style="font-size:12px">${s.source||'—'}</td></tr>`).join('');
 }
-function secBatchSearchInput(){
-  const box=document.getElementById('sec-batch-suggest'); if(!box) return;
-  box.innerHTML=secBatchSuggestHTML(document.getElementById('sec-batch-search').value); box.hidden=false;
-}
-function secBatchAddSupplier(name){
-  const v=SEC_VENDOR_DIRECTORY.find(x=>x.name===name); if(!v) return;
-  if(SEC_BATCH_DRAFT.suppliers.some(s=>s.name===name)) return;
-  SEC_BATCH_DRAFT.suppliers.push({name:v.name,group:v.group,status:'Chưa tính'});
-  const search=document.getElementById('sec-batch-search'); if(search) search.value='';
-  const box=document.getElementById('sec-batch-suggest'); if(box){ box.hidden=true; box.innerHTML=''; }
-  secRenderBatchSuppliers();
-}
-function secBatchRemoveSupplier(name){ SEC_BATCH_DRAFT.suppliers=SEC_BATCH_DRAFT.suppliers.filter(s=>s.name!==name); secRenderBatchSuppliers(); }
-function secBatchSuppliersRowsHTML(){
-  if(!SEC_BATCH_DRAFT.suppliers.length) return `<tr><td colspan="3" class="wf-muted" style="text-align:center;padding:12px">Chưa có NCC nào — dùng ô tìm kiếm phía trên để thêm NCC vào đợt đánh giá.</td></tr>`;
-  return SEC_BATCH_DRAFT.suppliers.map(s=>`<tr><td>${s.name}</td><td>${SEC_GROUP_LABEL[s.group]}</td><td>${pill('info',s.status)}</td>
-    <td class="num"><button class="btn sm" title="Xoá khỏi đợt" onclick="secBatchRemoveSupplier('${s.name.replace(/'/g,"\\'")}')">✕</button></td></tr>`).join('');
-}
-function secRenderBatchSuppliers(){ const tb=document.getElementById('sec-batch-sup-tbody'); if(tb) tb.innerHTML=secBatchSuppliersRowsHTML(); }
 function openSecBatchModal(batchId){
-  const existing = batchId!=null ? SEC_BATCHES.find(b=>b.id===batchId) : null;
-  SEC_BATCH_DRAFT = existing ? JSON.parse(JSON.stringify(existing)) : {id:null,name:'',fromDate:'',toDate:'',status:'Draft',suppliers:[]};
-  document.getElementById('secbatch-title').textContent = existing? 'Đợt đánh giá · '+existing.name : 'Thêm đợt đánh giá';
+  const b=SEC_BATCHES.find(x=>x.id===batchId); if(!b) return;
+  document.getElementById('secbatch-title').textContent='Đợt đánh giá · '+b.name;
   document.getElementById('secbatch-body').innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-      <div style="grid-column:1/-1"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Tên đợt đánh giá *</label><input id="secbatch-name" class="mass-sel" value="${(SEC_BATCH_DRAFT.name||'').replace(/"/g,'&quot;')}" placeholder="VD: Đánh giá NCC Quý 2/2026"></div>
-      <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Từ ngày *</label><input id="secbatch-from" type="date" class="mass-sel" value="${SEC_BATCH_DRAFT.fromDate||''}"></div>
-      <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Đến ngày *</label><input id="secbatch-to" type="date" class="mass-sel" value="${SEC_BATCH_DRAFT.toDate||''}"></div>
-      <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Trạng thái</label><input class="mass-sel" value="${SEC_BATCH_STATUS_LABEL[SEC_BATCH_DRAFT.status]||SEC_BATCH_DRAFT.status}" readonly></div>
+      <div style="grid-column:1/-1"><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Tên đợt đánh giá</label><div class="mass-sel" style="background:var(--bg)">${b.name}</div></div>
+      <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Từ ngày</label><div class="mass-sel" style="background:var(--bg)">${secDateVN(b.fromDate)}</div></div>
+      <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Đến ngày</label><div class="mass-sel" style="background:var(--bg)">${secDateVN(b.toDate)}</div></div>
+      <div><label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Trạng thái</label><div class="mass-sel" style="background:var(--bg)">${SEC_BATCH_STATUS_LABEL[b.status]||b.status}</div></div>
     </div>
-    <div class="wf-muted" style="font-size:12px;font-weight:700;margin-bottom:4px">Danh sách NCC trong đợt — có thể thêm bất kỳ lúc nào, kể cả sau khi đã lưu đợt</div>
-    <div class="dq-search-wrap" style="margin-bottom:10px">
-      <input id="sec-batch-search" class="mass-sel" placeholder="🔍 Tìm & chọn NCC (Nội địa/Nhập khẩu/Dịch vụ)..." oninput="secBatchSearchInput()" onfocus="secBatchSearchInput()">
-      <div id="sec-batch-suggest" class="dq-suggest" hidden></div>
-    </div>
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>NCC</th><th>Nhóm</th><th>Trạng thái</th><th></th></tr></thead><tbody id="sec-batch-sup-tbody">${secBatchSuppliersRowsHTML()}</tbody></table></div>`;
+    <div class="wf-muted" style="font-size:12px;font-weight:700;margin-bottom:4px">Danh sách NCC trong đợt — tự sinh theo giao dịch phát sinh trong tháng, không sửa được</div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>NCC</th><th>Nhóm</th><th>Nguồn phát sinh</th></tr></thead><tbody>${secBatchSuppliersRowsHTML(b)}</tbody></table></div>`;
   document.getElementById('secbatchback').classList.add('show');
   document.getElementById('secbatchmodal').classList.add('show');
 }
-function closeSecBatchModal(){ const b=document.getElementById('secbatchback'),m=document.getElementById('secbatchmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); SEC_BATCH_DRAFT=null; }
-function confirmSecBatchModal(){
-  const name=(document.getElementById('secbatch-name').value||'').trim();
-  const from=document.getElementById('secbatch-from').value;
-  const to=document.getElementById('secbatch-to').value;
-  if(!name){ toast('Nhập Tên đợt đánh giá'); return; }
-  if(!from||!to){ toast('Chọn đủ Từ ngày và Đến ngày'); return; }
-  if(from>to){ toast('Từ ngày phải trước hoặc bằng Đến ngày'); return; }
-  SEC_BATCH_DRAFT.name=name; SEC_BATCH_DRAFT.fromDate=from; SEC_BATCH_DRAFT.toDate=to;
-  if(SEC_BATCH_DRAFT.id==null){ SEC_BATCH_DRAFT.id=secBatchId(); SEC_BATCHES.push(SEC_BATCH_DRAFT); }
-  else { const idx=SEC_BATCHES.findIndex(b=>b.id===SEC_BATCH_DRAFT.id); if(idx>-1) SEC_BATCHES[idx]=SEC_BATCH_DRAFT; }
-  toast('Đã lưu đợt đánh giá "'+name+'" · '+SEC_BATCH_DRAFT.suppliers.length+' NCC');
-  closeSecBatchModal(); go('evalbatch_list');
-}
-/* ---- Thêm vào đợt đánh giá (bulk action) — chọn nhiều NCC ở list view NCC (vendor_list), thêm vào
-   đợt đã có sẵn hoặc tạo đợt mới luôn kèm sẵn các NCC đã chọn. ---- */
-let SEC_BULK_SELECTED=[];
-function secBulkGetSelectedVendors(){
-  const boxes=[...document.querySelectorAll('.lv-row:checked')];
-  return boxes.map(cb=>{
-    const tr=cb.closest('tr'); const a=tr&&tr.querySelector('a[data-vendor]');
-    return a? {name:a.dataset.vendor, group:a.dataset.vtype||'noidia'} : null;
-  }).filter(Boolean);
-}
-function secBulkUncheckRows(){ document.querySelectorAll('.lv-row').forEach(cb=>cb.checked=false); lvSel(); }
-function secBulkOptionsHTML(){
-  return SEC_BATCHES.map(b=>`<option value="${b.id}">${b.name} (${secDateVN(b.fromDate)} – ${secDateVN(b.toDate)})</option>`).join('');
-}
-function openSecBulkAddModal(){
-  SEC_BULK_SELECTED=secBulkGetSelectedVendors();
-  if(!SEC_BULK_SELECTED.length){ toast('Chọn ít nhất 1 NCC trước khi thêm vào đợt đánh giá'); return; }
-  const hasBatches=SEC_BATCHES.length>0;
-  document.getElementById('secbulk-body').innerHTML=`
-    <div class="po-hint">Đã chọn ${SEC_BULK_SELECTED.length} NCC: ${SEC_BULK_SELECTED.map(v=>v.name).join(', ')}</div>
-    <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
-      <label style="display:flex;align-items:center;gap:6px"><input type="radio" name="secbulk-mode" value="new" checked onchange="secBulkToggleMode()">Tạo đợt đánh giá mới</label>
-      <label style="display:flex;align-items:center;gap:6px"><input type="radio" name="secbulk-mode" value="existing" ${hasBatches?'':'disabled'} onchange="secBulkToggleMode()">Thêm vào đợt đã có${hasBatches?'':' (chưa có đợt nào)'}</label>
-    </div>
-    <div id="secbulk-existing-wrap" style="margin-top:10px;display:none">
-      <label class="wf-muted" style="font-size:12px;display:block;margin-bottom:3px">Chọn đợt đánh giá</label>
-      <select id="secbulk-batch-select" class="mass-sel">${secBulkOptionsHTML()}</select>
-    </div>`;
-  document.getElementById('secbulkback').classList.add('show');
-  document.getElementById('secbulkmodal').classList.add('show');
-}
-function secBulkToggleMode(){
-  const mode=document.querySelector('input[name="secbulk-mode"]:checked').value;
-  const wrap=document.getElementById('secbulk-existing-wrap'); if(wrap) wrap.style.display=mode==='existing'?'block':'none';
-}
-function closeSecBulkAddModal(){ const b=document.getElementById('secbulkback'),m=document.getElementById('secbulkmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
-function confirmSecBulkAddModal(){
-  const mode=document.querySelector('input[name="secbulk-mode"]:checked').value;
-  if(mode==='existing'){
-    const bid=parseFloat(document.getElementById('secbulk-batch-select').value);
-    const b=SEC_BATCHES.find(x=>x.id===bid);
-    if(!b){ toast('Chưa chọn đợt đánh giá'); return; }
-    let added=0;
-    SEC_BULK_SELECTED.forEach(v=>{ if(!b.suppliers.some(s=>s.name===v.name)){ b.suppliers.push({name:v.name,group:v.group,status:'Chưa tính'}); added++; } });
-    closeSecBulkAddModal(); secBulkUncheckRows();
-    toast('Đã thêm '+added+' NCC vào đợt "'+b.name+'"'+(added<SEC_BULK_SELECTED.length?' ('+(SEC_BULK_SELECTED.length-added)+' NCC đã có sẵn trong đợt)':''));
-  } else {
-    closeSecBulkAddModal();
-    openSecBatchModal();
-    SEC_BULK_SELECTED.forEach(v=>{ if(!SEC_BATCH_DRAFT.suppliers.some(s=>s.name===v.name)) SEC_BATCH_DRAFT.suppliers.push({name:v.name,group:v.group,status:'Chưa tính'}); });
-    secRenderBatchSuppliers();
-    secBulkUncheckRows();
-  }
-}
+function closeSecBatchModal(){ const b=document.getElementById('secbatchback'),m=document.getElementById('secbatchmodal'); if(b)b.classList.remove('show'); if(m)m.classList.remove('show'); }
 S.evalbatch_list = ()=> appnav('Dữ liệu nền tảng','Đợt đánh giá NCC',TAB_MD,'Đợt đánh giá NCC')
- + `<div class="sf-body">${lv({crumb:'Đợt đánh giá NCC',ico:'📋',object:'Đợt đánh giá NCC (Batch)',view:'Tất cả đợt',count:String(SEC_BATCHES.length),newLabel:'＋ Thêm đợt đánh giá',newFn:'openSecBatchModal()',
+ + `<div class="sf-body">${lv({crumb:'Đợt đánh giá NCC',ico:'📋',object:'Đợt đánh giá NCC (Batch) — tự sinh hàng tháng',view:'Tất cả đợt',count:String(SEC_BATCHES.length),
    cols:[{t:'Tên đợt'},{t:'Khoảng ngày'},{t:'Số NCC',num:true},{t:'Trạng thái'}],
    rows: SEC_BATCHES.map(b=>({cells:[
      `<a onclick="openSecBatchModal(${b.id})" style="cursor:pointer">${b.name}</a>`,
@@ -6077,7 +5978,6 @@ S.impo_list = ()=> appnav('Mua hàng nhập khẩu','Đơn mua (PO)',TAB_IM,'Đ�
 
 S.vendor_list = ()=> appnav('Mua hàng','NCC',TAB_PUR,'NCC')
  + `<div class="sf-body">${lv({crumb:'Nhà cung cấp',ico:'⭐',color:'#2e844a',object:'Nhà cung cấp (Account)',view:'NCC đang hợp tác',views:['NCC đang hợp tác','Đánh giá thấp','Tạm ngưng','Tất cả NCC'],count:'84',newLabel:'NCC mới',
-   bulk:[{label:'＋ Thêm vào đợt đánh giá',fn:'openSecBulkAddModal()'}],
    cols:[{t:'Tên NCC'},{t:'Mã số thuế'},{t:'Loại NCC'},{t:'Nhóm hàng'},{t:'Điểm',num:true},{t:'Xếp loại'}],
    rows:[
     {go:'vendor',vtype:'noidia',cells:['Cty Hóa chất Tân Tiến','0388445511','Nội địa','Keo/Hóa chất','82',nccGradePill('B')]},
@@ -6230,7 +6130,7 @@ function setupSearch(){
   dd.addEventListener('click',e=>{const it=e.target.closest('.sr-item'); if(it) pickSearch(it.dataset.id);});
   document.addEventListener('click',e=>{ if(!e.target.closest('.g-search')) dd.classList.remove('show'); });
   document.getElementById('lmsearch').addEventListener('input',e=>renderLauncher(e.target.value));
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeSupModal(); closeMass(); closePO(); closeLauncher(); closeShipModal(); closeSlipModal(); closeEvalModal(); closeLogFeeModal(); closeQuoteModal(); closeApproveModal(); closeSampleModal(); closeVpbModal(); closeSecBatchModal(); closeSecBulkAddModal(); } });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeSupModal(); closeMass(); closePO(); closeLauncher(); closeShipModal(); closeSlipModal(); closeEvalModal(); closeLogFeeModal(); closeQuoteModal(); closeApproveModal(); closeSampleModal(); closeVpbModal(); closeSecBatchModal(); } });
 }
 
 /* ---- in-page interactivity ---- */
