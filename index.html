@@ -4021,12 +4021,13 @@ function secVendorResultCardHTML(vendorName){
     }
     return out;
   }).join('');
+  const totalRow=`<tr style="font-weight:700;background:var(--bg)"><td>TỔNG ĐIỂM</td><td class="num">100</td><td></td><td></td><td class="num">${supplier.totalScore}</td></tr>`;
   const exclusionBanner = supplier.exclusionTriggered
     ? banner('err', `<b>⚠ Cờ loại trừ đã kích hoạt</b> — ${supplier.exclusionReason||'Chạm ngưỡng tái phạm theo cấu hình Rule'}. Cần người phê duyệt xem xét quyết định có loại NCC hay không.`)
     : '';
   return card('Kết quả đánh giá NCC', `${exclusionBanner}
     <div class="wf-muted" style="font-size:12px;margin-bottom:8px">Tổng điểm: <b>${supplier.totalScore}/100</b> · Xếp loại: ${pill(secResultRatingPillCls(supplier.rating),supplier.rating)} · Trạng thái: ${SEC_BATCH_STATUS_LABEL[supplier.status]||supplier.status}</div>
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm cơ sở</th><th class="num">Trừ</th><th class="num">Cộng</th><th class="num">Điểm đạt</th></tr></thead><tbody>${rows}</tbody></table></div>`,
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tiêu chí</th><th class="num">Điểm cơ sở</th><th class="num">Trừ</th><th class="num">Cộng</th><th class="num">Điểm đạt</th></tr></thead><tbody>${rows}${totalRow}</tbody></table></div>`,
     {n:String(supplier.results.length)});
 }
 function secRulesViewHTML(){
