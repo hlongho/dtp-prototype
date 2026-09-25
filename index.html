@@ -3871,17 +3871,11 @@ function secDateFieldParts(r){
   const lk=(SEC_OBJECT_LOOKUPS[r.object]||[]).find(l=>secRelName(l.v)===relPart);
   return {mode:'related',lookup:lk?lk.v:'',field:restField};
 }
-function secSetRuleDateMode(cid,rid,mode){
+function secSetRuleDateField1(cid,rid,val){
   const r=secRuleGet(cid,rid); if(!r) return;
-  if(mode==='same'){ r.dateField=''; }
-  else { const lk=(SEC_OBJECT_LOOKUPS[r.object]||[])[0]; if(lk){ const tf=(SEC_OBJECT_FIELDS[lk.to]||[])[0]; r.dateField=secRelName(lk.v)+'.'+(tf?tf.v:''); } }
-  secRenderBody();
-}
-function secSetRuleDateLookup(cid,rid,lookupVal){
-  const r=secRuleGet(cid,rid); if(!r) return;
-  const lk=(SEC_OBJECT_LOOKUPS[r.object]||[]).find(l=>l.v===lookupVal); if(!lk) return;
-  const tf=(SEC_OBJECT_FIELDS[lk.to]||[])[0];
-  r.dateField=secRelName(lk.v)+'.'+(tf?tf.v:'');
+  const lk=(SEC_OBJECT_LOOKUPS[r.object]||[]).find(l=>l.v===val);
+  if(lk){ const tf=(SEC_OBJECT_FIELDS[lk.to]||[])[0]; r.dateField=secRelName(lk.v)+'.'+(tf?tf.v:''); }
+  else { r.dateField=val; }
   secRenderBody();
 }
 function secSetRuleDateRelatedField(cid,rid,fieldVal){
@@ -4192,24 +4186,21 @@ function secCondEditorHTML(cid,r){
   </div>`:''}` : '';
   const ruleLookups=SEC_OBJECT_LOOKUPS[r.object]||[];
   const dp=secDateFieldParts(r);
-  const dateModeRow = ruleLookups.length ? `<div class="ptf-row" style="gap:14px;font-size:11px">
-    <label style="display:flex;align-items:center;gap:4px"><input type="radio" name="sec-datemode-${r.id}" ${dp.mode==='same'?'checked':''} ${r.snapshotAll?'disabled':''} onchange="secSetRuleDateMode(${cid},${r.id},'same')">Field trên Object nguồn</label>
-    <label style="display:flex;align-items:center;gap:4px"><input type="radio" name="sec-datemode-${r.id}" ${dp.mode==='related'?'checked':''} ${r.snapshotAll?'disabled':''} onchange="secSetRuleDateMode(${cid},${r.id},'related')">Qua Lookup sang object khác</label>
-  </div>` : '';
-  const dateFieldPicker = dp.mode==='related'
-    ? `<select class="mass-sel" style="max-width:220px" ${r.snapshotAll?'disabled':''} onchange="secSetRuleDateLookup(${cid},${r.id},this.value)">
-        <option value="">-- Chọn Lookup --</option>${ruleLookups.map(l=>`<option value="${l.v}" ${dp.lookup===l.v?'selected':''}>${l.t}</option>`).join('')}
-      </select>
-      <select class="mass-sel" style="max-width:220px" ${r.snapshotAll?'disabled':''} onchange="secSetRuleDateRelatedField(${cid},${r.id},this.value)">
-        <option value="">-- Field ngày trên object đó --</option>${(SEC_OBJECT_FIELDS[(ruleLookups.find(l=>l.v===dp.lookup)||{}).to]||[]).map(f=>`<option value="${f.v}" ${dp.field===f.v?'selected':''}>${f.t}</option>`).join('')}
+  const step1Value = dp.mode==='related' ? dp.lookup : (r.dateField||'');
+  const step1=`<select class="mass-sel" style="max-width:230px" ${r.snapshotAll?'disabled':''} onchange="secSetRuleDateField1(${cid},${r.id},this.value)">
+    <option value="">-- Field ngày --</option>
+    <optgroup label="Field trên ${r.object||'?'}">${fieldOpts.map(f=>`<option value="${f.v}" ${step1Value===f.v?'selected':''}>${f.t}</option>`).join('')}</optgroup>
+    ${ruleLookups.length?`<optgroup label="Lookup sang object khác">${ruleLookups.map(l=>`<option value="${l.v}" ${step1Value===l.v?'selected':''}>${l.t} →</option>`).join('')}</optgroup>`:''}
+  </select>`;
+  const step2 = dp.mode==='related'
+    ? `<select class="mass-sel" style="max-width:230px" ${r.snapshotAll?'disabled':''} onchange="secSetRuleDateRelatedField(${cid},${r.id},this.value)">
+        <option value="">-- Chọn tiếp field ngày trên object đó --</option>${(SEC_OBJECT_FIELDS[(ruleLookups.find(l=>l.v===dp.lookup)||{}).to]||[]).map(f=>`<option value="${f.v}" ${dp.field===f.v?'selected':''}>${f.t}</option>`).join('')}
       </select>`
-    : `<select class="mass-sel" style="max-width:220px" ${r.snapshotAll?'disabled':''} onchange="secSetRuleField(${cid},${r.id},'dateField',this.value)">
-        <option value="">-- Field ngày --</option>${fieldOpts.map(f=>`<option value="${f.v}" ${r.dateField===f.v?'selected':''}>${f.t}</option>`).join('')}
-      </select>`;
+    : '';
   const dateSection=`<div class="ptf-row" style="gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap">
     <span class="wf-muted" style="font-size:11px;width:100%">Field ngày lọc theo kỳ:</span>
-    ${dateModeRow}
-    ${dateFieldPicker}
+    ${step1}
+    ${step2}
     <label style="display:flex;align-items:center;gap:3px;font-size:11px"><input type="checkbox" ${r.snapshotAll?'checked':''} onchange="secSetRuleField(${cid},${r.id},'snapshotAll',this.checked);secRenderBody()">Lấy trạng thái hiện tại (bỏ lọc ngày)</label>
     ${dp.mode==='related'?`<div class="wf-muted" style="font-size:10.5px;width:100%">→ Sẽ lưu vào Date_Field__c dạng: <code>${r.dateField||'(chưa chọn đủ)'}</code></div>`:''}
   </div>`;
