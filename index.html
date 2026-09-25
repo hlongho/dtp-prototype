@@ -4429,6 +4429,7 @@ function secBatchSuppliersRowsHTML(b){
 let SEC_BATCH_CTX=null;
 S.evalbatch_list = ()=> appnav('Dữ liệu nền tảng','Đợt đánh giá NCC',TAB_MD,'Đợt đánh giá NCC')
  + `<div class="sf-body">${lv({crumb:'Đợt đánh giá NCC',ico:'📋',object:'Đợt đánh giá NCC (Batch) — tự sinh hàng tháng',view:'Tất cả đợt',count:String(SEC_BATCHES.length),
+   head:[{label:'📊 Báo cáo theo Quý/Năm',fn:"go('evalreport')"}],
    cols:[{t:'Tên đợt'},{t:'Khoảng ngày'},{t:'Số NCC',num:true},{t:'Trạng thái'}],
    rows: SEC_BATCHES.map(b=>({cells:[
      `<a data-go="evalbatch" onclick="SEC_BATCH_CTX=${b.id}">${b.name}</a>`,
@@ -4453,6 +4454,96 @@ S.evalbatch = ()=> {
      </div>
      ${activity([])}
    </div></div>`;
+};
+
+/* ===== Báo cáo Đánh giá NCC theo Quý/Năm — prototype cho Custom Report Type chuẩn Salesforce
+   "Đợt đánh giá NCC (Batch__c) with NCC trong đợt (Period__c)": group theo Batch.From_Date__c
+   bằng tính năng chuẩn "Group Dates By: Calendar Quarter/Year" của Report Builder, KHÔNG cần Apex.
+   Data dưới đây là dữ liệu mẫu minh hoạ nhiều tháng (Period__c.Total_Score__c mỗi NCC mỗi tháng) để
+   thấy rõ cách gộp quý/năm — phản ánh đúng nghiệp vụ đã chốt: tháng nào NCC không phát sinh giao dịch
+   thì KHÔNG có Period, và KHÔNG được tính là 0 điểm khi gộp trung bình quý/năm. */
+let SEC_REPORT_ROWS=[
+  {vendor:'Cty Hóa chất Tân Tiến',group:'noidia',ym:'2026-01',score:56},
+  {vendor:'Cty TM Hải Đăng',group:'noidia',ym:'2026-01',score:87},
+  {vendor:'ONE Line',group:'dichvu',ym:'2026-01',score:90},
+  {vendor:'Cty Hóa chất Tân Tiến',group:'noidia',ym:'2026-02',score:68},
+  // Hải Đăng và ONE Line không phát sinh giao dịch tháng 02 → không có Period tháng này
+  {vendor:'Cty Hóa chất Tân Tiến',group:'noidia',ym:'2026-03',score:74},
+  {vendor:'Cty TM Hải Đăng',group:'noidia',ym:'2026-03',score:85},
+  // ONE Line không phát sinh phí logistics tháng 03
+  {vendor:'Cty Hóa chất Tân Tiến',group:'noidia',ym:'2026-04',score:80},
+  {vendor:'Cty TM Hải Đăng',group:'noidia',ym:'2026-04',score:88},
+  {vendor:'ONE Line',group:'dichvu',ym:'2026-04',score:92},
+  // Tân Tiến không phát sinh PO tháng 05
+  {vendor:'Cty TM Hải Đăng',group:'noidia',ym:'2026-05',score:84},
+  {vendor:'ONE Line',group:'dichvu',ym:'2026-05',score:90},
+  {vendor:'Cty Hóa chất Tân Tiến',group:'noidia',ym:'2026-06',score:82},
+  {vendor:'Cty TM Hải Đăng',group:'noidia',ym:'2026-06',score:86},
+  {vendor:'ONE Line',group:'dichvu',ym:'2026-06',score:91},
+  // Quý 3/2026 mới có 1 tháng (Batch tự sinh tới đầu tháng hiện tại) — minh hoạ quý chưa đủ dữ liệu
+  {vendor:'Cty Hóa chất Tân Tiến',group:'noidia',ym:'2026-07',score:78},
+];
+function secReportQuarterKey(ym){ const [y,m]=ym.split('-').map(Number); return y+'-Q'+Math.ceil(m/3); }
+function secReportQuarterLabel(k){ const [y,q]=k.split('-Q'); return 'Quý '+q+'/'+y; }
+function secReportYearKey(ym){ return ym.split('-')[0]; }
+function secReportPeriodKey(ym,mode){ return mode==='year'?secReportYearKey(ym):secReportQuarterKey(ym); }
+function secReportPeriods(mode){ return [...new Set(SEC_REPORT_ROWS.map(r=>secReportPeriodKey(r.ym,mode)))].sort(); }
+function secReportVendors(){
+  const seen=new Map();
+  SEC_REPORT_ROWS.forEach(r=>{ if(!seen.has(r.vendor)) seen.set(r.vendor,r.group); });
+  return [...seen.entries()].map(([vendor,group])=>({vendor,group}));
+}
+function secReportPooled(rows){
+  if(!rows.length) return null;
+  return {avg:Math.round(rows.reduce((s,r)=>s+r.score,0)/rows.length*10)/10, count:rows.length};
+}
+function secReportCellHTML(rows,monthsInPeriod){
+  const p=secReportPooled(rows);
+  if(!p) return `<td class="num wf-muted">—</td>`;
+  return `<td class="num"><b>${p.avg}</b><div class="wf-muted" style="font-size:10px">${nccGrade(p.avg)} · ${p.count}/${monthsInPeriod} tháng</div></td>`;
+}
+let SEC_REPORT_MODE='quarter';
+function secReportSetMode(mode){ SEC_REPORT_MODE=mode; go('evalreport'); }
+S.evalreport = ()=> {
+  const mode=SEC_REPORT_MODE;
+  const monthsInPeriod=mode==='year'?12:3;
+  const periods=secReportPeriods(mode);
+  const periodLabel=k=>mode==='year'?('Năm '+k):secReportQuarterLabel(k);
+  const vendors=secReportVendors();
+  const groupOrder=['noidia','nhapkhau','dichvu'].filter(g=>vendors.some(v=>v.group===g));
+  const bodyRows=groupOrder.map(g=>{
+    const gv=vendors.filter(v=>v.group===g);
+    const vendorRows=gv.map(v=>{
+      const cells=periods.map(p=>secReportCellHTML(SEC_REPORT_ROWS.filter(r=>r.vendor===v.vendor&&secReportPeriodKey(r.ym,mode)===p),monthsInPeriod)).join('');
+      return `<tr><td style="padding-left:24px"><a data-go="vendor" data-vendor="${v.vendor.replace(/"/g,'&quot;')}" data-vtype="${v.group}">${v.vendor}</a></td>${cells}</tr>`;
+    }).join('');
+    const subtotalCells=periods.map(p=>secReportCellHTML(SEC_REPORT_ROWS.filter(r=>r.group===g&&secReportPeriodKey(r.ym,mode)===p),monthsInPeriod)).join('');
+    return `<tr style="background:var(--bg)"><td><b>${SEC_GROUP_LABEL[g]}</b></td><td colspan="${periods.length}"></td></tr>${vendorRows}
+      <tr style="background:var(--bg);font-weight:700"><td>Tổng nhóm ${SEC_GROUP_LABEL[g]}</td>${subtotalCells}</tr>`;
+  }).join('');
+  const grandCells=periods.map(p=>secReportCellHTML(SEC_REPORT_ROWS.filter(r=>secReportPeriodKey(r.ym,mode)===p),monthsInPeriod)).join('');
+  return appnav('Dữ liệu nền tảng','Đợt đánh giá NCC',TAB_MD,'Đợt đánh giá NCC')
+   + `<div class="sf-body">
+   ${hl({crumb:'<span data-go="evalbatch_list">Đợt đánh giá NCC</span> &rsaquo;',ico:'📊',color:'#706e6b',title:'Thống kê Đánh giá NCC theo Quý/Năm',
+     sub:'Report Type: Đợt đánh giá NCC (Batch__c) with NCC trong đợt (Period__c) — Custom Report Type chuẩn Salesforce',
+     actions:[]})}
+   <article class="slds-card" style="margin-top:.25rem">
+     <div class="slds-card__body" style="padding:14px">
+     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+       <span class="wf-muted" style="font-size:12px">Nhóm theo:</span>
+       <button class="btn sm ${mode==='quarter'?'pri':''}" onclick="secReportSetMode('quarter')">Quý (Calendar Quarter)</button>
+       <button class="btn sm ${mode==='year'?'pri':''}" onclick="secReportSetMode('year')">Năm (Calendar Year)</button>
+     </div>
+     ${banner('info','Giá trị hiển thị = <b>Điểm trung bình</b> trên đúng số Period thực tế có phát sinh đánh giá trong kỳ (ghi rõ dạng "n/'+monthsInPeriod+' tháng"). Tháng NCC không có giao dịch phát sinh thì <b>không có Period</b> và <b>không được tính là 0 điểm</b> khi gộp trung bình. Xếp loại (A–E) hiển thị theo 1 thang điểm chung để so sánh xuyên nhóm NCC — bảng xếp loại thật áp dụng riêng theo từng nhóm (`Supplier_Rating_Threshold__c`).')}
+     <div class="tbl-wrap"><table class="tbl">
+       <thead><tr><th>NCC / Nhóm NCC</th>${periods.map(p=>`<th class="num">${periodLabel(p)}</th>`).join('')}</tr></thead>
+       <tbody>${bodyRows}
+         <tr style="background:var(--line);font-weight:700"><td>TỔNG (Grand Total)</td>${grandCells}</tr>
+       </tbody>
+     </table></div>
+     </div>
+   </article>
+   </div>`;
 };
 S.sec_config = ()=> appnav('Dữ liệu nền tảng','Cấu hình Đánh giá NCC',TAB_MD,'Cấu hình Đánh giá NCC')
  + `<div class="sf-body narrow"><div id="sec-body">${secBodyHTML()}</div></div>`;
