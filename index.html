@@ -3839,12 +3839,13 @@ const SEC_OBJECT_OPTIONS=['Case','Shipment__c','Quote__c','PurchaseOrder__c','Ac
 /* Danh sách field minh hoạ — bản thật sẽ dùng dropdown động qua lightning/uiObjectInfoApi (xem mục 6.2
    của tài liệu spec: cần rà soát field thật đã có trên từng object trước khi build Rule Condition thật). */
 const SEC_OBJECT_FIELDS={
-  'Case':[{v:'Severity__c',t:'Mức độ lỗi (Severity__c)'},{v:'CreatedDate',t:'Ngày tạo (CreatedDate)'},{v:'Root_Cause__c',t:'Nguyên nhân gốc (Root_Cause__c)'}],
-  'Shipment__c':[{v:'Delay_Reason__c',t:'Lý do trễ (Delay_Reason__c)'},{v:'Delay_Days__c',t:'Số ngày trễ (Delay_Days__c)'},{v:'Urgent_Delivery__c',t:'Giao gấp (Urgent_Delivery__c)'},{v:'Actual_Delivery_Date__c',t:'Ngày giao thực tế (Actual_Delivery_Date__c)'}],
-  'Quote__c':[{v:'Unit_Price__c',t:'Đơn giá (Unit_Price__c)'},{v:'Reference_Price__c',t:'Giá tham chiếu (Reference_Price__c)'},{v:'Quote_Date__c',t:'Ngày báo giá (Quote_Date__c)'}],
-  'PurchaseOrder__c':[{v:'Payment_Term__c',t:'Điều khoản TT (Payment_Term__c)'},{v:'Document_Error__c',t:'Sai chứng từ (Document_Error__c)'},{v:'Order_Date__c',t:'Ngày đặt hàng (Order_Date__c)'}],
-  'Account':[{v:'ESG_Certified__c',t:'Chứng chỉ ESG (ESG_Certified__c)'},{v:'Active__c',t:'Đang hợp tác (Active__c)'}],
+  'Case':[{v:'Severity__c',t:'Mức độ lỗi (Severity__c)',type:'picklist'},{v:'CreatedDate',t:'Ngày tạo (CreatedDate)',type:'date'},{v:'Root_Cause__c',t:'Nguyên nhân gốc (Root_Cause__c)',type:'picklist'}],
+  'Shipment__c':[{v:'Delay_Reason__c',t:'Lý do trễ (Delay_Reason__c)',type:'picklist'},{v:'Delay_Days__c',t:'Số ngày trễ (Delay_Days__c)',type:'number'},{v:'Urgent_Delivery__c',t:'Giao gấp (Urgent_Delivery__c)',type:'boolean'},{v:'Actual_Delivery_Date__c',t:'Ngày giao thực tế (Actual_Delivery_Date__c)',type:'date'}],
+  'Quote__c':[{v:'Unit_Price__c',t:'Đơn giá (Unit_Price__c)',type:'number'},{v:'Reference_Price__c',t:'Giá tham chiếu (Reference_Price__c)',type:'number'},{v:'Quote_Date__c',t:'Ngày báo giá (Quote_Date__c)',type:'date'}],
+  'PurchaseOrder__c':[{v:'Payment_Term__c',t:'Điều khoản TT (Payment_Term__c)',type:'picklist'},{v:'Document_Error__c',t:'Sai chứng từ (Document_Error__c)',type:'boolean'},{v:'Order_Date__c',t:'Ngày đặt hàng (Order_Date__c)',type:'date'}],
+  'Account':[{v:'ESG_Certified__c',t:'Chứng chỉ ESG (ESG_Certified__c)',type:'boolean'},{v:'Active__c',t:'Đang hợp tác (Active__c)',type:'boolean'}],
 };
+function secDateFieldsOf(obj){ return (SEC_OBJECT_FIELDS[obj]||[]).filter(f=>f.type==='date'); }
 /* Field liên kết NCC (Supplier_Field_API_Name__c) — field trên Object nguồn dùng để lọc đúng record thuộc
    về NCC đang tính điểm trong Period. Bắt buộc trừ khi Object nguồn = Account (lọc thẳng theo Id). */
 const SEC_SUPPLIER_LINK_FIELDS={
@@ -3870,7 +3871,7 @@ function secRelName(lookupApiName){ return lookupApiName.replace(/__c$/,'__r'); 
 function secDateFieldLevels(r){
   const levels=[]; let obj=r.object, remaining=r.dateField||'';
   while(true){
-    const fields=SEC_OBJECT_FIELDS[obj]||[], lookups=SEC_OBJECT_LOOKUPS[obj]||[];
+    const fields=secDateFieldsOf(obj), lookups=SEC_OBJECT_LOOKUPS[obj]||[];
     const dotIdx=remaining.indexOf('.');
     if(dotIdx===-1){ levels.push({obj,fields,lookups,value:remaining}); break; }
     const relPart=remaining.slice(0,dotIdx);
