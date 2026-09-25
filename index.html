@@ -3854,35 +3854,41 @@ const SEC_SUPPLIER_LINK_FIELDS={
   'PurchaseOrder__c':[{v:'Supplier__c',t:'Nhà cung cấp (Supplier__c)'}],
 };
 /* Date_Field__c hỗ trợ dot-notation lấy ngày từ 1 object KHÁC Object nguồn (chỉ theo chiều lookup xuôi —
-   Object nguồn có field lookup trỏ lên object chứa ngày). Vd điều kiện trừ điểm dựa trên Case nhưng ngày
-   để xác định có nằm trong kỳ hay không lại lấy từ Shipment__c liên quan. Xem .md mục 2.3 + mục 6 ý 8
-   (chiều ngược lại — ngày nằm ở object con của Object nguồn — chưa hỗ trợ).
-   UI chọn theo 2 bước giống describe thật (không gõ tay dot-notation): (1) chọn field Lookup trên Object
-   nguồn trỏ tới object nào, (2) chọn field ngày trên chính object đó — rồi tự ghép thành dot-notation. */
+   Object nguồn có field lookup trỏ lên object chứa ngày), và có thể đi qua NHIỀU cấp lookup liên tiếp
+   (vd Case → Shipment liên quan → PO liên quan → Ngày đặt hàng), giống SOQL dot-notation nhiều cấp thật.
+   Xem .md mục 2.3 + mục 6 ý 8 (chiều ngược lại — ngày nằm ở object con của Object nguồn — chưa hỗ trợ).
+   UI chọn từng cấp một, không gõ tay dot-notation: mỗi dropdown gộp cả field thường lẫn field Lookup của
+   đúng object đang đứng ở cấp đó; chọn Lookup thì tự hiện thêm dropdown cho object kế tiếp, chọn field
+   thường thì dừng lại — ghép tất cả các cấp lại thành Date_Field__c hoàn chỉnh. */
 const SEC_OBJECT_LOOKUPS={
   'Case':[{v:'Related_Shipment__c',t:'Shipment liên quan (Related_Shipment__c)',to:'Shipment__c'}],
   'Shipment__c':[{v:'Purchase_Order__c',t:'Đơn mua liên quan (Purchase_Order__c)',to:'PurchaseOrder__c'}],
 };
 function secRelName(lookupApiName){ return lookupApiName.replace(/__c$/,'__r'); }
-function secDateFieldParts(r){
-  const df=r.dateField||'';
-  if(!df.includes('.')) return {mode:'same',lookup:'',field:df};
-  const relPart=df.split('.')[0], restField=df.slice(relPart.length+1);
-  const lk=(SEC_OBJECT_LOOKUPS[r.object]||[]).find(l=>secRelName(l.v)===relPart);
-  return {mode:'related',lookup:lk?lk.v:'',field:restField};
+/* Phân rã Date_Field__c hiện tại thành từng cấp: mỗi cấp = {obj, fields, lookups, value}.
+   value = field đã chọn (nếu là cấp cuối) hoặc field Lookup đã chọn (nếu còn đi tiếp). */
+function secDateFieldLevels(r){
+  const levels=[]; let obj=r.object, remaining=r.dateField||'';
+  while(true){
+    const fields=SEC_OBJECT_FIELDS[obj]||[], lookups=SEC_OBJECT_LOOKUPS[obj]||[];
+    const dotIdx=remaining.indexOf('.');
+    if(dotIdx===-1){ levels.push({obj,fields,lookups,value:remaining}); break; }
+    const relPart=remaining.slice(0,dotIdx);
+    const lk=lookups.find(l=>secRelName(l.v)===relPart);
+    if(!lk){ levels.push({obj,fields,lookups,value:remaining}); break; }
+    levels.push({obj,fields,lookups,value:lk.v});
+    remaining=remaining.slice(dotIdx+1); obj=lk.to;
+  }
+  return levels;
 }
-function secSetRuleDateField1(cid,rid,val){
+function secSetRuleDateLevel(cid,rid,levelIdx,val){
   const r=secRuleGet(cid,rid); if(!r) return;
-  const lk=(SEC_OBJECT_LOOKUPS[r.object]||[]).find(l=>l.v===val);
-  if(lk){ const tf=(SEC_OBJECT_FIELDS[lk.to]||[])[0]; r.dateField=secRelName(lk.v)+'.'+(tf?tf.v:''); }
-  else { r.dateField=val; }
-  secRenderBody();
-}
-function secSetRuleDateRelatedField(cid,rid,fieldVal){
-  const r=secRuleGet(cid,rid); if(!r) return;
-  const parts=secDateFieldParts(r); if(parts.mode!=='related') return;
-  const relPart=(r.dateField||'').split('.')[0];
-  r.dateField=relPart+'.'+fieldVal;
+  const levels=secDateFieldLevels(r);
+  const relParts=[];
+  for(let i=0;i<levelIdx;i++){ const lk=levels[i].lookups.find(l=>l.v===levels[i].value); if(lk) relParts.push(secRelName(lk.v)); }
+  const lk=(levels[levelIdx]?levels[levelIdx].lookups:[]).find(l=>l.v===val);
+  relParts.push(lk?secRelName(lk.v):val);
+  r.dateField=relParts.join('.')+(lk?'.':'');
   secRenderBody();
 }
 const SEC_OPERATOR_OPTIONS=[['=','bằng'],['!=','khác'],['>','lớn hơn'],['>=','lớn hơn hoặc bằng'],['<','nhỏ hơn'],['<=','nhỏ hơn hoặc bằng'],['between','trong khoảng'],['contains','chứa']];
@@ -4184,25 +4190,18 @@ function secCondEditorHTML(cid,r){
     <input class="mass-sel" style="max-width:260px" placeholder="VD: 1 AND (2 OR 3)" value="${(r.customLogic||'').replace(/"/g,'&quot;')}" oninput="secSetRuleField(${cid},${r.id},'customLogic',this.value)">
     <span class="wf-muted" style="font-size:11px;margin-left:8px">Ghép theo số thứ tự điều kiện ở trên (1, 2, 3...) bằng AND/OR/(), vd "1 AND (2 OR 3)"</span>
   </div>`:''}` : '';
-  const ruleLookups=SEC_OBJECT_LOOKUPS[r.object]||[];
-  const dp=secDateFieldParts(r);
-  const step1Value = dp.mode==='related' ? dp.lookup : (r.dateField||'');
-  const step1=`<select class="mass-sel" style="max-width:230px" ${r.snapshotAll?'disabled':''} onchange="secSetRuleDateField1(${cid},${r.id},this.value)">
-    <option value="">-- Field ngày --</option>
-    <optgroup label="Field trên ${r.object||'?'}">${fieldOpts.map(f=>`<option value="${f.v}" ${step1Value===f.v?'selected':''}>${f.t}</option>`).join('')}</optgroup>
-    ${ruleLookups.length?`<optgroup label="Lookup sang object khác">${ruleLookups.map(l=>`<option value="${l.v}" ${step1Value===l.v?'selected':''}>${l.t} →</option>`).join('')}</optgroup>`:''}
-  </select>`;
-  const step2 = dp.mode==='related'
-    ? `<select class="mass-sel" style="max-width:230px" ${r.snapshotAll?'disabled':''} onchange="secSetRuleDateRelatedField(${cid},${r.id},this.value)">
-        <option value="">-- Chọn tiếp field ngày trên object đó --</option>${(SEC_OBJECT_FIELDS[(ruleLookups.find(l=>l.v===dp.lookup)||{}).to]||[]).map(f=>`<option value="${f.v}" ${dp.field===f.v?'selected':''}>${f.t}</option>`).join('')}
-      </select>`
-    : '';
+  const dateLevels=secDateFieldLevels(r);
+  const dateSelects=dateLevels.map((lv,i)=>`<select class="mass-sel" style="max-width:230px" ${r.snapshotAll?'disabled':''} onchange="secSetRuleDateLevel(${cid},${r.id},${i},this.value)">
+    <option value="">${i===0?'-- Field ngày --':'-- Chọn tiếp field ngày --'}</option>
+    <optgroup label="Field trên ${lv.obj||'?'}">${lv.fields.map(f=>`<option value="${f.v}" ${lv.value===f.v?'selected':''}>${f.t}</option>`).join('')}</optgroup>
+    ${lv.lookups.length?`<optgroup label="Lookup sang object khác">${lv.lookups.map(l=>`<option value="${l.v}" ${lv.value===l.v?'selected':''}>${l.t} →</option>`).join('')}</optgroup>`:''}
+  </select>`).join('');
+  const isMultiHop=dateLevels.length>1;
   const dateSection=`<div class="ptf-row" style="gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap">
     <span class="wf-muted" style="font-size:11px;width:100%">Field ngày lọc theo kỳ:</span>
-    ${step1}
-    ${step2}
+    ${dateSelects}
     <label style="display:flex;align-items:center;gap:3px;font-size:11px"><input type="checkbox" ${r.snapshotAll?'checked':''} onchange="secSetRuleField(${cid},${r.id},'snapshotAll',this.checked);secRenderBody()">Lấy trạng thái hiện tại (bỏ lọc ngày)</label>
-    ${dp.mode==='related'?`<div class="wf-muted" style="font-size:10.5px;width:100%">→ Sẽ lưu vào Date_Field__c dạng: <code>${r.dateField||'(chưa chọn đủ)'}</code></div>`:''}
+    ${isMultiHop?`<div class="wf-muted" style="font-size:10.5px;width:100%">→ Sẽ lưu vào Date_Field__c dạng: <code>${r.dateField||'(chưa chọn đủ)'}</code></div>`:''}
   </div>`;
   return `<div style="margin-top:4px;padding:8px 10px;background:var(--bg);border-radius:6px">${rows}${logicSection}${dateSection}
     <button class="btn sm" style="margin-top:8px" onclick="secAddCond(${cid},${r.id})">＋ Thêm điều kiện</button></div>`;
