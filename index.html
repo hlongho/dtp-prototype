@@ -4503,23 +4503,23 @@ function secReportPooled(rows){
   if(!rows.length) return null;
   return {avg:Math.round(rows.reduce((s,r)=>s+r.score,0)/rows.length*10)/10, count:rows.length};
 }
-function secReportCellHTML(rows,monthsInPeriod){
+function secReportCellHTML(rows){
   const p=secReportPooled(rows);
   if(!p) return `<td class="num wf-muted">—</td>`;
-  return `<td class="num"><b>${p.avg}</b><div class="wf-muted" style="font-size:10px">${nccGrade(p.avg)} · ${p.count}/${monthsInPeriod} tháng</div></td>`;
+  return `<td class="num"><b>${p.avg}</b><div class="wf-muted" style="font-size:10px">${nccGrade(p.avg)}</div></td>`;
 }
 let SEC_REPORT_MODE='quarter';
 let SEC_REPORT_CHART_SHOWN=true;
 function secReportSetMode(mode){ SEC_REPORT_MODE=mode; go('evalreport'); }
 function secReportToggleChart(){ SEC_REPORT_CHART_SHOWN=!SEC_REPORT_CHART_SHOWN; go('evalreport'); }
 const SEC_REPORT_PALETTE=['var(--sf-blue)','var(--ok)','var(--warn)','var(--err)','var(--sf-blue-d)'];
-function secReportChartHTML(mode,periods,periodLabel,vendors,monthsInPeriod){
+function secReportChartHTML(mode,periods,periodLabel,vendors){
   const colorOf=v=>SEC_REPORT_PALETTE[vendors.findIndex(x=>x.vendor===v)%SEC_REPORT_PALETTE.length];
   const groups=periods.map(p=>{
     const bars=vendors.map(v=>{
       const cell=secReportPooled(SEC_REPORT_ROWS.filter(r=>r.vendor===v.vendor&&secReportPeriodKey(r.ym,mode)===p));
       if(!cell) return `<div class="rc-bar-slot" title="${v.vendor}: chưa có Period trong kỳ này"></div>`;
-      return `<div class="rc-bar" style="height:${cell.avg}%;background:${colorOf(v.vendor)}" title="${v.vendor}: ${cell.avg} điểm (${cell.count}/${monthsInPeriod} tháng)"></div>`;
+      return `<div class="rc-bar" style="height:${cell.avg}%;background:${colorOf(v.vendor)}" title="${v.vendor}: ${cell.avg} điểm"></div>`;
     }).join('');
     return `<div class="rc-group"><div class="rc-bars">${bars}</div><span class="rc-label">${periodLabel(p)}</span></div>`;
   }).join('');
@@ -4530,7 +4530,6 @@ function secReportChartHTML(mode,periods,periodLabel,vendors,monthsInPeriod){
 S.evalreport = ()=> {
   const mode=SEC_REPORT_MODE;
   const chartShown=SEC_REPORT_CHART_SHOWN;
-  const monthsInPeriod=mode==='year'?12:3;
   const periods=secReportPeriods(mode);
   const periodLabel=k=>mode==='year'?('Năm '+k):secReportQuarterLabel(k);
   const vendors=secReportVendors();
@@ -4538,14 +4537,14 @@ S.evalreport = ()=> {
   const bodyRows=groupOrder.map(g=>{
     const gv=vendors.filter(v=>v.group===g);
     const vendorRows=gv.map(v=>{
-      const cells=periods.map(p=>secReportCellHTML(SEC_REPORT_ROWS.filter(r=>r.vendor===v.vendor&&secReportPeriodKey(r.ym,mode)===p),monthsInPeriod)).join('');
+      const cells=periods.map(p=>secReportCellHTML(SEC_REPORT_ROWS.filter(r=>r.vendor===v.vendor&&secReportPeriodKey(r.ym,mode)===p))).join('');
       return `<tr><td style="padding-left:24px"><a data-go="vendor" data-vendor="${v.vendor.replace(/"/g,'&quot;')}" data-vtype="${v.group}">${v.vendor}</a></td>${cells}</tr>`;
     }).join('');
-    const subtotalCells=periods.map(p=>secReportCellHTML(SEC_REPORT_ROWS.filter(r=>r.group===g&&secReportPeriodKey(r.ym,mode)===p),monthsInPeriod)).join('');
+    const subtotalCells=periods.map(p=>secReportCellHTML(SEC_REPORT_ROWS.filter(r=>r.group===g&&secReportPeriodKey(r.ym,mode)===p))).join('');
     return `<tr style="background:var(--bg)"><td><b>${SEC_GROUP_LABEL[g]}</b></td><td colspan="${periods.length}"></td></tr>${vendorRows}
       <tr style="background:var(--bg);font-weight:700"><td>Tổng nhóm ${SEC_GROUP_LABEL[g]}</td>${subtotalCells}</tr>`;
   }).join('');
-  const grandCells=periods.map(p=>secReportCellHTML(SEC_REPORT_ROWS.filter(r=>secReportPeriodKey(r.ym,mode)===p),monthsInPeriod)).join('');
+  const grandCells=periods.map(p=>secReportCellHTML(SEC_REPORT_ROWS.filter(r=>secReportPeriodKey(r.ym,mode)===p))).join('');
   const tableHTML=`<div class="tbl-wrap"><table class="tbl">
        <thead><tr><th>NCC / Nhóm NCC</th>${periods.map(p=>`<th class="num">${periodLabel(p)}</th>`).join('')}</tr></thead>
        <tbody>${bodyRows}
@@ -4567,8 +4566,8 @@ S.evalreport = ()=> {
        </div>
        <button class="btn sm" onclick="secReportToggleChart()">${chartShown?'▾ Ẩn biểu đồ':'▸ Hiện biểu đồ'}</button>
      </div>
-     ${banner('info','Giá trị hiển thị = <b>Điểm trung bình</b> trên đúng số Period thực tế có phát sinh đánh giá trong kỳ (ghi rõ dạng "n/'+monthsInPeriod+' tháng"). Tháng NCC không có giao dịch phát sinh thì <b>không có Period</b> và <b>không được tính là 0 điểm</b> khi gộp trung bình. Xếp loại (A–E) hiển thị theo 1 thang điểm chung để so sánh xuyên nhóm NCC — bảng xếp loại thật áp dụng riêng theo từng nhóm (`Supplier_Rating_Threshold__c`).')}
-     ${chartShown?secReportChartHTML(mode,periods,periodLabel,vendors,monthsInPeriod):''}
+     ${banner('info','Giá trị hiển thị = <b>Điểm trung bình</b> trên đúng số Period thực tế có phát sinh đánh giá trong kỳ. Tháng NCC không có giao dịch phát sinh thì <b>không có Period</b> và <b>không được tính là 0 điểm</b> khi gộp trung bình. Xếp loại (A–E) hiển thị theo 1 thang điểm chung để so sánh xuyên nhóm NCC — bảng xếp loại thật áp dụng riêng theo từng nhóm (`Supplier_Rating_Threshold__c`).')}
+     ${chartShown?secReportChartHTML(mode,periods,periodLabel,vendors):''}
      ${tableHTML}
      </div>
    </article>
