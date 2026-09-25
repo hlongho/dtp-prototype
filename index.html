@@ -4509,9 +4509,9 @@ function secReportCellHTML(rows,monthsInPeriod){
   return `<td class="num"><b>${p.avg}</b><div class="wf-muted" style="font-size:10px">${nccGrade(p.avg)} · ${p.count}/${monthsInPeriod} tháng</div></td>`;
 }
 let SEC_REPORT_MODE='quarter';
-let SEC_REPORT_VIEW='table';
+let SEC_REPORT_CHART_SHOWN=true;
 function secReportSetMode(mode){ SEC_REPORT_MODE=mode; go('evalreport'); }
-function secReportSetView(view){ SEC_REPORT_VIEW=view; go('evalreport'); }
+function secReportToggleChart(){ SEC_REPORT_CHART_SHOWN=!SEC_REPORT_CHART_SHOWN; go('evalreport'); }
 const SEC_REPORT_PALETTE=['var(--sf-blue)','var(--ok)','var(--warn)','var(--err)','var(--sf-blue-d)'];
 function secReportChartHTML(mode,periods,periodLabel,vendors,monthsInPeriod){
   const colorOf=v=>SEC_REPORT_PALETTE[vendors.findIndex(x=>x.vendor===v)%SEC_REPORT_PALETTE.length];
@@ -4529,7 +4529,7 @@ function secReportChartHTML(mode,periods,periodLabel,vendors,monthsInPeriod){
 }
 S.evalreport = ()=> {
   const mode=SEC_REPORT_MODE;
-  const view=SEC_REPORT_VIEW;
+  const chartShown=SEC_REPORT_CHART_SHOWN;
   const monthsInPeriod=mode==='year'?12:3;
   const periods=secReportPeriods(mode);
   const periodLabel=k=>mode==='year'?('Năm '+k):secReportQuarterLabel(k);
@@ -4565,14 +4565,11 @@ S.evalreport = ()=> {
          <button class="btn sm ${mode==='quarter'?'pri':''}" onclick="secReportSetMode('quarter')">Quý (Calendar Quarter)</button>
          <button class="btn sm ${mode==='year'?'pri':''}" onclick="secReportSetMode('year')">Năm (Calendar Year)</button>
        </div>
-       <div style="display:flex;align-items:center;gap:8px">
-         <span class="wf-muted" style="font-size:12px">Xem dạng:</span>
-         <button class="btn sm ${view==='table'?'pri':''}" onclick="secReportSetView('table')">☰ Bảng</button>
-         <button class="btn sm ${view==='chart'?'pri':''}" onclick="secReportSetView('chart')">📊 Biểu đồ</button>
-       </div>
+       <button class="btn sm" onclick="secReportToggleChart()">${chartShown?'▾ Ẩn biểu đồ':'▸ Hiện biểu đồ'}</button>
      </div>
      ${banner('info','Giá trị hiển thị = <b>Điểm trung bình</b> trên đúng số Period thực tế có phát sinh đánh giá trong kỳ (ghi rõ dạng "n/'+monthsInPeriod+' tháng"). Tháng NCC không có giao dịch phát sinh thì <b>không có Period</b> và <b>không được tính là 0 điểm</b> khi gộp trung bình. Xếp loại (A–E) hiển thị theo 1 thang điểm chung để so sánh xuyên nhóm NCC — bảng xếp loại thật áp dụng riêng theo từng nhóm (`Supplier_Rating_Threshold__c`).')}
-     ${view==='chart'?secReportChartHTML(mode,periods,periodLabel,vendors,monthsInPeriod):tableHTML}
+     ${chartShown?secReportChartHTML(mode,periods,periodLabel,vendors,monthsInPeriod):''}
+     ${tableHTML}
      </div>
    </article>
    </div>`;
