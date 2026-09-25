@@ -3853,6 +3853,14 @@ const SEC_SUPPLIER_LINK_FIELDS={
   'Quote__c':[{v:'Account__c',t:'Nhà cung cấp (Account__c)'}],
   'PurchaseOrder__c':[{v:'Supplier__c',t:'Nhà cung cấp (Supplier__c)'}],
 };
+/* Date_Field__c hỗ trợ dot-notation lấy ngày từ 1 object KHÁC Object nguồn (chỉ theo chiều lookup xuôi —
+   Object nguồn có field lookup trỏ lên object chứa ngày). Vd điều kiện trừ điểm dựa trên Case nhưng ngày
+   để xác định có nằm trong kỳ hay không lại lấy từ Shipment__c liên quan. Xem .md mục 2.3 + mục 6 ý 8
+   (chiều ngược lại — ngày nằm ở object con của Object nguồn — chưa hỗ trợ). */
+const SEC_RELATED_DATE_FIELDS={
+  'Case':[{v:'Related_Shipment__r.Actual_Delivery_Date__c',t:'Ngày giao thực tế qua Shipment liên quan (Related_Shipment__r.Actual_Delivery_Date__c)'}],
+  'Shipment__c':[{v:'Purchase_Order__r.Order_Date__c',t:'Ngày đặt hàng qua PO liên quan (Purchase_Order__r.Order_Date__c)'}],
+};
 const SEC_OPERATOR_OPTIONS=[['=','bằng'],['!=','khác'],['>','lớn hơn'],['>=','lớn hơn hoặc bằng'],['<','nhỏ hơn'],['<=','nhỏ hơn hoặc bằng'],['between','trong khoảng'],['contains','chứa']];
 const SEC_OP_LABEL=Object.fromEntries(SEC_OPERATOR_OPTIONS);
 const SEC_APPLY_MODE_OPTIONS=[['Per_Occurrence','Mỗi lần'],['Once_Per_Period','1 lần/kỳ'],['Worst_Case_Only','Mức nặng nhất'],['Count_Tier','Theo số lần vi phạm (bậc thang)']];
@@ -4152,10 +4160,13 @@ function secCondEditorHTML(cid,r){
     <input class="mass-sel" style="max-width:260px" placeholder="VD: 1 AND (2 OR 3)" value="${(r.customLogic||'').replace(/"/g,'&quot;')}" oninput="secSetRuleField(${cid},${r.id},'customLogic',this.value)">
     <span class="wf-muted" style="font-size:11px;margin-left:8px">Ghép theo số thứ tự điều kiện ở trên (1, 2, 3...) bằng AND/OR/(), vd "1 AND (2 OR 3)"</span>
   </div>`:''}` : '';
+  const relatedDateOpts=SEC_RELATED_DATE_FIELDS[r.object]||[];
   const dateSection=`<div class="ptf-row" style="gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap">
     <span class="wf-muted" style="font-size:11px">Field ngày lọc theo kỳ:</span>
-    <select class="mass-sel" style="max-width:220px" ${r.snapshotAll?'disabled':''} onchange="secSetRuleField(${cid},${r.id},'dateField',this.value)">
-      <option value="">-- Field ngày --</option>${fieldOpts.map(f=>`<option value="${f.v}" ${r.dateField===f.v?'selected':''}>${f.t}</option>`).join('')}
+    <select class="mass-sel" style="max-width:260px" ${r.snapshotAll?'disabled':''} onchange="secSetRuleField(${cid},${r.id},'dateField',this.value)">
+      <option value="">-- Field ngày --</option>
+      <optgroup label="Trên Object nguồn (${r.object||'?'})">${fieldOpts.map(f=>`<option value="${f.v}" ${r.dateField===f.v?'selected':''}>${f.t}</option>`).join('')}</optgroup>
+      ${relatedDateOpts.length?`<optgroup label="Qua quan hệ (object khác)">${relatedDateOpts.map(f=>`<option value="${f.v}" ${r.dateField===f.v?'selected':''}>${f.t}</option>`).join('')}</optgroup>`:''}
     </select>
     <label style="display:flex;align-items:center;gap:3px;font-size:11px"><input type="checkbox" ${r.snapshotAll?'checked':''} onchange="secSetRuleField(${cid},${r.id},'snapshotAll',this.checked);secRenderBody()">Lấy trạng thái hiện tại (bỏ lọc ngày)</label>
   </div>`;
