@@ -4204,8 +4204,9 @@ function secCondEditorHTML(cid,r){
     <label style="display:flex;align-items:center;gap:3px;font-size:11px"><input type="checkbox" ${r.snapshotAll?'checked':''} onchange="secSetRuleField(${cid},${r.id},'snapshotAll',this.checked);secRenderBody()">Lấy trạng thái hiện tại (bỏ lọc ngày)</label>
     ${isMultiHop?`<div class="wf-muted" style="font-size:10.5px;width:100%">→ Sẽ lưu vào Date_Field__c dạng: <code>${r.dateField||'(chưa chọn đủ)'}</code></div>`:''}
   </div>`;
-  return `<div style="margin-top:4px;padding:8px 10px;background:var(--bg);border-radius:6px">${rows}${logicSection}${dateSection}
-    <button class="btn sm" style="margin-top:8px" onclick="secAddCond(${cid},${r.id})">＋ Thêm điều kiện</button></div>`;
+  return `<div style="margin-top:4px;padding:8px 10px;background:var(--bg);border-radius:6px">${rows}
+    <button class="btn sm" style="margin-top:8px" onclick="secAddCond(${cid},${r.id})">＋ Thêm điều kiện</button>
+    ${logicSection}${dateSection}</div>`;
 }
 function secAdvEditorHTML(cid,r){
   return `<div style="margin-top:6px;padding:8px 10px;background:var(--bg);border-radius:6px">
