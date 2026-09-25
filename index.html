@@ -476,8 +476,14 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
 .chart .bar{flex:1;background:var(--sf-blue);border-radius:3px 3px 0 0;position:relative;min-width:10px}
 .chart .bar.plan{background:var(--line-2)}
 .chart .bar span{position:absolute;bottom:-17px;left:0;right:0;text-align:center;font-size:10px;color:var(--ink-3)}
-.legend{display:flex;gap:16px;font-size:11px;color:var(--ink-2);margin-top:22px}
+.legend{display:flex;gap:16px;font-size:11px;color:var(--ink-2);margin-top:22px;flex-wrap:wrap}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle}
+.rc-chart{display:flex;align-items:flex-end;gap:20px;height:170px;padding:6px 4px 0;overflow-x:auto;border-bottom:1px solid var(--line)}
+.rc-group{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:64px}
+.rc-bars{display:flex;align-items:flex-end;gap:3px;height:140px}
+.rc-bar{width:13px;border-radius:3px 3px 0 0;min-height:2px}
+.rc-bar-slot{width:13px}
+.rc-label{font-size:11px;color:var(--ink-2);white-space:nowrap;text-align:center}
 
 /* interactivity affordances */
 .stage{cursor:pointer}
@@ -4503,9 +4509,27 @@ function secReportCellHTML(rows,monthsInPeriod){
   return `<td class="num"><b>${p.avg}</b><div class="wf-muted" style="font-size:10px">${nccGrade(p.avg)} · ${p.count}/${monthsInPeriod} tháng</div></td>`;
 }
 let SEC_REPORT_MODE='quarter';
+let SEC_REPORT_VIEW='table';
 function secReportSetMode(mode){ SEC_REPORT_MODE=mode; go('evalreport'); }
+function secReportSetView(view){ SEC_REPORT_VIEW=view; go('evalreport'); }
+const SEC_REPORT_PALETTE=['var(--sf-blue)','var(--ok)','var(--warn)','var(--err)','var(--sf-blue-d)'];
+function secReportChartHTML(mode,periods,periodLabel,vendors,monthsInPeriod){
+  const colorOf=v=>SEC_REPORT_PALETTE[vendors.findIndex(x=>x.vendor===v)%SEC_REPORT_PALETTE.length];
+  const groups=periods.map(p=>{
+    const bars=vendors.map(v=>{
+      const cell=secReportPooled(SEC_REPORT_ROWS.filter(r=>r.vendor===v.vendor&&secReportPeriodKey(r.ym,mode)===p));
+      if(!cell) return `<div class="rc-bar-slot" title="${v.vendor}: chưa có Period trong kỳ này"></div>`;
+      return `<div class="rc-bar" style="height:${cell.avg}%;background:${colorOf(v.vendor)}" title="${v.vendor}: ${cell.avg} điểm (${cell.count}/${monthsInPeriod} tháng)"></div>`;
+    }).join('');
+    return `<div class="rc-group"><div class="rc-bars">${bars}</div><span class="rc-label">${periodLabel(p)}</span></div>`;
+  }).join('');
+  const legend=vendors.map(v=>`<span><i style="background:${colorOf(v.vendor)}"></i>${v.vendor} <span class="wf-muted">(${SEC_GROUP_LABEL[v.group]})</span></span>`).join('');
+  return `<div class="rc-chart">${groups}</div><div class="legend">${legend}</div>
+    <p class="note">Trục dọc = Điểm trung bình (0–100). Cột nào không có nghĩa là NCC đó không phát sinh Period trong kỳ tương ứng (không vẽ cột 0).</p>`;
+}
 S.evalreport = ()=> {
   const mode=SEC_REPORT_MODE;
+  const view=SEC_REPORT_VIEW;
   const monthsInPeriod=mode==='year'?12:3;
   const periods=secReportPeriods(mode);
   const periodLabel=k=>mode==='year'?('Năm '+k):secReportQuarterLabel(k);
@@ -4522,6 +4546,12 @@ S.evalreport = ()=> {
       <tr style="background:var(--bg);font-weight:700"><td>Tổng nhóm ${SEC_GROUP_LABEL[g]}</td>${subtotalCells}</tr>`;
   }).join('');
   const grandCells=periods.map(p=>secReportCellHTML(SEC_REPORT_ROWS.filter(r=>secReportPeriodKey(r.ym,mode)===p),monthsInPeriod)).join('');
+  const tableHTML=`<div class="tbl-wrap"><table class="tbl">
+       <thead><tr><th>NCC / Nhóm NCC</th>${periods.map(p=>`<th class="num">${periodLabel(p)}</th>`).join('')}</tr></thead>
+       <tbody>${bodyRows}
+         <tr style="background:var(--line);font-weight:700"><td>TỔNG (Grand Total)</td>${grandCells}</tr>
+       </tbody>
+     </table></div>`;
   return appnav('Dữ liệu nền tảng','Đợt đánh giá NCC',TAB_MD,'Đợt đánh giá NCC')
    + `<div class="sf-body">
    ${hl({crumb:'<span data-go="evalbatch_list">Đợt đánh giá NCC</span> &rsaquo;',ico:'📊',color:'#706e6b',title:'Thống kê Đánh giá NCC theo Quý/Năm',
@@ -4529,18 +4559,20 @@ S.evalreport = ()=> {
      actions:[]})}
    <article class="slds-card" style="margin-top:.25rem">
      <div class="slds-card__body" style="padding:14px">
-     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-       <span class="wf-muted" style="font-size:12px">Nhóm theo:</span>
-       <button class="btn sm ${mode==='quarter'?'pri':''}" onclick="secReportSetMode('quarter')">Quý (Calendar Quarter)</button>
-       <button class="btn sm ${mode==='year'?'pri':''}" onclick="secReportSetMode('year')">Năm (Calendar Year)</button>
+     <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;flex-wrap:wrap">
+       <div style="display:flex;align-items:center;gap:8px">
+         <span class="wf-muted" style="font-size:12px">Nhóm theo:</span>
+         <button class="btn sm ${mode==='quarter'?'pri':''}" onclick="secReportSetMode('quarter')">Quý (Calendar Quarter)</button>
+         <button class="btn sm ${mode==='year'?'pri':''}" onclick="secReportSetMode('year')">Năm (Calendar Year)</button>
+       </div>
+       <div style="display:flex;align-items:center;gap:8px">
+         <span class="wf-muted" style="font-size:12px">Xem dạng:</span>
+         <button class="btn sm ${view==='table'?'pri':''}" onclick="secReportSetView('table')">☰ Bảng</button>
+         <button class="btn sm ${view==='chart'?'pri':''}" onclick="secReportSetView('chart')">📊 Biểu đồ</button>
+       </div>
      </div>
      ${banner('info','Giá trị hiển thị = <b>Điểm trung bình</b> trên đúng số Period thực tế có phát sinh đánh giá trong kỳ (ghi rõ dạng "n/'+monthsInPeriod+' tháng"). Tháng NCC không có giao dịch phát sinh thì <b>không có Period</b> và <b>không được tính là 0 điểm</b> khi gộp trung bình. Xếp loại (A–E) hiển thị theo 1 thang điểm chung để so sánh xuyên nhóm NCC — bảng xếp loại thật áp dụng riêng theo từng nhóm (`Supplier_Rating_Threshold__c`).')}
-     <div class="tbl-wrap"><table class="tbl">
-       <thead><tr><th>NCC / Nhóm NCC</th>${periods.map(p=>`<th class="num">${periodLabel(p)}</th>`).join('')}</tr></thead>
-       <tbody>${bodyRows}
-         <tr style="background:var(--line);font-weight:700"><td>TỔNG (Grand Total)</td>${grandCells}</tr>
-       </tbody>
-     </table></div>
+     ${view==='chart'?secReportChartHTML(mode,periods,periodLabel,vendors,monthsInPeriod):tableHTML}
      </div>
    </article>
    </div>`;
