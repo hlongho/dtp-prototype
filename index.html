@@ -3915,13 +3915,18 @@ function secAttachRules(list,code,rules){ const c=list.find(x=>x.code===code); i
 /* Rule đếm mẫu số cho tiêu chí Chất lượng — Denominator_Rule__c mà Criteria.Denominator_Rule__c trỏ tới
    (xem việc gán normalizeByDenom/denomRuleId ngay dưới secAttachRules này). */
 const SEC_CHATLUONG_DENOM_RULE = secRule({name:'Đếm tổng số Shipment trong kỳ (mẫu số)',purpose:'Denominator',object:'Shipment__c',supplierField:'Supplier__c',dateField:'Actual_Delivery_Date__c',conditions:[]});
+/* Date_Field__c của cả 3 rule Case dưới đây dùng Related_Shipment__r.Actual_Delivery_Date__c (KHÔNG
+   dùng Case.CreatedDate) — đúng quy ước bắt buộc khi tiêu chí bật Normalize_By_Denominator__c (xem .md
+   mục 3, "Ghi nhận vi phạm trễ so với giao dịch gốc"): điểm trừ phải tính vào đúng kỳ của Shipment gốc
+   (record mà mẫu số cũng đang đếm), không tính vào kỳ Case được tạo — vd Case báo cáo trễ ở kỳ sau vẫn
+   phải quy về đúng kỳ giao hàng thực tế, tránh lệch pha giữa tử số (điểm trừ) và mẫu số (đếm Shipment). */
 secAttachRules(SEC_CRITERIA_DATA.noidia,'CHATLUONG',[
-  secRule({name:'Mức 1 – Nhẹ',object:'Case',supplierField:'AccountId',points:-10,dateField:'CreatedDate',escalationGroup:'QUALITY_MINOR',
+  secRule({name:'Mức 1 – Nhẹ',object:'Case',supplierField:'AccountId',points:-10,dateField:'Related_Shipment__r.Actual_Delivery_Date__c',escalationGroup:'QUALITY_MINOR',
     escalationMultiplier:2,maxOccBeforeAction:3,actionOnMax:'Exclude_Supplier',hasHistory:true,
     conditions:[secCond({field:'Severity__c',operator:'=',value:'Mức 1 – Nhẹ'})]}),
-  secRule({name:'Mức 2 – Nặng',object:'Case',supplierField:'AccountId',points:-20,dateField:'CreatedDate',
+  secRule({name:'Mức 2 – Nặng',object:'Case',supplierField:'AccountId',points:-20,dateField:'Related_Shipment__r.Actual_Delivery_Date__c',
     conditions:[secCond({field:'Severity__c',operator:'=',value:'Mức 2 – Nặng'})]}),
-  secRule({name:'Mức 3 – Nghiêm trọng',object:'Case',supplierField:'AccountId',points:-40,dateField:'CreatedDate',actionOnMax:'Exclude_Supplier',maxOccBeforeAction:1,
+  secRule({name:'Mức 3 – Nghiêm trọng',object:'Case',supplierField:'AccountId',points:-40,dateField:'Related_Shipment__r.Actual_Delivery_Date__c',actionOnMax:'Exclude_Supplier',maxOccBeforeAction:1,
     conditions:[secCond({field:'Severity__c',operator:'=',value:'Mức 3 – Nghiêm trọng'})]}),
   SEC_CHATLUONG_DENOM_RULE,
 ]);
