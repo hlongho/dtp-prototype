@@ -3833,15 +3833,18 @@ function secCond(o){ return Object.assign({id:secId(),field:'',operator:'=',valu
 /* Supplier_Evaluation_Rule_Count_Tier__c — chỉ dùng khi Rule.Apply_Mode__c=Count_Tier. min/max = số lần vi
    phạm trong kỳ (max='' = "trở lên"), points = điểm áp 1 lần duy nhất cho cả kỳ nếu N rơi vào khoảng này. */
 function secTier(o){ return Object.assign({id:secId(),min:0,max:'',points:0},o); }
-const SEC_OBJECT_OPTIONS=['Case','Shipment__c','Quote__c','PurchaseOrder__c','Account'];
+const SEC_OBJECT_OPTIONS=['Case','Shipment__c','Quote__c','PurchaseOrder__c','Contract','PricebookEntry__c','Account'];
 /* Danh sách field minh hoạ — bản thật sẽ dùng dropdown động qua lightning/uiObjectInfoApi (xem mục 6.2
-   của tài liệu spec: cần rà soát field thật đã có trên từng object trước khi build Rule Condition thật). */
+   của tài liệu spec: cần rà soát field thật đã có trên từng object trước khi build Rule Condition thật).
+   Mở rộng theo Checklist Đánh giá NCC (Google Sheet, DCP-177) để dựng đủ data mẫu cho cả 3 bộ config. */
 const SEC_OBJECT_FIELDS={
-  'Case':[{v:'Severity__c',t:'Mức độ lỗi (Severity__c)',type:'picklist'},{v:'CreatedDate',t:'Ngày tạo (CreatedDate)',type:'date'},{v:'Root_Cause__c',t:'Nguyên nhân gốc (Root_Cause__c)',type:'picklist'}],
-  'Shipment__c':[{v:'Delay_Reason__c',t:'Lý do trễ (Delay_Reason__c)',type:'picklist'},{v:'Delay_Days__c',t:'Số ngày trễ (Delay_Days__c)',type:'number'},{v:'Urgent_Delivery__c',t:'Giao gấp (Urgent_Delivery__c)',type:'boolean'},{v:'ETA__c',t:'ETA (ETA__c)',type:'date'}],
+  'Case':[{v:'Severity__c',t:'Mức độ lỗi (Severity__c)',type:'picklist'},{v:'Defect_Category__c',t:'Nhóm lỗi (Defect_Category__c)',type:'picklist'},{v:'CreatedDate',t:'Ngày tạo (CreatedDate)',type:'date'},{v:'Root_Cause__c',t:'Nguyên nhân gốc (Root_Cause__c)',type:'picklist'},{v:'Case_Type__c',t:'Loại Case (Case_Type__c)',type:'picklist'},{v:'Support_Category__c',t:'Nhóm hỗ trợ (Support_Category__c)',type:'picklist'},{v:'Support_Severity__c',t:'Mức độ hỗ trợ (Support_Severity__c)',type:'picklist'},{v:'Hotro_Type__c',t:'Loại ghi nhận Hỗ trợ nổi trội (Hotro_Type__c)',type:'picklist'},{v:'Chungtu_Issue__c',t:'Lỗi chứng từ (Chungtu_Issue__c)',type:'picklist'}],
+  'Shipment__c':[{v:'Delay_Reason__c',t:'Lý do trễ (Delay_Reason__c)',type:'picklist'},{v:'Delay_Days__c',t:'Số ngày trễ (Delay_Days__c)',type:'number'},{v:'Urgent_Delivery__c',t:'Giao gấp (Urgent_Delivery__c)',type:'boolean'},{v:'ETA__c',t:'ETA (ETA__c)',type:'date'},{v:'Document_Issue__c',t:'Sai chứng từ (Document_Issue__c)',type:'boolean'},{v:'Condition_Change_Type__c',t:'Tự ý đổi điều kiện (Condition_Change_Type__c)',type:'boolean'},{v:'Production_Disruption__c',t:'Gây gián đoạn SX (Production_Disruption__c)',type:'boolean'},{v:'Disruption_Reason__c',t:'Lý do gián đoạn (Disruption_Reason__c)',type:'picklist'},{v:'Extension_Times__c',t:'Số lần gia hạn (Extension_Times__c)',type:'number'},{v:'Extension_Reason__c',t:'Lý do giao sai/thiếu (Extension_Reason__c)',type:'picklist'},{v:'Supplier_Rejection_Reason__c',t:'Lý do không đảm bảo cung ứng (Supplier_Rejection_Reason__c)',type:'picklist'},{v:'Service_Type__c',t:'Loại dịch vụ log phí (Service_Type__c)',type:'picklist'},{v:'Service_Level__c',t:'Mức độ log phí (Service_Level__c)',type:'picklist'}],
   'Quote__c':[{v:'Unit_Price__c',t:'Đơn giá (Unit_Price__c)',type:'number'},{v:'Reference_Price__c',t:'Giá tham chiếu (Reference_Price__c)',type:'number'},{v:'Quote_Date__c',t:'Ngày báo giá (Quote_Date__c)',type:'date'}],
-  'PurchaseOrder__c':[{v:'Payment_Term__c',t:'Điều khoản TT (Payment_Term__c)',type:'picklist'},{v:'Document_Error__c',t:'Sai chứng từ (Document_Error__c)',type:'boolean'},{v:'Order_Date__c',t:'Ngày đặt hàng (Order_Date__c)',type:'date'}],
-  'Account':[{v:'ESG_Certified__c',t:'Chứng chỉ ESG (ESG_Certified__c)',type:'boolean'},{v:'Active__c',t:'Đang hợp tác (Active__c)',type:'boolean'}],
+  'PurchaseOrder__c':[{v:'Payment_Term__c',t:'Điều khoản TT (Payment_Term__c)',type:'picklist'},{v:'Document_Error__c',t:'Sai chứng từ (Document_Error__c)',type:'boolean'},{v:'Order_Date__c',t:'Ngày đặt hàng (Order_Date__c)',type:'date'},{v:'Extension_Reason__c',t:'Lý do giao sai/thiếu (Extension_Reason__c)',type:'picklist'},{v:'Supplier_Rejection_Reason__c',t:'Lý do không đảm bảo cung ứng (Supplier_Rejection_Reason__c)',type:'picklist'}],
+  'Contract':[{v:'Payment_Anchor_Date__c',t:'Mốc tính ngày TT (Payment_Anchor_Date__c)',type:'picklist'},{v:'Offset_Days__c',t:'Số ngày lệch (Offset_Days__c)',type:'number'},{v:'Deposit__c',t:'Có đặt cọc (Deposit__c)',type:'boolean'},{v:'Percent_Payment__c',t:'% Thanh toán (Percent_Payment__c)',type:'number'},{v:'Payment_Term_Type__c',t:'Loại điều khoản TT (Payment_Term_Type__c)',type:'picklist'},{v:'LC_Type__c',t:'Loại L/C (LC_Type__c)',type:'picklist'},{v:'LC_Duration_Days__c',t:'Thời hạn L/C, ngày (LC_Duration_Days__c)',type:'number'}],
+  'PricebookEntry__c':[{v:'Quote_Deadline_Compliance__c',t:'Tuân thủ hạn báo giá (Quote_Deadline_Compliance__c)',type:'picklist'},{v:'Commercial_Incentive__c',t:'Ưu đãi thương mại (Commercial_Incentive__c)',type:'boolean'}],
+  'Account':[{v:'ESG_Certified__c',t:'Chứng chỉ ESG (ESG_Certified__c)',type:'boolean'},{v:'Environment_Social_Responsibility__c',t:'Chứng nhận Môi trường & Xã hội (Environment_Social_Responsibility__c)',type:'picklist'},{v:'Active__c',t:'Đang hợp tác (Active__c)',type:'boolean'}],
 };
 function secDateFieldsOf(obj){ return (SEC_OBJECT_FIELDS[obj]||[]).filter(f=>f.type==='date'); }
 /* Field liên kết NCC (Supplier_Field_API_Name__c) — field trên Object nguồn dùng để lọc đúng record thuộc
@@ -3851,6 +3854,8 @@ const SEC_SUPPLIER_LINK_FIELDS={
   'Shipment__c':[{v:'Supplier__c',t:'Nhà cung cấp (Supplier__c)'},{v:'Purchase_Order__r.Supplier__c',t:'NCC qua PO (Purchase_Order__r.Supplier__c)'}],
   'Quote__c':[{v:'Account__c',t:'Nhà cung cấp (Account__c)'}],
   'PurchaseOrder__c':[{v:'Supplier__c',t:'Nhà cung cấp (Supplier__c)'}],
+  'Contract':[{v:'Supplier__c',t:'Nhà cung cấp (Supplier__c)'}],
+  'PricebookEntry__c':[{v:'Supplier__c',t:'Nhà cung cấp (Supplier__c)'}],
 };
 /* Date_Field__c hỗ trợ dot-notation lấy ngày từ 1 object KHÁC Object nguồn (chỉ theo chiều lookup xuôi —
    Object nguồn có field lookup trỏ lên object chứa ngày), và có thể đi qua NHIỀU cấp lookup liên tiếp
@@ -3862,6 +3867,8 @@ const SEC_SUPPLIER_LINK_FIELDS={
 const SEC_OBJECT_LOOKUPS={
   'Case':[{v:'Related_Shipment__c',t:'Shipment liên quan (Related_Shipment__c)',to:'Shipment__c'}],
   'Shipment__c':[{v:'Purchase_Order__c',t:'Đơn mua liên quan (Purchase_Order__c)',to:'PurchaseOrder__c'}],
+  'Contract':[{v:'Related_Shipment__c',t:'Shipment liên quan (Related_Shipment__c)',to:'Shipment__c'}],
+  'PricebookEntry__c':[{v:'Related_Shipment__c',t:'Shipment liên quan (Related_Shipment__c)',to:'Shipment__c'}],
 };
 function secRelName(lookupApiName){ return lookupApiName.replace(/__c$/,'__r'); }
 /* Phân rã Date_Field__c hiện tại thành từng cấp: mỗi cấp = {obj, fields, lookups, value}.
@@ -3906,73 +3913,223 @@ let SEC_CRITERIA_DATA={
   dichvu: secBuildCriteria(NCC_PROFILES.dichvu.criteria),
 };
 function secAttachRules(list,code,rules){ const c=list.find(x=>x.code===code); if(c) c.rules=rules; }
-/* Điểm trừ/cộng lấy đúng theo file nguồn ".docs/ĐÁNH GIÁ NCC NỘI ĐỊA.xlsx" (sheet "Quy tắc trừ điểm"):
-   Chất lượng Mức 1/-10, Mức 2/-20, Mức 3/-40 (tái phạm Mức 1 nhân đôi dần theo Escalation_Multiplier=2,
-   loại khi vi phạm lần 3); Giao hàng trễ hạn <5 ngày/-2, 5–<10 ngày/-4 (theo lỗi NCC, không trừ nếu
-   khách quan); "Giao gấp/ngoài giờ" +1 (tối đa 1 lần/kỳ) thuộc tiêu chí Hỗ trợ nổi trội (HOTRO), không
-   phải Giao hàng. QUALITY còn minh hoạ "hasHistory" (đã có Evidence lịch sử) để demo hành vi chặn xoá
-   cứng — chỉ cho tắt Active. */
-/* Rule đếm mẫu số cho tiêu chí Chất lượng — Denominator_Rule__c mà Criteria.Denominator_Rule__c trỏ tới
-   (xem việc gán normalizeByDenom/denomRuleId ngay dưới secAttachRules này). */
-const SEC_CHATLUONG_DENOM_RULE = secRule({name:'Đếm tổng số Shipment trong kỳ (mẫu số)',purpose:'Denominator',object:'Shipment__c',supplierField:'Supplier__c',dateField:'ETA__c',conditions:[]});
-/* Date_Field__c của cả 3 rule Case dưới đây dùng Related_Shipment__r.ETA__c (KHÔNG
-   dùng Case.CreatedDate) — đúng quy ước bắt buộc khi tiêu chí bật Normalize_By_Denominator__c (xem .md
-   mục 3, "Ghi nhận vi phạm trễ so với giao dịch gốc"): điểm trừ phải tính vào đúng kỳ của Shipment gốc
-   (record mà mẫu số cũng đang đếm), không tính vào kỳ Case được tạo — vd Case báo cáo trễ ở kỳ sau vẫn
-   phải quy về đúng kỳ giao hàng thực tế, tránh lệch pha giữa tử số (điểm trừ) và mẫu số (đếm Shipment).
-   denomLinkField='Related_Shipment__c' (Denominator_Link_Field__c) — trả về đúng Id Shipment mà vi phạm
-   này thuộc về, dùng để nhóm tính điểm riêng từng Shipment trước khi lấy trung bình (khác Date_Field__c
-   chỉ trả về giá trị ngày). */
+/* Toàn bộ data mẫu 3 bộ config bên dưới dựng theo đúng Checklist Đánh giá NCC (Google Sheet DCP-177,
+   3 tab "ĐÁNH GIÁ NCC TRONG NƯỚC"/"NHẬP KHẨU"/"DỊCH VỤ"). Quy ước áp dụng xuyên suốt:
+   - Cột "Mức áp dụng"="Theo shipment" trong sheet ⇒ tiêu chí đó bật Normalize_By_Denominator__c (chia
+     điểm trừ theo tổng số Shipment/kỳ) qua secWireShipmentDenom(); "Theo điểm tổng" ⇒ không bật.
+   - Field ngày dùng chung "ETA của object Shipment" ⇒ Date_Field__c luôn là ETA__c trực tiếp (nếu Object
+     nguồn = Shipment__c) hoặc qua quan hệ …__r.ETA__c (nếu Object nguồn khác, có Lookup tới Shipment).
+   - Tiêu chí/mức nào sheet mô tả cơ chế vượt quá khả năng Object+Field+Operator hiện tại (vd so sánh giá
+     tương đối giữa nhiều NCC trong tháng — cần aggregate/MIN query, xem .md mục 6 ý 1; hoặc % container
+     Trucking — cần field tính sẵn chưa xác nhận) thì để rule KHÔNG cấu hình Object (chỉ có tên + ghi chú
+     "CHƯA XỬ LÝ") thay vì giả lập sai — đúng yêu cầu không được "làm bừa cho xong". */
+function secWireShipmentDenom(group,code){
+  const c=SEC_CRITERIA_DATA[group].find(x=>x.code===code); if(!c) return;
+  const r=secRule({name:'Đếm tổng số Shipment trong kỳ (mẫu số)',purpose:'Denominator',object:'Shipment__c',supplierField:'Supplier__c',dateField:'ETA__c',conditions:[]});
+  c.rules.push(r); c.normalizeByDenom=true; c.denomRuleId=r.id;
+}
+
+/* ============ NỘI ĐỊA ============ */
 secAttachRules(SEC_CRITERIA_DATA.noidia,'CHATLUONG',[
   secRule({name:'Mức 1 – Nhẹ',object:'Case',supplierField:'AccountId',points:-10,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',escalationGroup:'QUALITY_MINOR',
     escalationMultiplier:2,maxOccBeforeAction:3,actionOnMax:'Exclude_Supplier',hasHistory:true,
-    conditions:[secCond({field:'Severity__c',operator:'=',value:'Mức 1 – Nhẹ'})]}),
+    conditions:[secCond({field:'Defect_Category__c',operator:'=',value:'tạp chất'}),secCond({field:'Severity__c',operator:'=',value:'nhẹ'})]}),
   secRule({name:'Mức 2 – Nặng',object:'Case',supplierField:'AccountId',points:-20,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
-    conditions:[secCond({field:'Severity__c',operator:'=',value:'Mức 2 – Nặng'})]}),
-  secRule({name:'Mức 3 – Nghiêm trọng',object:'Case',supplierField:'AccountId',points:-40,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',actionOnMax:'Exclude_Supplier',maxOccBeforeAction:1,
-    conditions:[secCond({field:'Severity__c',operator:'=',value:'Mức 3 – Nghiêm trọng'})]}),
-  SEC_CHATLUONG_DENOM_RULE,
+    escalationGroup:'QUALITY_MAJOR',escalationMultiplier:1,maxOccBeforeAction:2,actionOnMax:'Exclude_Supplier',
+    conditions:[secCond({field:'Defect_Category__c',operator:'=',value:'tạp chất'}),secCond({field:'Severity__c',operator:'=',value:'nặng'})]}),
+  secRule({name:'Mức 3 – Nghiêm trọng',object:'Case',supplierField:'AccountId',points:-40,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
+    escalationGroup:'QUALITY_SEVERE',escalationMultiplier:1,maxOccBeforeAction:1,actionOnMax:'Exclude_Supplier',
+    conditions:[secCond({field:'Defect_Category__c',operator:'=',value:'tạp chất'}),secCond({field:'Severity__c',operator:'=',value:'nghiêm trọng'})]}),
+  secRule({name:'Gian lận (giả mạo COA/chứng nhận, che giấu lỗi)',object:'Case',supplierField:'AccountId',points:-40,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
+    maxOccBeforeAction:1,actionOnMax:'Flag_For_Review',
+    conditions:[secCond({field:'Severity__c',operator:'=',value:'gian lận'})]}),
 ]);
-(()=>{ const c=SEC_CRITERIA_DATA.noidia.find(x=>x.code==='CHATLUONG'); if(c){ c.normalizeByDenom=true; c.denomRuleId=SEC_CHATLUONG_DENOM_RULE.id; } })();
+secWireShipmentDenom('noidia','CHATLUONG');
+secAttachRules(SEC_CRITERIA_DATA.noidia,'GIABAN',[
+  secRule({name:'Giá cao hơn tham chiếu (so sánh nhiều NCC cùng mặt hàng/tháng) — CHƯA XỬ LÝ',object:'',
+    conditions:[]}),
+  secRule({name:'Thông báo tăng giá muộn',object:'PricebookEntry__c',supplierField:'Supplier__c',points:-5,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
+    conditions:[secCond({field:'Quote_Deadline_Compliance__c',operator:'=',value:'Trễ hạn'})]}),
+  secRule({name:'Phụ phí không minh bạch (case phí, đối tượng bồi thường không phải Đồng Tiến) — CHƯA XỬ LÝ',object:'',
+    conditions:[]}),
+]);
+secWireShipmentDenom('noidia','GIABAN');
+secAttachRules(SEC_CRITERIA_DATA.noidia,'THANHTOAN',[
+  secRule({name:'Công nợ <30 ngày',object:'Contract',supplierField:'Supplier__c',points:-2,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
+    conditions:[secCond({field:'Payment_Anchor_Date__c',operator:'=',value:'Ngày hoàn tất giao hàng'}),secCond({field:'Offset_Days__c',operator:'<',value:'30'})]}),
+  secRule({name:'Đặt cọc hoặc trả trước',object:'Contract',supplierField:'Supplier__c',points:-5,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
+    conditions:[secCond({field:'Deposit__c',operator:'=',value:'true'})]}),
+  secRule({name:'Chứng từ sai/chậm',object:'Shipment__c',supplierField:'Supplier__c',points:-2,dateField:'ETA__c',
+    conditions:[secCond({field:'Document_Issue__c',operator:'=',value:'true'})]}),
+  secRule({name:'Tự ý đổi điều kiện thanh toán',object:'Shipment__c',supplierField:'Supplier__c',points:-4,dateField:'ETA__c',
+    conditions:[secCond({field:'Condition_Change_Type__c',operator:'=',value:'true'})]}),
+]);
+secWireShipmentDenom('noidia','THANHTOAN');
 secAttachRules(SEC_CRITERIA_DATA.noidia,'GIAOHANG',[
   secRule({name:'Trễ hạn dưới 5 ngày',object:'Shipment__c',supplierField:'Supplier__c',points:-2,dateField:'ETA__c',
-    conditions:[secCond({field:'Delay_Reason__c',operator:'=',value:'Lỗi NCC'}),secCond({field:'Delay_Days__c',operator:'<',value:'5'})]}),
+    conditions:[secCond({field:'Delay_Days__c',operator:'<',value:'5'})]}),
   secRule({name:'Trễ hạn 5–<10 ngày',object:'Shipment__c',supplierField:'Supplier__c',points:-4,dateField:'ETA__c',
-    conditions:[secCond({field:'Delay_Reason__c',operator:'=',value:'Lỗi NCC'}),secCond({field:'Delay_Days__c',operator:'between',value:'5',valueMax:'9'})]}),
+    conditions:[secCond({field:'Delay_Days__c',operator:'between',value:'5',valueMax:'9'})]}),
+  secRule({name:'Trễ hạn trên 10 ngày',object:'Shipment__c',supplierField:'Supplier__c',points:-5,dateField:'ETA__c',
+    conditions:[secCond({field:'Delay_Days__c',operator:'>',value:'10'})]}),
+  secRule({name:'Trễ hạn nghiêm trọng, gây gián đoạn SX',object:'Shipment__c',supplierField:'Supplier__c',points:-10,dateField:'ETA__c',
+    conditions:[secCond({field:'Production_Disruption__c',operator:'=',value:'true'}),secCond({field:'Disruption_Reason__c',operator:'=',value:'Lỗi do Nhà cung cấp'})]}),
+  secRule({name:'Giao sai/thiếu (SL, quy cách, địa điểm)',object:'Shipment__c',supplierField:'Supplier__c',points:-5,dateField:'ETA__c',
+    conditions:[secCond({field:'Extension_Reason__c',operator:'=',value:'Lỗi do Nhà cung cấp'})]}),
+]);
+secWireShipmentDenom('noidia','GIAOHANG');
+secAttachRules(SEC_CRITERIA_DATA.noidia,'DICHVU',[
+  secRule({name:'Hỗ trợ KT chậm, không ảnh hưởng lớn',object:'Case',supplierField:'AccountId',points:-5,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
+    conditions:[secCond({field:'Support_Category__c',operator:'=',value:'Hỗ trợ kỹ thuật'}),secCond({field:'Support_Severity__c',operator:'=',value:'Không ảnh hưởng lớn'})]}),
+  secRule({name:'Hỗ trợ KT chậm, ảnh hưởng lớn',object:'Case',supplierField:'AccountId',points:-10,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
+    conditions:[secCond({field:'Support_Category__c',operator:'=',value:'Hỗ trợ kỹ thuật'}),secCond({field:'Support_Severity__c',operator:'=',value:'Ảnh hưởng lớn'})]}),
+  secRule({name:'Chuyển giao CN không đạt, không ảnh hưởng lớn',object:'Case',supplierField:'AccountId',points:-5,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
+    conditions:[secCond({field:'Support_Category__c',operator:'=',value:'Chuyển giao CN'}),secCond({field:'Support_Severity__c',operator:'=',value:'Không ảnh hưởng lớn'})]}),
+  secRule({name:'Chuyển giao CN không đạt, ảnh hưởng lớn',object:'Case',supplierField:'AccountId',points:-10,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
+    conditions:[secCond({field:'Support_Category__c',operator:'=',value:'Chuyển giao CN'}),secCond({field:'Support_Severity__c',operator:'=',value:'Ảnh hưởng lớn'})]}),
+]);
+secWireShipmentDenom('noidia','DICHVU');
+secAttachRules(SEC_CRITERIA_DATA.noidia,'ONCUNG',[
+  secRule({name:'Không đảm bảo nguồn cung, ảnh hưởng SX/KD',object:'Shipment__c',supplierField:'Supplier__c',points:-5,dateField:'ETA__c',
+    conditions:[secCond({field:'Supplier_Rejection_Reason__c',operator:'=',value:'Hết hàng'})]}),
+]);
+secWireShipmentDenom('noidia','ONCUNG');
+secAttachRules(SEC_CRITERIA_DATA.noidia,'MOITRUONG',[
+  secRule({name:'Có chứng nhận ISO',object:'Account',points:3,snapshotAll:true,applyMode:'Once_Per_Period',
+    conditions:[secCond({field:'Environment_Social_Responsibility__c',operator:'=',value:'ISO'})]}),
+  secRule({name:'Có chứng nhận FSC hoặc ESG',object:'Account',points:2,snapshotAll:true,applyMode:'Once_Per_Period',
+    conditions:[secCond({field:'Environment_Social_Responsibility__c',operator:'=',value:'FSC'})]}),
 ]);
 secAttachRules(SEC_CRITERIA_DATA.noidia,'HOTRO',[
   secRule({name:'Giao gấp/ngoài giờ (2–4h, lễ/CN)',object:'Shipment__c',supplierField:'Supplier__c',points:1,applyMode:'Once_Per_Period',maxOccPerPeriod:1,
     dateField:'ETA__c',conditions:[secCond({field:'Urgent_Delivery__c',operator:'=',value:'true'})]}),
+  secRule({name:'Ưu đãi thương mại (chủ động giảm/giữ giá)',object:'PricebookEntry__c',supplierField:'Supplier__c',points:1,applyMode:'Once_Per_Period',maxOccPerPeriod:1,
+    dateField:'Related_Shipment__r.ETA__c',conditions:[secCond({field:'Commercial_Incentive__c',operator:'=',value:'true'})]}),
+  secRule({name:'Giải pháp tiết giảm chi phí/tiêu hao',object:'Case',supplierField:'AccountId',points:1,applyMode:'Once_Per_Period',maxOccPerPeriod:1,
+    dateField:'Related_Shipment__r.ETA__c',conditions:[secCond({field:'Hotro_Type__c',operator:'=',value:'Giải pháp tiết giảm'})]}),
+  secRule({name:'Kỹ thuật có mặt/hỗ trợ từ xa 2–4h, hiệu quả',object:'Case',supplierField:'AccountId',points:1,applyMode:'Once_Per_Period',maxOccPerPeriod:1,
+    dateField:'Related_Shipment__r.ETA__c',conditions:[secCond({field:'Hotro_Type__c',operator:'=',value:'Có mặt 2–4 giờ'})]}),
+  secRule({name:'Ghi nhận khác (được TGĐ phê duyệt)',object:'Case',supplierField:'AccountId',points:1,applyMode:'Once_Per_Period',maxOccPerPeriod:1,
+    dateField:'Related_Shipment__r.ETA__c',conditions:[secCond({field:'Hotro_Type__c',operator:'=',value:'Ghi nhận khác'})]}),
 ]);
-secAttachRules(SEC_CRITERIA_DATA.noidia,'GIABAN',[
-  secRule({name:'Giá cao hơn tham chiếu ≤5%',object:'Quote__c',supplierField:'Account__c',points:-5,dateField:'Quote_Date__c',
-    conditions:[secCond({field:'Unit_Price__c',operator:'>',compareMode:true,compareToField:'Reference_Price__c'})]}),
-]);
-secAttachRules(SEC_CRITERIA_DATA.noidia,'THANHTOAN',[
-  secRule({name:'Đặt cọc/trả trước một phần',object:'PurchaseOrder__c',supplierField:'Supplier__c',points:-5,dateField:'Order_Date__c',
-    conditions:[secCond({field:'Payment_Term__c',operator:'=',value:'Đặt cọc trước'})]}),
-]);
-secAttachRules(SEC_CRITERIA_DATA.noidia,'MOITRUONG',[
-  secRule({name:'Thiếu 1 chứng nhận ESG',object:'Account',points:-1,snapshotAll:true,
-    conditions:[secCond({field:'ESG_Certified__c',operator:'=',value:'false'})]}),
-]);
+
+/* ============ NHẬP KHẨU ============ */
 secAttachRules(SEC_CRITERIA_DATA.nhapkhau,'CHATLUONG',[
-  secRule({name:'Có lỗi nhỏ nhưng chấp nhận được',object:'Case',supplierField:'AccountId',points:-5,dateField:'CreatedDate',
-    conditions:[secCond({field:'Severity__c',operator:'=',value:'Có lỗi nhỏ nhưng chấp nhận được'})]}),
-  secRule({name:'Trả hàng/khiếu nại nghiêm trọng',object:'Case',supplierField:'AccountId',points:-40,dateField:'CreatedDate',
-    conditions:[secCond({field:'Severity__c',operator:'=',value:'Trả hàng hoặc khiếu nại nghiêm trọng'})]}),
+  secRule({name:'Có lỗi nhỏ nhưng chấp nhận được',object:'Case',supplierField:'AccountId',points:-5,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
+    conditions:[secCond({field:'Defect_Category__c',operator:'=',value:'tạp chất'}),secCond({field:'Severity__c',operator:'=',value:'nhẹ'})]}),
+  secRule({name:'Có lỗi phải xử lý hoặc phân loại',object:'Case',supplierField:'AccountId',points:-10,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
+    conditions:[secCond({field:'Defect_Category__c',operator:'=',value:'độ ẩm'}),secCond({field:'Severity__c',operator:'=',value:'nhẹ'})]}),
+  secRule({name:'Có lỗi ảnh hưởng SX, có đền bù/hợp tác xử lý',object:'Case',supplierField:'AccountId',points:-20,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
+    conditions:[secCond({field:'Defect_Category__c',operator:'=',value:'tạp chất'}),secCond({field:'Severity__c',operator:'=',value:'nặng'})]}),
+  secRule({name:'Trả hàng/khiếu nại nghiêm trọng, không hợp tác xử lý',object:'Case',supplierField:'AccountId',points:-40,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
+    maxOccBeforeAction:1,actionOnMax:'Exclude_Supplier',
+    conditions:[secCond({field:'Severity__c',operator:'=',value:'nghiêm trọng'})]}),
 ]);
-/* Minh hoạ Apply_Mode=Count_Tier — đúng mẫu "Vi phạm 1-2 lần: -5, 3-4 lần: -10, 5 lần trở lên: -15" trong
-   file ".docs/ĐÁNH GIÁ NCC NHẬP KHẨU VÀ DỊCH VỤ.xls" (tiêu chí Tiến độ giao hàng). */
+secWireShipmentDenom('nhapkhau','CHATLUONG');
 secAttachRules(SEC_CRITERIA_DATA.nhapkhau,'TIENDO',[
   secRule({name:'Vi phạm tiến độ giao hàng',object:'Shipment__c',supplierField:'Supplier__c',applyMode:'Count_Tier',dateField:'ETA__c',
     countTiers:[secTier({min:1,max:2,points:-5}),secTier({min:3,max:4,points:-10}),secTier({min:5,max:'',points:-15})],
-    conditions:[secCond({field:'Delay_Reason__c',operator:'=',value:'Lỗi NCC'})]}),
+    conditions:[secCond({field:'Extension_Times__c',operator:'>',value:'0'})]}),
 ]);
+secWireShipmentDenom('nhapkhau','TIENDO');
+secAttachRules(SEC_CRITERIA_DATA.nhapkhau,'GIA',[
+  secRule({name:'Giá cao hơn thị trường (so sánh nhiều NCC cùng mặt hàng/tháng) — CHƯA XỬ LÝ',object:'',
+    conditions:[]}),
+]);
+secWireShipmentDenom('nhapkhau','GIA');
+secAttachRules(SEC_CRITERIA_DATA.nhapkhau,'CHUNGTU',[
+  secRule({name:'Sai nhỏ (Invoice/Packing List/B-L/C-O/COA/CQ/MSDS)',object:'Case',supplierField:'AccountId',points:-2,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
+    conditions:[secCond({field:'Chungtu_Issue__c',operator:'=',value:'Incorrect Invoice'})]}),
+  secRule({name:'Sai nhiều, phát sinh chi phí/chậm thông quan — CHƯA XỬ LÝ',object:'',
+    conditions:[]}),
+]);
+secWireShipmentDenom('nhapkhau','CHUNGTU');
+secAttachRules(SEC_CRITERIA_DATA.nhapkhau,'DIEUKHOAN',[
+  secRule({name:'L/C sau khi tàu chạy 90 ngày (minh hoạ nhánh L/C, chưa gồm nhánh TT thay thế)',object:'Contract',supplierField:'Supplier__c',points:-1,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
+    conditions:[secCond({field:'LC_Type__c',operator:'=',value:'Sau khi giao hàng'}),secCond({field:'LC_Duration_Days__c',operator:'=',value:'90'})]}),
+  secRule({name:'L/C trước khi tàu chạy 120 ngày',object:'Contract',supplierField:'Supplier__c',points:-2,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
+    conditions:[secCond({field:'LC_Type__c',operator:'=',value:'Trước khi giao hàng'}),secCond({field:'LC_Duration_Days__c',operator:'=',value:'120'})]}),
+  secRule({name:'L/C trước khi tàu chạy 90 ngày (minh hoạ nhánh L/C, chưa gồm nhánh TT 30 ngày)',object:'Contract',supplierField:'Supplier__c',points:-3,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
+    conditions:[secCond({field:'LC_Type__c',operator:'=',value:'Trước khi giao hàng'}),secCond({field:'LC_Duration_Days__c',operator:'=',value:'90'})]}),
+  secRule({name:'L/C At Sight (mở trước khi giao hàng) — CHƯA XỬ LÝ',object:'',
+    conditions:[]}),
+  secRule({name:'TT đặt cọc 30%, thanh toán 70% sau B/L',object:'Contract',supplierField:'Supplier__c',points:-5,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
+    conditions:[secCond({field:'Deposit__c',operator:'=',value:'true'}),secCond({field:'Percent_Payment__c',operator:'=',value:'30'})]}),
+  secRule({name:'TT đặt cọc 50%, thanh toán 50% trước giao hàng',object:'Contract',supplierField:'Supplier__c',points:-7,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
+    conditions:[secCond({field:'Deposit__c',operator:'=',value:'true'}),secCond({field:'Percent_Payment__c',operator:'=',value:'50'})]}),
+  secRule({name:'TT 100% đặt cọc trước sản xuất/giao hàng',object:'Contract',supplierField:'Supplier__c',points:-10,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
+    conditions:[secCond({field:'Deposit__c',operator:'=',value:'true'}),secCond({field:'Percent_Payment__c',operator:'=',value:'100'})]}),
+]);
+secWireShipmentDenom('nhapkhau','DIEUKHOAN');
+secAttachRules(SEC_CRITERIA_DATA.nhapkhau,'DICHVUHT',[
+  secRule({name:'Đáp ứng Hỗ trợ (log Case sự vụ)',object:'Case',supplierField:'AccountId',points:5,applyMode:'Once_Per_Period',maxOccPerPeriod:1,dateField:'CreatedDate',
+    conditions:[secCond({field:'Case_Type__c',operator:'=',value:'Hỗ trợ'})]}),
+]);
+secAttachRules(SEC_CRITERIA_DATA.nhapkhau,'NANGLUC',[
+  secRule({name:'Đáp ứng năng lực cung ứng (log Case sự vụ)',object:'Case',supplierField:'AccountId',points:5,applyMode:'Once_Per_Period',maxOccPerPeriod:1,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
+    conditions:[secCond({field:'Case_Type__c',operator:'=',value:'Hỗ trợ'})]}),
+]);
+secWireShipmentDenom('nhapkhau','NANGLUC');
+secAttachRules(SEC_CRITERIA_DATA.nhapkhau,'TUANTHU',[
+  secRule({name:'Có chứng nhận ISO',object:'Account',points:3,snapshotAll:true,applyMode:'Once_Per_Period',
+    conditions:[secCond({field:'Environment_Social_Responsibility__c',operator:'=',value:'ISO'})]}),
+  secRule({name:'Có chứng nhận FSC hoặc ESG',object:'Account',points:2,snapshotAll:true,applyMode:'Once_Per_Period',
+    conditions:[secCond({field:'Environment_Social_Responsibility__c',operator:'=',value:'FSC'})]}),
+]);
+
+/* ============ DỊCH VỤ ============ */
 secAttachRules(SEC_CRITERIA_DATA.dichvu,'CHATLUONG',[
-  secRule({name:'Có lỗi ảnh hưởng tiến độ',object:'Case',supplierField:'AccountId',points:-10,dateField:'CreatedDate',
-    conditions:[secCond({field:'Severity__c',operator:'=',value:'Có lỗi ảnh hưởng tiến độ'})]}),
+  secRule({name:'Có lỗi nhỏ, xử lý ngay',object:'Shipment__c',supplierField:'Supplier__c',points:-5,dateField:'ETA__c',
+    conditions:[secCond({field:'Service_Type__c',operator:'=',value:'Chất lượng dịch vụ'}),secCond({field:'Service_Level__c',operator:'=',value:'Có lỗi nhỏ, xử lý ngay'})]}),
+  secRule({name:'Có lỗi ảnh hưởng tiến độ',object:'Shipment__c',supplierField:'Supplier__c',points:-10,dateField:'ETA__c',
+    conditions:[secCond({field:'Service_Type__c',operator:'=',value:'Chất lượng dịch vụ'}),secCond({field:'Service_Level__c',operator:'=',value:'Có lỗi ảnh hưởng tiến độ'})]}),
+  secRule({name:'Có lỗi gây thiệt hại, có đền bù',object:'Shipment__c',supplierField:'Supplier__c',points:-20,dateField:'ETA__c',
+    conditions:[secCond({field:'Service_Type__c',operator:'=',value:'Chất lượng dịch vụ'}),secCond({field:'Service_Level__c',operator:'=',value:'Có lỗi thiệt hại, có đền bù'})]}),
+  secRule({name:'Lỗi nghiêm trọng',object:'Shipment__c',supplierField:'Supplier__c',points:-40,dateField:'ETA__c',maxOccBeforeAction:1,actionOnMax:'Exclude_Supplier',
+    conditions:[secCond({field:'Service_Type__c',operator:'=',value:'Chất lượng dịch vụ'}),secCond({field:'Service_Level__c',operator:'=',value:'Có lỗi nghiêm trọng'})]}),
 ]);
+secWireShipmentDenom('dichvu','CHATLUONG');
+secAttachRules(SEC_CRITERIA_DATA.dichvu,'TIENDO',[
+  secRule({name:'Vi phạm tiến độ thực hiện (No-Trucking)',object:'Shipment__c',supplierField:'Supplier__c',applyMode:'Count_Tier',dateField:'ETA__c',
+    countTiers:[secTier({min:1,max:2,points:-5}),secTier({min:3,max:4,points:-10}),secTier({min:5,max:'',points:-15})],
+    conditions:[secCond({field:'Service_Type__c',operator:'=',value:'Tiến độ thực hiện'}),secCond({field:'Service_Level__c',operator:'=',value:'Vi phạm'})]}),
+  secRule({name:'Biến thể Trucking (% container không đúng kế hoạch) — CHƯA XỬ LÝ',object:'',
+    conditions:[]}),
+]);
+secWireShipmentDenom('dichvu','TIENDO');
+secAttachRules(SEC_CRITERIA_DATA.dichvu,'GIA',[
+  secRule({name:'Giá cao hơn thị trường (so sánh nhiều NCC cùng loại phát sinh/tháng) — CHƯA XỬ LÝ',object:'',
+    conditions:[]}),
+]);
+secWireShipmentDenom('dichvu','GIA');
+secAttachRules(SEC_CRITERIA_DATA.dichvu,'CHUNGTU',[
+  secRule({name:'Sai nhỏ',object:'Shipment__c',supplierField:'Supplier__c',points:-2,dateField:'ETA__c',
+    conditions:[secCond({field:'Service_Type__c',operator:'=',value:'Độ chính xác chứng từ'}),secCond({field:'Service_Level__c',operator:'=',value:'Sai nhỏ'})]}),
+  secRule({name:'Sai nhiều, phát sinh chi phí/chậm thông quan',object:'Shipment__c',supplierField:'Supplier__c',points:-5,dateField:'ETA__c',
+    conditions:[secCond({field:'Service_Type__c',operator:'=',value:'Độ chính xác chứng từ'}),secCond({field:'Service_Level__c',operator:'=',value:'Sai nhiều'})]}),
+]);
+secWireShipmentDenom('dichvu','CHUNGTU');
+secAttachRules(SEC_CRITERIA_DATA.dichvu,'XULYSUCO',[
+  secRule({name:'Chủ động xử lý sự cố',object:'Shipment__c',supplierField:'Supplier__c',points:10,applyMode:'Once_Per_Period',maxOccPerPeriod:1,dateField:'ETA__c',
+    conditions:[secCond({field:'Service_Type__c',operator:'=',value:'Khả năng xử lý sự cố'}),secCond({field:'Service_Level__c',operator:'=',value:'Chủ động xử lý'})]}),
+]);
+secWireShipmentDenom('dichvu','XULYSUCO');
+secAttachRules(SEC_CRITERIA_DATA.dichvu,'PHANHOI',[
+  secRule({name:'Phản hồi trong ngày',object:'Shipment__c',supplierField:'Supplier__c',points:-2,dateField:'ETA__c',
+    conditions:[secCond({field:'Service_Type__c',operator:'=',value:'Khả năng phản hồi'}),secCond({field:'Service_Level__c',operator:'=',value:'Trong ngày'})]}),
+  secRule({name:'Phản hồi qua ngày sau',object:'Shipment__c',supplierField:'Supplier__c',points:-5,dateField:'ETA__c',
+    conditions:[secCond({field:'Service_Type__c',operator:'=',value:'Khả năng phản hồi'}),secCond({field:'Service_Level__c',operator:'=',value:'Qua ngày sau'})]}),
+]);
+secWireShipmentDenom('dichvu','PHANHOI');
+secAttachRules(SEC_CRITERIA_DATA.dichvu,'TUANTHU',[
+  secRule({name:'Có giấy phép/bảo hiểm/tuân thủ pháp luật',object:'Account',points:5,snapshotAll:true,applyMode:'Once_Per_Period',
+    conditions:[secCond({field:'Environment_Social_Responsibility__c',operator:'!=',value:''})]}),
+]);
+secAttachRules(SEC_CRITERIA_DATA.dichvu,'HOPTAC',[
+  secRule({name:'Chủ động tư vấn giải pháp',object:'Shipment__c',supplierField:'Supplier__c',points:5,applyMode:'Once_Per_Period',maxOccPerPeriod:1,dateField:'ETA__c',
+    conditions:[secCond({field:'Service_Type__c',operator:'=',value:'Mức độ hợp tác tốt'}),secCond({field:'Service_Level__c',operator:'=',value:'Chủ động tư vấn'})]}),
+]);
+secWireShipmentDenom('dichvu','HOPTAC');
 let SEC_THRESH_SEQ=1;
 let SEC_THRESHOLDS={
   noidia:[
@@ -4303,7 +4460,7 @@ function secRuleEditBlock(cid,r,denomOn){
       ${r.object && r.object!=='Account' ? `<select class="mass-sel" style="max-width:200px" onchange="secSetRuleField(${cid},${r.id},'supplierField',this.value)">
         <option value="">-- Field liên kết NCC * --</option>${(SEC_SUPPLIER_LINK_FIELDS[r.object]||[]).map(f=>`<option value="${f.v}" ${r.supplierField===f.v?'selected':''}>${f.t}</option>`).join('')}
       </select>` : ''}
-      ${denomOn ? `<select class="mass-sel" style="max-width:220px" onchange="secSetRuleField(${cid},${r.id},'denomLinkField',this.value)">
+      ${(denomOn && r.object && r.object!=='Shipment__c') ? `<select class="mass-sel" style="max-width:220px" onchange="secSetRuleField(${cid},${r.id},'denomLinkField',this.value)">
         <option value="">-- Field liên kết đơn vị mẫu số * --</option>${denomLinkOpts.map(f=>`<option value="${f.v}" ${r.denomLinkField===f.v?'selected':''}>${f.t}</option>`).join('')}
       </select>` : ''}
       ${r.applyMode!=='Count_Tier'?`<div style="display:flex;align-items:stretch;gap:0">
@@ -4460,7 +4617,7 @@ function secSaveRules(){
       if(r.object && r.object!=='Account' && !r.supplierField){
         toast('Chọn Field liên kết NCC cho rule "'+(r.name||'(chưa đặt tên)')+'" (bắt buộc trừ khi Object nguồn = Account)'); return;
       }
-      if(c.normalizeByDenom && r.purpose!=='Denominator' && !r.denomLinkField){
+      if(c.normalizeByDenom && r.purpose!=='Denominator' && r.object && r.object!=='Shipment__c' && !r.denomLinkField){
         toast('Chọn Field liên kết đơn vị mẫu số cho rule "'+(r.name||'(chưa đặt tên)')+'" (bắt buộc vì tiêu chí đã bật "Chia điểm trừ theo mẫu số")'); return;
       }
       if(r.logicMode==='CUSTOM'){
