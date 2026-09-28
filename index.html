@@ -3825,7 +3825,7 @@ S.impo = ()=> appnav('Mua hàng nhập khẩu','Đơn mua (PO)',TAB_IM,'Đơn mu
    Account (ở đây là NAV context noidia/nhapkhau/dichvu đã dùng chung toàn app). Tiêu chí+Rule+Threshold
    khởi tạo lại từ NCC_CRITERIA/NCC_PROFILES (mục tiêu: tổng tỷ trọng mỗi nhóm luôn = 100%). */
 let SEC_SEQ=1; function secId(){ return SEC_SEQ++; }
-function secRule(o){ return Object.assign({id:secId(),name:'',object:'',supplierField:'',points:0,applyMode:'Per_Occurrence',
+function secRule(o){ return Object.assign({id:secId(),name:'',purpose:'Scoring',object:'',supplierField:'',points:0,applyMode:'Per_Occurrence',
   maxOccPerPeriod:1,worstCaseGroup:'',escalationGroup:'',escalationMultiplier:1,maxOccBeforeAction:'',
   actionOnMax:'None',dateField:'',snapshotAll:false,active:true,logicMode:'AND',customLogic:'',hasHistory:false,countTiers:[],conditions:[]},o); }
 function secCond(o){ return Object.assign({id:secId(),field:'',operator:'=',value:'',valueMax:'',
@@ -3898,7 +3898,7 @@ const SEC_GROUP_LABEL={noidia:'Nội địa',nhapkhau:'Nhập khẩu',dichvu:'D�
 const SEC_GROUP_ICO={noidia:'⭐',nhapkhau:'🚢',dichvu:'🛠️'};
 function secBuildCriteria(list){
   return list.map((c,i)=>({id:secId(),code:(c.key||c.name).toString().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,15),
-    name:c.name,maxScore:c.max,weight:c.max,seq:i+1,active:true,hasHistory:false,rules:[]}));
+    name:c.name,maxScore:c.max,weight:c.max,seq:i+1,active:true,hasHistory:false,normalizeByDenom:false,denomRuleId:null,rules:[]}));
 }
 let SEC_CRITERIA_DATA={
   noidia: secBuildCriteria(NCC_CRITERIA),
@@ -3926,6 +3926,11 @@ secAttachRules(SEC_CRITERIA_DATA.noidia,'GIAOHANG',[
     conditions:[secCond({field:'Delay_Reason__c',operator:'=',value:'Lỗi NCC'}),secCond({field:'Delay_Days__c',operator:'<',value:'5'})]}),
   secRule({name:'Trễ hạn 5–<10 ngày',object:'Shipment__c',supplierField:'Supplier__c',points:-4,dateField:'Actual_Delivery_Date__c',
     conditions:[secCond({field:'Delay_Reason__c',operator:'=',value:'Lỗi NCC'}),secCond({field:'Delay_Days__c',operator:'between',value:'5',valueMax:'9'})]}),
+  /* Minh hoạ cơ chế "Chia điểm trừ theo mẫu số" (Normalize_By_Denominator__c) — Rule đếm mẫu số cho tiêu
+     chí Giao hàng: tổng số Shipment__c trong kỳ, không tự cộng/trừ điểm. Cố tình để tắt (Criteria vẫn
+     normalizeByDenom:false) để không ảnh hưởng điểm đã tính sẵn ở các Đợt đánh giá mẫu — bật thử trong
+     Setup để xem cách chọn Rule tính mẫu số hoạt động. */
+  secRule({name:'Đếm tổng số Shipment trong kỳ (mẫu số)',purpose:'Denominator',object:'Shipment__c',supplierField:'Supplier__c',dateField:'Actual_Delivery_Date__c',conditions:[]}),
 ]);
 secAttachRules(SEC_CRITERIA_DATA.noidia,'HOTRO',[
   secRule({name:'Giao gấp/ngoài giờ (2–4h, lễ/CN)',object:'Shipment__c',supplierField:'Supplier__c',points:1,applyMode:'Once_Per_Period',maxOccPerPeriod:1,
@@ -4010,6 +4015,11 @@ function secWeightBannerInner(list){
 function secRefreshWeightBanner(){ const el=document.getElementById('sec-weight-banner'); if(el) el.innerHTML=secWeightBannerInner(SEC_DRAFT_CRITERIA); }
 function secApplyModeBadge(m){ const map={Per_Occurrence:'Mỗi lần',Once_Per_Period:'1 lần/kỳ',Worst_Case_Only:'Mức nặng nhất',Count_Tier:'Theo bậc thang'}; return pill('info',map[m]||m); }
 function secRuleRowView(r){
+  if(r.purpose==='Denominator'){
+    return `<tr><td>${r.name}${r.active===false?' <span class="wf-muted" style="font-size:11px">(tạm ngưng)</span>':''}</td><td>${r.object}</td>
+      <td class="num wf-muted">—</td><td>${pill('info','📐 Mẫu số (đếm)')}</td>
+      <td>${r.active!==false?pill('ok','Active'):pill('mut','Ngưng')}</td></tr>`;
+  }
   const ptsCell = r.applyMode==='Count_Tier' ? (r.countTiers.length+' bậc') : (r.points>0?'+'+r.points:String(r.points));
   return `<tr><td>${r.name}${r.active===false?' <span class="wf-muted" style="font-size:11px">(tạm ngưng)</span>':''}</td><td>${r.object}</td>
     <td class="num">${ptsCell}</td><td>${secApplyModeBadge(r.applyMode)}</td>
@@ -4020,7 +4030,10 @@ function secCriteriaCardView(c){
     ? `<div class="tbl-wrap"><table class="tbl sm"><thead><tr><th>Tên mức</th><th>Object nguồn</th><th class="num">Điểm</th><th>Cách áp dụng</th><th>Trạng thái</th></tr></thead>
        <tbody>${c.rules.map(secRuleRowView).join('')}</tbody></table></div>`
     : `<div class="po-hint">Chưa có quy tắc nào cho tiêu chí này.</div>`;
-  return card(`${c.seq}. ${c.name}`, `<div class="wf-muted" style="font-size:12px;margin-bottom:8px">Điểm tối đa: <b>${c.maxScore}</b> · Tỷ trọng: <b>${c.weight}%</b>${c.active===false?' · Tạm ngưng':''}</div>${body}`, {n:String(c.rules.length)});
+  const denomNote = c.normalizeByDenom
+    ? `<div class="wf-muted" style="font-size:12px;margin-bottom:8px">📐 Điểm trừ được chia theo mẫu số — Rule đếm: <b>${(c.rules.find(r=>r.id===c.denomRuleId)||{}).name||'(chưa chọn)'}</b></div>`
+    : '';
+  return card(`${c.seq}. ${c.name}`, `<div class="wf-muted" style="font-size:12px;margin-bottom:8px">Điểm tối đa: <b>${c.maxScore}</b> · Tỷ trọng: <b>${c.weight}%</b>${c.active===false?' · Tạm ngưng':''}</div>${denomNote}${body}`, {n:String(c.rules.length)});
 }
 function secGoToConfig(group){ SEC_TAB=group; SEC_SUBTAB='rules'; SEC_EDIT=false; go('sec_config'); }
 /* Card "Kết quả đánh giá NCC" trên trang Chi tiết NCC — thay cho card "Tiêu chí đánh giá NCC" cũ.
@@ -4087,7 +4100,7 @@ function secCritGet(cid){ return SEC_DRAFT_CRITERIA.find(c=>c.id===cid); }
 function secRuleGet(cid,rid){ const c=secCritGet(cid); return c&&c.rules.find(r=>r.id===rid); }
 function secCondGet(cid,rid,coid){ const r=secRuleGet(cid,rid); return r&&r.conditions.find(x=>x.id===coid); }
 function secSetCritField(cid,field,val){ const c=secCritGet(cid); if(!c) return; c[field]=(field==='maxScore'||field==='weight')?(parseFloat(val)||0):(field==='active'?val:val); secRefreshWeightBanner(); }
-function secAddCriteria(){ SEC_DRAFT_CRITERIA.push({id:secId(),code:'NEW'+secId(),name:'',maxScore:0,weight:0,seq:SEC_DRAFT_CRITERIA.length+1,active:true,hasHistory:false,rules:[]}); secRenderBody(); }
+function secAddCriteria(){ SEC_DRAFT_CRITERIA.push({id:secId(),code:'NEW'+secId(),name:'',maxScore:0,weight:0,seq:SEC_DRAFT_CRITERIA.length+1,active:true,hasHistory:false,normalizeByDenom:false,denomRuleId:null,rules:[]}); secRenderBody(); }
 function secRemoveCriteria(cid){
   const c=secCritGet(cid); if(!c) return;
   if(c.hasHistory){ toast('Không thể xoá — tiêu chí đã có dữ liệu đánh giá lịch sử. Hãy tắt Active thay vì xoá.'); return; }
@@ -4132,6 +4145,18 @@ function secCondPhrase(obj,co){
 }
 function secActionLabel(a){ return {None:'không làm gì',Exclude_Supplier:'đề xuất loại NCC',Flag_For_Review:'gắn cờ cần xem xét'}[a]||a; }
 function secRuleSentence(r){
+  const timeText = r.snapshotAll ? 'tại thời điểm tính điểm' : 'phát sinh trong khoảng ngày đánh giá';
+  if(r.purpose==='Denominator'){
+    if(!r.object) return '<span class="wf-muted">Chưa chọn Object nguồn.</span>';
+    let condPart='';
+    if(r.conditions.length){
+      const joiner = r.logicMode==='OR' ? ' HOẶC ' : ' VÀ ';
+      condPart = r.logicMode==='CUSTOM'
+        ? ' có '+r.conditions.map((co,i)=>`(${i+1}) ${secCondPhrase(r.object,co)}`).join('; ')+` — ghép theo logic tuỳ chỉnh <b>${(r.customLogic||'(chưa nhập)').replace(/</g,'&lt;')}</b>`
+        : ' có '+r.conditions.map(co=>secCondPhrase(r.object,co)).join(joiner);
+    }
+    return `<em>"Đếm số lượng ${r.object}${condPart}, ${timeText} — dùng làm <b>mẫu số</b> để chia điểm trừ của tiêu chí này (không tự cộng/trừ điểm)."</em>`;
+  }
   if(!r.conditions.length) return '<span class="wf-muted">Chưa có điều kiện.</span>';
   let condText;
   if(r.logicMode==='CUSTOM'){
@@ -4141,7 +4166,6 @@ function secRuleSentence(r){
     const joiner = r.logicMode==='OR' ? ' HOẶC ' : ' VÀ ';
     condText = r.conditions.map(co=>secCondPhrase(r.object,co)).join(joiner);
   }
-  const timeText = r.snapshotAll ? 'tại thời điểm tính điểm' : 'phát sinh trong khoảng ngày đánh giá';
   if(r.applyMode==='Count_Tier'){
     const tiers=(r.countTiers||[]).slice().sort((a,b)=>a.min-b.min);
     const tierText = tiers.length
@@ -4221,36 +4245,42 @@ function secAdvEditorHTML(cid,r){
 }
 function secRuleEditBlock(cid,r){
   const condExpanded=SEC_EXPANDED_RULE.has(r.id), advExpanded=SEC_EXPANDED_ADV.has(r.id);
+  const isDenom = r.purpose==='Denominator';
   return `<div class="ptf-item" style="margin-bottom:8px">
     <div class="ptf-row" style="flex-wrap:wrap;gap:8px;align-items:center">
       <input class="mass-sel" style="max-width:190px" value="${(r.name||'').replace(/"/g,'&quot;')}" placeholder="Tên mức" oninput="secSetRuleField(${cid},${r.id},'name',this.value)">
+      <select class="mass-sel" style="max-width:130px" onchange="secSetRulePurpose(${cid},${r.id},this.value)">
+        <option value="Scoring" ${!isDenom?'selected':''}>Tính điểm</option>
+        <option value="Denominator" ${isDenom?'selected':''}>Đếm mẫu số</option>
+      </select>
       <select class="mass-sel" style="max-width:150px" onchange="secSetRuleField(${cid},${r.id},'object',this.value);secSetRuleField(${cid},${r.id},'supplierField','');secRenderBody()">
         <option value="">-- Object nguồn --</option>${SEC_OBJECT_OPTIONS.map(o=>`<option value="${o}" ${r.object===o?'selected':''}>${o}</option>`).join('')}
       </select>
       ${r.object && r.object!=='Account' ? `<select class="mass-sel" style="max-width:200px" onchange="secSetRuleField(${cid},${r.id},'supplierField',this.value)">
         <option value="">-- Field liên kết NCC * --</option>${(SEC_SUPPLIER_LINK_FIELDS[r.object]||[]).map(f=>`<option value="${f.v}" ${r.supplierField===f.v?'selected':''}>${f.t}</option>`).join('')}
       </select>` : ''}
-      ${r.applyMode!=='Count_Tier'?`<div style="display:flex;align-items:stretch;gap:0">
+      ${(!isDenom && r.applyMode!=='Count_Tier')?`<div style="display:flex;align-items:stretch;gap:0">
         <div style="display:flex;flex-direction:column;justify-content:center;line-height:1.1">
           <label style="display:flex;align-items:center;gap:2px;font-size:10px"><input type="radio" name="sec-sign-${r.id}" ${Number(r.points)<=0?'checked':''} onchange="secSetRulePointsSign(${cid},${r.id},-1)"> ➖</label>
           <label style="display:flex;align-items:center;gap:2px;font-size:10px"><input type="radio" name="sec-sign-${r.id}" ${Number(r.points)>0?'checked':''} onchange="secSetRulePointsSign(${cid},${r.id},1)"> ➕</label>
         </div>
         <input type="number" min="0" class="mass-sel" style="width:64px" value="${Math.abs(r.points)}" oninput="secSetRuleMagnitude(${cid},${r.id},this.value)">
       </div>`:''}
-      <select class="mass-sel" style="max-width:140px" onchange="secSetApplyMode(${cid},${r.id},this.value)">
+      ${!isDenom?`<select class="mass-sel" style="max-width:140px" onchange="secSetApplyMode(${cid},${r.id},this.value)">
         ${SEC_APPLY_MODE_OPTIONS.map(o=>`<option value="${o[0]}" ${r.applyMode===o[0]?'selected':''}>${o[1]}</option>`).join('')}
-      </select>
+      </select>`:''}
       <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" ${r.active!==false?'checked':''} onchange="secSetRuleField(${cid},${r.id},'active',this.checked)">Active</label>
       <button class="btn sm" onclick="secRemoveRule(${cid},${r.id})">🗑</button>
     </div>
-    ${r.applyMode==='Once_Per_Period'?`<div class="ptf-row" style="margin-top:4px"><span class="wf-muted" style="font-size:12px">Số lần tối đa tính điểm/kỳ:</span><input type="number" min="1" class="mass-sel" style="width:70px" value="${r.maxOccPerPeriod||1}" oninput="secSetRuleField(${cid},${r.id},'maxOccPerPeriod',this.value)"></div>`:''}
-    ${r.applyMode==='Worst_Case_Only'?`<div class="ptf-row" style="margin-top:4px"><span class="wf-muted" style="font-size:12px">Nhóm loại trừ lẫn nhau:</span><input class="mass-sel" style="max-width:200px" value="${(r.worstCaseGroup||'').replace(/"/g,'&quot;')}" oninput="secSetRuleField(${cid},${r.id},'worstCaseGroup',this.value)"></div>`:''}
-    ${r.applyMode==='Count_Tier'?secTierEditorHTML(cid,r):''}
-    <div style="margin-top:6px"><a onclick="secToggleCondEditor(${r.id})" style="cursor:pointer;font-size:12.5px">Điều kiện (${r.conditions.length}) ${condExpanded?'▾':'▸'}</a>${condExpanded?secCondEditorHTML(cid,r):''}</div>
-    ${r.applyMode!=='Count_Tier'?`<div style="margin-top:6px"><button class="btn sm" onclick="secToggleAdv(${r.id})">${advExpanded?'▾':'▸'} Cài đặt nâng cao: Tái phạm</button>${advExpanded?secAdvEditorHTML(cid,r):''}</div>`:''}
+    ${(!isDenom && r.applyMode==='Once_Per_Period')?`<div class="ptf-row" style="margin-top:4px"><span class="wf-muted" style="font-size:12px">Số lần tối đa tính điểm/kỳ:</span><input type="number" min="1" class="mass-sel" style="width:70px" value="${r.maxOccPerPeriod||1}" oninput="secSetRuleField(${cid},${r.id},'maxOccPerPeriod',this.value)"></div>`:''}
+    ${(!isDenom && r.applyMode==='Worst_Case_Only')?`<div class="ptf-row" style="margin-top:4px"><span class="wf-muted" style="font-size:12px">Nhóm loại trừ lẫn nhau:</span><input class="mass-sel" style="max-width:200px" value="${(r.worstCaseGroup||'').replace(/"/g,'&quot;')}" oninput="secSetRuleField(${cid},${r.id},'worstCaseGroup',this.value)"></div>`:''}
+    ${(!isDenom && r.applyMode==='Count_Tier')?secTierEditorHTML(cid,r):''}
+    <div style="margin-top:6px"><a onclick="secToggleCondEditor(${r.id})" style="cursor:pointer;font-size:12.5px">Điều kiện (${r.conditions.length})${isDenom?' — tuỳ chọn, để trống = đếm tất cả':''} ${condExpanded?'▾':'▸'}</a>${condExpanded?secCondEditorHTML(cid,r):''}</div>
+    ${(!isDenom && r.applyMode!=='Count_Tier')?`<div style="margin-top:6px"><button class="btn sm" onclick="secToggleAdv(${r.id})">${advExpanded?'▾':'▸'} Cài đặt nâng cao: Tái phạm</button>${advExpanded?secAdvEditorHTML(cid,r):''}</div>`:''}
     <div id="sec-prev-${r.id}" class="wf-muted" style="font-size:12px;margin-top:8px;padding:8px;background:var(--bg);border-radius:6px">${secRuleSentence(r)}</div>
   </div>`;
 }
+function secSetRulePurpose(cid,rid,val){ const r=secRuleGet(cid,rid); if(!r) return; r.purpose=val; secRenderBody(); }
 function secSetApplyMode(cid,rid,mode){
   const r=secRuleGet(cid,rid); if(!r) return;
   r.applyMode=mode;
@@ -4298,6 +4328,16 @@ function secValidateTiers(tiers){
 }
 function secCritEditBlock(c){
   const rulesHtml=c.rules.map(r=>secRuleEditBlock(c.id,r)).join('') || '<div class="po-hint">Chưa có mức nào.</div>';
+  const denomRules=c.rules.filter(r=>r.purpose==='Denominator');
+  const denomSection=`<div class="ptf-row" style="margin-bottom:8px;gap:8px;align-items:center;flex-wrap:wrap">
+    <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" ${c.normalizeByDenom?'checked':''} onchange="secSetCritDenomToggle(${c.id},this.checked)">Chia điểm trừ theo mẫu số</label>
+    ${c.normalizeByDenom?(denomRules.length
+      ? `<select class="mass-sel" style="max-width:280px" onchange="secSetCritField(${c.id},'denomRuleId',parseInt(this.value)||null)">
+          <option value="">-- Chọn Rule tính mẫu số --</option>${denomRules.map(r=>`<option value="${r.id}" ${c.denomRuleId===r.id?'selected':''}>${r.name||'(chưa đặt tên)'}</option>`).join('')}
+        </select>`
+      : `<span class="wf-muted" style="font-size:11px;color:var(--err)">⚠ Chưa có mức nào với Mục đích = "Đếm mẫu số" trong tiêu chí này — thêm 1 mức bên dưới rồi đổi Mục đích</span>`
+    ):''}
+  </div>`;
   return `<div class="po-card" style="margin-bottom:10px">
     <div class="po-card-h" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span style="font-weight:700">${c.seq}.</span>
@@ -4307,9 +4347,10 @@ function secCritEditBlock(c){
       <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" ${c.active!==false?'checked':''} onchange="secSetCritField(${c.id},'active',this.checked)">Active</label>
       <button class="btn sm" style="margin-left:auto" onclick="secRemoveCriteria(${c.id})">🗑 Xoá tiêu chí</button>
     </div>
-    <div style="padding:10px 12px">${rulesHtml}<button class="btn sm" onclick="secAddRule(${c.id})">＋ Thêm mức</button></div>
+    <div style="padding:10px 12px">${denomSection}${rulesHtml}<button class="btn sm" onclick="secAddRule(${c.id})">＋ Thêm mức</button></div>
   </div>`;
 }
+function secSetCritDenomToggle(cid,checked){ const c=secCritGet(cid); if(!c) return; c.normalizeByDenom=checked; if(!checked) c.denomRuleId=null; secRenderBody(); }
 function secRulesEditHTML(){
   const list=SEC_DRAFT_CRITERIA;
   return `<div class="po-card" style="padding:10px 14px;margin-bottom:10px">
@@ -4339,6 +4380,9 @@ function secSaveRules(){
   if(Math.abs(t-100)>0.01){ toast('Tổng tỷ trọng phải bằng 100% (hiện: '+t+'%)'); return; }
   for(const c of list){
     if(!((c.name||'').trim())){ toast('Nhập Tên tiêu chí cho tất cả các dòng'); return; }
+    if(c.normalizeByDenom && !c.rules.some(r=>r.id===c.denomRuleId && r.purpose==='Denominator')){
+      toast('Tiêu chí "'+(c.name||'(chưa đặt tên)')+'" đã bật "Chia điểm trừ theo mẫu số" nhưng chưa chọn Rule tính mẫu số hợp lệ'); return;
+    }
     for(const r of c.rules){
       if(r.object && r.object!=='Account' && !r.supplierField){
         toast('Chọn Field liên kết NCC cho rule "'+(r.name||'(chưa đặt tên)')+'" (bắt buộc trừ khi Object nguồn = Account)'); return;
