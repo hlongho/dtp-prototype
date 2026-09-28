@@ -4287,7 +4287,16 @@ function secRuleEditBlock(cid,r){
     <div id="sec-prev-${r.id}" class="wf-muted" style="font-size:12px;margin-top:8px;padding:8px;background:var(--bg);border-radius:6px">${secRuleSentence(r)}</div>
   </div>`;
 }
-function secSetRulePurpose(cid,rid,val){ const r=secRuleGet(cid,rid); if(!r) return; r.purpose=val; secRenderBody(); }
+function secSetRulePurpose(cid,rid,val){
+  const r=secRuleGet(cid,rid); if(!r) return;
+  r.purpose=val;
+  const c=secCritGet(cid);
+  if(c){
+    if(val==='Denominator'){ c.normalizeByDenom=true; c.denomRuleId=rid; }
+    else if(c.denomRuleId===rid){ c.denomRuleId=null; }
+  }
+  secRenderBody();
+}
 function secSetApplyMode(cid,rid,mode){
   const r=secRuleGet(cid,rid); if(!r) return;
   r.applyMode=mode;
