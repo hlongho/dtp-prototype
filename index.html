@@ -2370,9 +2370,9 @@ function nccCriteriaRowsHTML(picks,ctx){
     const nameCell = items.length>0
       ? `<a onclick="nccToggleEvalExpand('${key.replace(/'/g,"\\'")}','${ctx.vendor.replace(/'/g,"\\'")}','${ctx.period.replace(/'/g,"\\'")}')" style="cursor:pointer">${c.name} <span class="wf-muted" style="font-size:10px">${expanded?'▾':'▸' } Chi tiết</span></a><div class="wf-muted" style="font-size:10px">${c.dept}</div>`
       : `<b>${c.name}</b><div class="wf-muted" style="font-size:10px">${c.dept}</div>`;
-    let out=`<tr><td>${nameCell}</td><td class="num">${base}</td><td class="num">${adjust>0?'+':''}${adjust}</td><td class="num"><b>${val}</b></td></tr>`;
+    let out=`<tr><td>${nameCell}</td><td class="num">${base}</td><td class="num" style="${secAdjColor(adjust)}">${adjust>0?'+':''}${adjust}</td><td class="num"><b>${val}</b></td></tr>`;
     if(expanded){
-      const evRows=items.map(it=>`<tr><td class="wf-muted">↳ Chấm tay · ${ctx.period}</td><td class="wf-muted">${it.label}</td><td class="wf-muted">${ctx.date?ctx.date:'—'}</td><td class="num">${it.pt>0?'+':''}${it.pt}</td></tr>`).join('');
+      const evRows=items.map(it=>`<tr><td class="wf-muted">↳ Chấm tay · ${ctx.period}</td><td class="wf-muted">${it.label}</td><td class="wf-muted">${ctx.date?ctx.date:'—'}</td><td class="num" style="${secAdjColor(it.pt)}">${it.pt>0?'+':''}${it.pt}</td></tr>`).join('');
       out+=`<tr><td colspan="4" style="padding:0 0 8px 20px;background:var(--bg)">
         <div class="tbl-wrap"><table class="tbl sm" style="margin:0"><thead><tr><th>Record nguồn</th><th>Rule áp dụng</th><th>Ngày xảy ra</th><th class="num">Điểm áp dụng</th></tr></thead><tbody>${evRows}</tbody></table></div>
       </td></tr>`;
@@ -2631,9 +2631,9 @@ function npfCriteriaRowsHTML(type,picks,ctx){
     const nameCell = items.length>0
       ? `<a onclick="npfToggleEvalExpand('${key.replace(/'/g,"\\'")}','${type}','${ctx.vendor.replace(/'/g,"\\'")}','${ctx.period.replace(/'/g,"\\'")}')" style="cursor:pointer">${c.name} <span class="wf-muted" style="font-size:10px">${expanded?'▾':'▸'} Chi tiết</span></a>`
       : `<b>${c.name}</b>`;
-    let out=`<tr><td>${nameCell}</td><td class="num">${base}</td><td class="num">${adjust>0?'+':''}${adjust}</td><td class="num"><b>${val}</b></td></tr>`;
+    let out=`<tr><td>${nameCell}</td><td class="num">${base}</td><td class="num" style="${secAdjColor(adjust)}">${adjust>0?'+':''}${adjust}</td><td class="num"><b>${val}</b></td></tr>`;
     if(expanded){
-      const evRows=items.map(it=>`<tr><td class="wf-muted">↳ Chấm tay · ${ctx.period}</td><td class="wf-muted">${it.label}</td><td class="wf-muted">${ctx.date?ctx.date:'—'}</td><td class="num">${it.pt>0?'+':''}${it.pt}</td></tr>`).join('');
+      const evRows=items.map(it=>`<tr><td class="wf-muted">↳ Chấm tay · ${ctx.period}</td><td class="wf-muted">${it.label}</td><td class="wf-muted">${ctx.date?ctx.date:'—'}</td><td class="num" style="${secAdjColor(it.pt)}">${it.pt>0?'+':''}${it.pt}</td></tr>`).join('');
       out+=`<tr><td colspan="4" style="padding:0 0 8px 20px;background:var(--bg)">
         <div class="tbl-wrap"><table class="tbl sm" style="margin:0"><thead><tr><th>Record nguồn</th><th>Rule áp dụng</th><th>Ngày xảy ra</th><th class="num">Điểm áp dụng</th></tr></thead><tbody>${evRows}</tbody></table></div>
       </td></tr>`;
@@ -3827,7 +3827,7 @@ S.impo = ()=> appnav('Mua hàng nhập khẩu','Đơn mua (PO)',TAB_IM,'Đơn mu
 let SEC_SEQ=1; function secId(){ return SEC_SEQ++; }
 function secRule(o){ return Object.assign({id:secId(),name:'',purpose:'Scoring',object:'',supplierField:'',points:0,applyMode:'Per_Occurrence',
   maxOccPerPeriod:1,worstCaseGroup:'',escalationGroup:'',escalationMultiplier:1,maxOccBeforeAction:'',
-  actionOnMax:'None',dateField:'',snapshotAll:false,active:true,logicMode:'AND',customLogic:'',hasHistory:false,countTiers:[],conditions:[]},o); }
+  actionOnMax:'None',dateField:'',snapshotAll:false,denomLinkField:'',active:true,logicMode:'AND',customLogic:'',hasHistory:false,countTiers:[],conditions:[]},o); }
 function secCond(o){ return Object.assign({id:secId(),field:'',operator:'=',value:'',valueMax:'',
   compareToField:'',compareMode:false},o); }
 /* Supplier_Evaluation_Rule_Count_Tier__c — chỉ dùng khi Rule.Apply_Mode__c=Count_Tier. min/max = số lần vi
@@ -3838,7 +3838,7 @@ const SEC_OBJECT_OPTIONS=['Case','Shipment__c','Quote__c','PurchaseOrder__c','Ac
    của tài liệu spec: cần rà soát field thật đã có trên từng object trước khi build Rule Condition thật). */
 const SEC_OBJECT_FIELDS={
   'Case':[{v:'Severity__c',t:'Mức độ lỗi (Severity__c)',type:'picklist'},{v:'CreatedDate',t:'Ngày tạo (CreatedDate)',type:'date'},{v:'Root_Cause__c',t:'Nguyên nhân gốc (Root_Cause__c)',type:'picklist'}],
-  'Shipment__c':[{v:'Delay_Reason__c',t:'Lý do trễ (Delay_Reason__c)',type:'picklist'},{v:'Delay_Days__c',t:'Số ngày trễ (Delay_Days__c)',type:'number'},{v:'Urgent_Delivery__c',t:'Giao gấp (Urgent_Delivery__c)',type:'boolean'},{v:'Actual_Delivery_Date__c',t:'Ngày giao thực tế (Actual_Delivery_Date__c)',type:'date'}],
+  'Shipment__c':[{v:'Delay_Reason__c',t:'Lý do trễ (Delay_Reason__c)',type:'picklist'},{v:'Delay_Days__c',t:'Số ngày trễ (Delay_Days__c)',type:'number'},{v:'Urgent_Delivery__c',t:'Giao gấp (Urgent_Delivery__c)',type:'boolean'},{v:'ETA__c',t:'ETA (ETA__c)',type:'date'}],
   'Quote__c':[{v:'Unit_Price__c',t:'Đơn giá (Unit_Price__c)',type:'number'},{v:'Reference_Price__c',t:'Giá tham chiếu (Reference_Price__c)',type:'number'},{v:'Quote_Date__c',t:'Ngày báo giá (Quote_Date__c)',type:'date'}],
   'PurchaseOrder__c':[{v:'Payment_Term__c',t:'Điều khoản TT (Payment_Term__c)',type:'picklist'},{v:'Document_Error__c',t:'Sai chứng từ (Document_Error__c)',type:'boolean'},{v:'Order_Date__c',t:'Ngày đặt hàng (Order_Date__c)',type:'date'}],
   'Account':[{v:'ESG_Certified__c',t:'Chứng chỉ ESG (ESG_Certified__c)',type:'boolean'},{v:'Active__c',t:'Đang hợp tác (Active__c)',type:'boolean'}],
@@ -3914,32 +3914,35 @@ function secAttachRules(list,code,rules){ const c=list.find(x=>x.code===code); i
    cứng — chỉ cho tắt Active. */
 /* Rule đếm mẫu số cho tiêu chí Chất lượng — Denominator_Rule__c mà Criteria.Denominator_Rule__c trỏ tới
    (xem việc gán normalizeByDenom/denomRuleId ngay dưới secAttachRules này). */
-const SEC_CHATLUONG_DENOM_RULE = secRule({name:'Đếm tổng số Shipment trong kỳ (mẫu số)',purpose:'Denominator',object:'Shipment__c',supplierField:'Supplier__c',dateField:'Actual_Delivery_Date__c',conditions:[]});
-/* Date_Field__c của cả 3 rule Case dưới đây dùng Related_Shipment__r.Actual_Delivery_Date__c (KHÔNG
+const SEC_CHATLUONG_DENOM_RULE = secRule({name:'Đếm tổng số Shipment trong kỳ (mẫu số)',purpose:'Denominator',object:'Shipment__c',supplierField:'Supplier__c',dateField:'ETA__c',conditions:[]});
+/* Date_Field__c của cả 3 rule Case dưới đây dùng Related_Shipment__r.ETA__c (KHÔNG
    dùng Case.CreatedDate) — đúng quy ước bắt buộc khi tiêu chí bật Normalize_By_Denominator__c (xem .md
    mục 3, "Ghi nhận vi phạm trễ so với giao dịch gốc"): điểm trừ phải tính vào đúng kỳ của Shipment gốc
    (record mà mẫu số cũng đang đếm), không tính vào kỳ Case được tạo — vd Case báo cáo trễ ở kỳ sau vẫn
-   phải quy về đúng kỳ giao hàng thực tế, tránh lệch pha giữa tử số (điểm trừ) và mẫu số (đếm Shipment). */
+   phải quy về đúng kỳ giao hàng thực tế, tránh lệch pha giữa tử số (điểm trừ) và mẫu số (đếm Shipment).
+   denomLinkField='Related_Shipment__c' (Denominator_Link_Field__c) — trả về đúng Id Shipment mà vi phạm
+   này thuộc về, dùng để nhóm tính điểm riêng từng Shipment trước khi lấy trung bình (khác Date_Field__c
+   chỉ trả về giá trị ngày). */
 secAttachRules(SEC_CRITERIA_DATA.noidia,'CHATLUONG',[
-  secRule({name:'Mức 1 – Nhẹ',object:'Case',supplierField:'AccountId',points:-10,dateField:'Related_Shipment__r.Actual_Delivery_Date__c',escalationGroup:'QUALITY_MINOR',
+  secRule({name:'Mức 1 – Nhẹ',object:'Case',supplierField:'AccountId',points:-10,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',escalationGroup:'QUALITY_MINOR',
     escalationMultiplier:2,maxOccBeforeAction:3,actionOnMax:'Exclude_Supplier',hasHistory:true,
     conditions:[secCond({field:'Severity__c',operator:'=',value:'Mức 1 – Nhẹ'})]}),
-  secRule({name:'Mức 2 – Nặng',object:'Case',supplierField:'AccountId',points:-20,dateField:'Related_Shipment__r.Actual_Delivery_Date__c',
+  secRule({name:'Mức 2 – Nặng',object:'Case',supplierField:'AccountId',points:-20,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',
     conditions:[secCond({field:'Severity__c',operator:'=',value:'Mức 2 – Nặng'})]}),
-  secRule({name:'Mức 3 – Nghiêm trọng',object:'Case',supplierField:'AccountId',points:-40,dateField:'Related_Shipment__r.Actual_Delivery_Date__c',actionOnMax:'Exclude_Supplier',maxOccBeforeAction:1,
+  secRule({name:'Mức 3 – Nghiêm trọng',object:'Case',supplierField:'AccountId',points:-40,dateField:'Related_Shipment__r.ETA__c',denomLinkField:'Related_Shipment__c',actionOnMax:'Exclude_Supplier',maxOccBeforeAction:1,
     conditions:[secCond({field:'Severity__c',operator:'=',value:'Mức 3 – Nghiêm trọng'})]}),
   SEC_CHATLUONG_DENOM_RULE,
 ]);
 (()=>{ const c=SEC_CRITERIA_DATA.noidia.find(x=>x.code==='CHATLUONG'); if(c){ c.normalizeByDenom=true; c.denomRuleId=SEC_CHATLUONG_DENOM_RULE.id; } })();
 secAttachRules(SEC_CRITERIA_DATA.noidia,'GIAOHANG',[
-  secRule({name:'Trễ hạn dưới 5 ngày',object:'Shipment__c',supplierField:'Supplier__c',points:-2,dateField:'Actual_Delivery_Date__c',
+  secRule({name:'Trễ hạn dưới 5 ngày',object:'Shipment__c',supplierField:'Supplier__c',points:-2,dateField:'ETA__c',
     conditions:[secCond({field:'Delay_Reason__c',operator:'=',value:'Lỗi NCC'}),secCond({field:'Delay_Days__c',operator:'<',value:'5'})]}),
-  secRule({name:'Trễ hạn 5–<10 ngày',object:'Shipment__c',supplierField:'Supplier__c',points:-4,dateField:'Actual_Delivery_Date__c',
+  secRule({name:'Trễ hạn 5–<10 ngày',object:'Shipment__c',supplierField:'Supplier__c',points:-4,dateField:'ETA__c',
     conditions:[secCond({field:'Delay_Reason__c',operator:'=',value:'Lỗi NCC'}),secCond({field:'Delay_Days__c',operator:'between',value:'5',valueMax:'9'})]}),
 ]);
 secAttachRules(SEC_CRITERIA_DATA.noidia,'HOTRO',[
   secRule({name:'Giao gấp/ngoài giờ (2–4h, lễ/CN)',object:'Shipment__c',supplierField:'Supplier__c',points:1,applyMode:'Once_Per_Period',maxOccPerPeriod:1,
-    dateField:'Actual_Delivery_Date__c',conditions:[secCond({field:'Urgent_Delivery__c',operator:'=',value:'true'})]}),
+    dateField:'ETA__c',conditions:[secCond({field:'Urgent_Delivery__c',operator:'=',value:'true'})]}),
 ]);
 secAttachRules(SEC_CRITERIA_DATA.noidia,'GIABAN',[
   secRule({name:'Giá cao hơn tham chiếu ≤5%',object:'Quote__c',supplierField:'Account__c',points:-5,dateField:'Quote_Date__c',
@@ -3962,7 +3965,7 @@ secAttachRules(SEC_CRITERIA_DATA.nhapkhau,'CHATLUONG',[
 /* Minh hoạ Apply_Mode=Count_Tier — đúng mẫu "Vi phạm 1-2 lần: -5, 3-4 lần: -10, 5 lần trở lên: -15" trong
    file ".docs/ĐÁNH GIÁ NCC NHẬP KHẨU VÀ DỊCH VỤ.xls" (tiêu chí Tiến độ giao hàng). */
 secAttachRules(SEC_CRITERIA_DATA.nhapkhau,'TIENDO',[
-  secRule({name:'Vi phạm tiến độ giao hàng',object:'Shipment__c',supplierField:'Supplier__c',applyMode:'Count_Tier',dateField:'Actual_Delivery_Date__c',
+  secRule({name:'Vi phạm tiến độ giao hàng',object:'Shipment__c',supplierField:'Supplier__c',applyMode:'Count_Tier',dateField:'ETA__c',
     countTiers:[secTier({min:1,max:2,points:-5}),secTier({min:3,max:4,points:-10}),secTier({min:5,max:'',points:-15})],
     conditions:[secCond({field:'Delay_Reason__c',operator:'=',value:'Lỗi NCC'})]}),
 ]);
@@ -4044,6 +4047,40 @@ function secGoToConfig(group){ SEC_TAB=group; SEC_SUBTAB='rules'; SEC_EDIT=false
    gia — NCC nào chưa có Đợt nào tính xong thì hiện trạng thái rỗng. */
 let SEC_EXPANDED_RESULT=new Set();
 function secToggleResultExpand(key){ if(SEC_EXPANDED_RESULT.has(key)) SEC_EXPANDED_RESULT.delete(key); else SEC_EXPANDED_RESULT.add(key); go('vendor'); }
+/* Quy tắc màu theo DCP-177: điểm cộng/trừ dương = xanh, âm = đỏ, bằng 0 = màu mặc định. Áp dụng cho
+   Total_Adjustment__c và Points_Applied__c ở mọi nơi hiển thị (card này + mục 5.8/5.9). */
+function secAdjColor(v){ return v>0?'color:var(--ok)':(v<0?'color:var(--err)':''); }
+let SEC_EXPANDED_DENOM=new Set(), SEC_EXPANDED_DENOM_UNIT=new Set();
+function secToggleDenomExpand(key){ if(SEC_EXPANDED_DENOM.has(key)) SEC_EXPANDED_DENOM.delete(key); else SEC_EXPANDED_DENOM.add(key); go('vendor'); }
+function secToggleDenomUnitExpand(key){ if(SEC_EXPANDED_DENOM_UNIT.has(key)) SEC_EXPANDED_DENOM_UNIT.delete(key); else SEC_EXPANDED_DENOM_UNIT.add(key); go('vendor'); }
+/* unit_score theo đúng công thức DCP-177 (mục 4 bước 6): cộng các Evidence âm gán vào đúng đơn vị mẫu số
+   này (Denominator_Record_Id__c), clamp về 0 NGAY TẠI đơn vị đó — không để lọt số âm sang đơn vị khác. */
+function secDenomUnitScore(r,unitId){
+  const neg=(r.evidence||[]).filter(e=>e.denomUnit===unitId && e.points<0).reduce((s,e)=>s+e.points,0);
+  return Math.max(0, r.base + neg);
+}
+/* Mục 5.9 — "Xem N Shipment trong kỳ": query minh hoạ (ở đây là filter data mẫu tĩnh) danh sách đầy đủ
+   đơn vị mẫu số của Criteria, kể cả Shipment không vi phạm gì (vẫn hiện đủ điểm tối đa). */
+function secDenomUnitsPanelHTML(vendorName,batchId,r){
+  const rows=(r.denomUnits||[]).map(u=>{
+    const uKey=vendorName+'|'+batchId+'|'+r.code+'|'+u.id;
+    const uEvidence=(r.evidence||[]).filter(e=>e.denomUnit===u.id);
+    const uExpanded = uEvidence.length>0 && SEC_EXPANDED_DENOM_UNIT.has(uKey);
+    const score=secDenomUnitScore(r,u.id);
+    const nameCell = uEvidence.length
+      ? `<a onclick="secToggleDenomUnitExpand('${uKey.replace(/'/g,"\\'")}')" style="cursor:pointer">${u.label} <span class="wf-muted" style="font-size:10px">${uExpanded?'▾':'▸'} chi tiết</span></a>`
+      : u.label;
+    let out=`<tr><td>${nameCell}</td><td class="num"><b>${score}</b>/${r.base}</td></tr>`;
+    if(uExpanded){
+      const evRows=uEvidence.map(e=>`<tr><td class="wf-muted">↳ ${e.source}</td><td class="wf-muted">${e.rule}</td><td class="wf-muted">${e.date?secDateVN(e.date):'—'}</td><td class="num" style="${secAdjColor(e.points)}">${e.points>0?'+':''}${e.points}</td></tr>`).join('');
+      out+=`<tr><td colspan="2" style="padding:0 0 8px 20px;background:var(--bg)">
+        <div class="tbl-wrap"><table class="tbl sm" style="margin:0"><thead><tr><th>Record nguồn</th><th>Rule áp dụng</th><th>Ngày xảy ra</th><th class="num">Điểm áp dụng</th></tr></thead><tbody>${evRows}</tbody></table></div>
+      </td></tr>`;
+    }
+    return out;
+  }).join('');
+  return `<div class="tbl-wrap" style="margin-top:6px"><table class="tbl sm" style="margin:0"><thead><tr><th>Shipment (đơn vị mẫu số)</th><th class="num">Điểm đơn vị</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
 function secFindLatestResult(vendorName){
   const matches=[];
   SEC_BATCHES.forEach(b=>{ const s=b.suppliers.find(x=>x.name===vendorName); if(s&&s.results&&s.results.length) matches.push({batch:b,supplier:s}); });
@@ -4064,14 +4101,21 @@ function secVendorResultCardHTML(vendorName){
     const nameCell = hasEvidence
       ? `<a onclick="secToggleResultExpand('${key.replace(/'/g,"\\'")}')" style="cursor:pointer">${r.criteria} <span class="wf-muted" style="font-size:10px">${expanded?'▾':'▸'} Chi tiết</span></a>`
       : r.criteria;
-    const denomTag = r.denomCount!=null ? `<div class="wf-muted" style="font-size:9.5px">📐 N=${r.denomCount}</div>` : '';
-    let out=`<tr><td>${nameCell}</td><td class="num">${r.base}</td><td class="num">${r.adjust>0?'+':''}${r.adjust||0}${denomTag}</td><td class="num"><b>${r.final}</b></td></tr>`;
+    const denomUnitKey = vendorName+'|'+batch.id+'|'+r.code+'|units';
+    const denomUnitExpanded = r.denomUnits && SEC_EXPANDED_DENOM.has(denomUnitKey);
+    const denomTag = r.denomCount!=null
+      ? `<div class="wf-muted" style="font-size:9.5px">📐 N=${r.denomCount}</div><div style="font-size:9.5px"><a onclick="secToggleDenomExpand('${denomUnitKey.replace(/'/g,"\\'")}')" style="cursor:pointer">${denomUnitExpanded?'▾':'▸'} Xem ${r.denomCount} Shipment</a></div>`
+      : '';
+    let out=`<tr><td>${nameCell}</td><td class="num">${r.base}</td><td class="num" style="${secAdjColor(r.adjust)}">${r.adjust>0?'+':''}${r.adjust||0}${denomTag}</td><td class="num"><b>${r.final}</b></td></tr>`;
     if(expanded){
-      const evRows=r.evidence.map(e=>`<tr><td class="wf-muted">↳ ${e.source}</td><td class="wf-muted">${e.rule}</td><td class="wf-muted">${e.date?secDateVN(e.date):'—'}</td><td class="num">${e.points>0?'+':''}${e.points}</td></tr>`).join('');
+      const evRows=r.evidence.map(e=>`<tr><td class="wf-muted">↳ ${e.source}</td><td class="wf-muted">${e.rule}</td><td class="wf-muted">${e.date?secDateVN(e.date):'—'}</td><td class="num" style="${secAdjColor(e.points)}">${e.points>0?'+':''}${e.points}</td></tr>`).join('');
       out+=`<tr><td colspan="4" style="padding:0 0 8px 20px;background:var(--bg)">
         <div class="tbl-wrap"><table class="tbl sm" style="margin:0"><thead><tr><th>Record nguồn</th><th>Rule áp dụng</th><th>Ngày xảy ra</th><th class="num">Điểm áp dụng</th></tr></thead><tbody>${evRows}</tbody></table></div>
         ${r.denomNote?`<div class="wf-muted" style="font-size:10px;margin-top:4px">📐 ${r.denomNote}</div>`:''}
       </td></tr>`;
+    }
+    if(denomUnitExpanded){
+      out+=`<tr><td colspan="4" style="padding:0 0 8px 20px;background:var(--bg)">${secDenomUnitsPanelHTML(vendorName,batch.id,r)}</td></tr>`;
     }
     return out;
   }).join('');
@@ -4247,16 +4291,20 @@ function secAdvEditorHTML(cid,r){
     </div>`:''}
   </div>`;
 }
-function secRuleEditBlock(cid,r){
+function secRuleEditBlock(cid,r,denomOn){
   const condExpanded=SEC_EXPANDED_RULE.has(r.id), advExpanded=SEC_EXPANDED_ADV.has(r.id);
+  const denomLinkOpts=SEC_OBJECT_LOOKUPS[r.object]||[];
   return `<div class="ptf-item" style="margin-bottom:8px">
     <div class="ptf-row" style="flex-wrap:wrap;gap:8px;align-items:center">
       <input class="mass-sel" style="max-width:190px" value="${(r.name||'').replace(/"/g,'&quot;')}" placeholder="Tên mức" oninput="secSetRuleField(${cid},${r.id},'name',this.value)">
-      <select class="mass-sel" style="max-width:150px" onchange="secSetRuleField(${cid},${r.id},'object',this.value);secSetRuleField(${cid},${r.id},'supplierField','');secRenderBody()">
+      <select class="mass-sel" style="max-width:150px" onchange="secSetRuleField(${cid},${r.id},'object',this.value);secSetRuleField(${cid},${r.id},'supplierField','');secSetRuleField(${cid},${r.id},'denomLinkField','');secRenderBody()">
         <option value="">-- Object nguồn --</option>${SEC_OBJECT_OPTIONS.map(o=>`<option value="${o}" ${r.object===o?'selected':''}>${o}</option>`).join('')}
       </select>
       ${r.object && r.object!=='Account' ? `<select class="mass-sel" style="max-width:200px" onchange="secSetRuleField(${cid},${r.id},'supplierField',this.value)">
         <option value="">-- Field liên kết NCC * --</option>${(SEC_SUPPLIER_LINK_FIELDS[r.object]||[]).map(f=>`<option value="${f.v}" ${r.supplierField===f.v?'selected':''}>${f.t}</option>`).join('')}
+      </select>` : ''}
+      ${denomOn ? `<select class="mass-sel" style="max-width:220px" onchange="secSetRuleField(${cid},${r.id},'denomLinkField',this.value)">
+        <option value="">-- Field liên kết đơn vị mẫu số * --</option>${denomLinkOpts.map(f=>`<option value="${f.v}" ${r.denomLinkField===f.v?'selected':''}>${f.t}</option>`).join('')}
       </select>` : ''}
       ${r.applyMode!=='Count_Tier'?`<div style="display:flex;align-items:stretch;gap:0">
         <div style="display:flex;flex-direction:column;justify-content:center;line-height:1.1">
@@ -4344,7 +4392,7 @@ function secValidateTiers(tiers){
 }
 function secCritEditBlock(c){
   const scoringRules = c.rules.filter(r=>r.purpose!=='Denominator');
-  const rulesHtml=scoringRules.map(r=>secRuleEditBlock(c.id,r)).join('') || '<div class="po-hint">Chưa có mức nào.</div>';
+  const rulesHtml=scoringRules.map(r=>secRuleEditBlock(c.id,r,c.normalizeByDenom)).join('') || '<div class="po-hint">Chưa có mức nào.</div>';
   const denomRule = c.normalizeByDenom ? c.rules.find(r=>r.id===c.denomRuleId) : null;
   const denomSection=`<div style="margin-bottom:8px">
     <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" ${c.normalizeByDenom?'checked':''} onchange="secSetCritDenomToggle(${c.id},this.checked)">Chia điểm trừ theo mẫu số</label>
@@ -4412,6 +4460,9 @@ function secSaveRules(){
       if(r.object && r.object!=='Account' && !r.supplierField){
         toast('Chọn Field liên kết NCC cho rule "'+(r.name||'(chưa đặt tên)')+'" (bắt buộc trừ khi Object nguồn = Account)'); return;
       }
+      if(c.normalizeByDenom && r.purpose!=='Denominator' && !r.denomLinkField){
+        toast('Chọn Field liên kết đơn vị mẫu số cho rule "'+(r.name||'(chưa đặt tên)')+'" (bắt buộc vì tiêu chí đã bật "Chia điểm trừ theo mẫu số")'); return;
+      }
       if(r.logicMode==='CUSTOM'){
         const err=secValidateCustomLogic(r.customLogic,r.conditions.length);
         if(err){ toast('Logic tuỳ chỉnh của rule "'+(r.name||'(chưa đặt tên)')+'" không hợp lệ: '+err); return; }
@@ -4462,10 +4513,12 @@ function secSaveThreshold(){
   toast('Đã lưu Bảng xếp loại — '+SEC_GROUP_LABEL[SEC_TAB]);
 }
 /* ===== Đợt đánh giá (Supplier_Evaluation_Batch__c) — hệ thống TỰ TẠO đầu mỗi tháng (scheduled job),
-   không có nút tạo tay. Mỗi NCC có giao dịch phát sinh trong tháng (PO nội địa/nhập khẩu, hoặc phí
-   logistics với NCC dịch vụ) được tự thêm vào đúng 1 dòng Supplier_Evaluation_Period__c con (Master-
-   Detail Batch__c → Batch), kèm "nguồn phát sinh" — cố định, không sửa/thêm/xoá tay. Có thể trộn cả 3
-   nhóm NCC trong cùng 1 đợt. Xem data model trong .docs/supplier-evaluation-config-screen.md. */
+   không có nút tạo tay. Mỗi NCC có giao dịch phát sinh trong tháng được tự thêm vào đúng 1 dòng
+   Supplier_Evaluation_Period__c con (Master-Detail Batch__c → Batch), kèm "nguồn phát sinh" — cố định,
+   không sửa/thêm/xoá tay. Theo Checklist Đánh giá NCC (DCP-177): Nội địa/Nhập khẩu xét theo Shipment__c
+   có ETA__c thuộc tháng đó (KHÔNG còn xét ngày tạo PO như bản trước); Dịch vụ xét theo Invoice__c có
+   Invoice_Date__c thuộc tháng đó (KHÔNG còn dùng "Shipment Fee" như bản trước). Có thể trộn cả 3 nhóm
+   NCC trong cùng 1 đợt. Xem data model trong .docs/supplier-evaluation-config-screen.md. */
 let SEC_BATCH_SEQ=1; function secBatchId(){ return SEC_BATCH_SEQ++; }
 const SEC_BATCH_STATUS_LABEL={Draft:'Nháp',Calculating:'Đang tính điểm',Calculated:'Đã tính điểm',Approved:'Đã duyệt',Rejected:'Từ chối'};
 let SEC_BATCHES=[
@@ -4473,25 +4526,34 @@ let SEC_BATCHES=[
    suppliers:[
      /* Minh hoạ theo đúng kịch bản mục 7 của spec + đúng điểm trừ/cộng thật lấy từ
         ".docs/ĐÁNH GIÁ NCC NỘI ĐỊA.xlsx": 3 Case lỗi "Mức 1 – Nhẹ" tái phạm TRONG CÙNG THÁNG → -10, -20 (x2),
-        -40 (x4) = -70 (tổng điểm trừ GỐC, trước khi chia mẫu số) — vẫn tự kích hoạt cờ loại trừ (đúng
-        ngưỡng "loại khi vi phạm lần thứ 3" trong file gốc, xảy ra ở bước 5 của engine, ĐỘC LẬP với việc
-        chia mẫu số ở bước 6). Minh hoạ cơ chế MỚI "Chia điểm trừ theo mẫu số" (Normalize_By_Denominator__c)
-        đã bật cho tiêu chí Chất lượng (noidia): mẫu số = tổng số Shipment__c của Tân Tiến trong kỳ = 2
-        (đúng 2 Shipment đã xuất hiện trong data mẫu này: SHP-2026-0087 ở Giao hàng, SHP-2026-0102 ở Hỗ
-        trợ nổi trội) → điểm trừ thực tế = -70/2 = -35, Điểm đạt = clamp(40-35, 0, 40) = 5 (không còn bị
-        clamp về 0 như trước khi có cơ chế chia mẫu số); 1 Shipment trễ hạn 5–<10 ngày do lỗi NCC (-4);
-        1 Shipment giao gấp hoàn thành (+1, thuộc Hỗ trợ nổi trội, giới hạn 1 lần/kỳ). Tổng 61đ → Xếp loại D
-        (60–69, "Cần cải thiện" theo đúng bảng Xếp loại). */
-     {name:'Cty Hóa chất Tân Tiến',group:'noidia',status:'Calculated',totalScore:61,rating:'D',
-      source:'Có 2 PO nội địa phát sinh trong tháng (PO-2026-0112, PO-2026-0119)',
+        -40 (x4) — vẫn tự kích hoạt cờ loại trừ (đúng ngưỡng "loại khi vi phạm lần thứ 3" trong file gốc,
+        xảy ra ở bước 5 của engine, ĐỘC LẬP với việc chia mẫu số ở bước 6). Minh hoạ đúng công thức mới
+        theo DCP-177 cho "Chia điểm trừ theo mẫu số" (Normalize_By_Denominator__c) đã bật ở tiêu chí Chất
+        lượng (noidia): tính điểm RIÊNG từng đơn vị mẫu số (từng Shipment) rồi mới lấy trung bình — KHÔNG
+        cộng tổng điểm trừ toàn kỳ rồi chia 1 lần như bản trước. Mẫu số = 2 Shipment trong kỳ:
+        - SHP-2026-0087: cả 3 Case đều gán vào đây (Denominator_Record_Id__c) → tổng điểm trừ -70,
+          unit_score = max(0, 40-70) = 0 (clamp về 0 NGAY TẠI đơn vị này, không để lọt số âm ra ngoài).
+        - SHP-2026-0102: không có Evidence Chất lượng nào gán vào → unit_score = Max_Score__c = 40.
+        avg_score = (0+40)/2 = 20 → Điểm đạt Chất lượng = 20 (khác hẳn cách tính cũ — nếu cộng thẳng
+        -70 rồi chia 2 sẽ ra -35 → 5đ, THẤP hơn nhiều so với cách tính đúng vì bị 1 lỗi nặng kéo âm lây
+        sang cả Shipment không liên quan). Ngoài ra: 1 Shipment trễ hạn 5–<10 ngày do lỗi NCC (-4); 1
+        Shipment giao gấp hoàn thành (+1, thuộc Hỗ trợ nổi trội, giới hạn 1 lần/kỳ). Tổng 76đ → Xếp loại C
+        (70–79, "Đạt" theo đúng bảng Xếp loại). */
+     {name:'Cty Hóa chất Tân Tiến',group:'noidia',status:'Calculated',totalScore:76,rating:'C',
+      source:'Shipment SHP-2026-0087 có ETA trong tháng (đợt giao 20/01)',
       exclusionTriggered:true,exclusionReason:'Vi phạm Chất lượng Mức 1 – Nhẹ lần thứ 3 trong kỳ (tái phạm)',
       results:[
-       {criteria:'Chất lượng hàng hóa/dịch vụ',code:'CHATLUONG',base:40,adjust:-35,final:5,
-         denomCount:2,denomNote:'Tổng điểm trừ gốc: -70 (3 Case) · Mẫu số N=2 (tổng Shipment trong kỳ) → Điểm trừ thực tế = -70 / 2 = -35',
+       {criteria:'Chất lượng hàng hóa/dịch vụ',code:'CHATLUONG',base:40,adjust:-20,final:20,
+         denomCount:2,
+         denomUnits:[
+           {id:'SHP-2026-0087',label:'Shipment SHP-2026-0087'},
+           {id:'SHP-2026-0102',label:'Shipment SHP-2026-0102'},
+         ],
+         denomNote:'Tính riêng từng Shipment rồi lấy trung bình (theo DCP-177): SHP-2026-0087 gánh cả 3 Case (-70) → clamp 0đ · SHP-2026-0102 không vi phạm → 40đ · Trung bình (0+40)/2 = 20',
          evidence:[
-         {source:'Case CS-2026-0031',rule:'Mức 1 – Nhẹ (lần 1)',date:'2026-01-05',points:-10},
-         {source:'Case CS-2026-0045',rule:'Mức 1 – Nhẹ (lần 2, tái phạm ×2)',date:'2026-01-15',points:-20},
-         {source:'Case CS-2026-0058',rule:'Mức 1 – Nhẹ (lần 3, tái phạm ×4)',date:'2026-01-28',points:-40},
+         {source:'Case CS-2026-0031',rule:'Mức 1 – Nhẹ (lần 1)',date:'2026-01-05',points:-10,denomUnit:'SHP-2026-0087'},
+         {source:'Case CS-2026-0045',rule:'Mức 1 – Nhẹ (lần 2, tái phạm ×2)',date:'2026-01-15',points:-20,denomUnit:'SHP-2026-0087'},
+         {source:'Case CS-2026-0058',rule:'Mức 1 – Nhẹ (lần 3, tái phạm ×4)',date:'2026-01-28',points:-40,denomUnit:'SHP-2026-0087'},
        ]},
        {criteria:'Giao hàng đúng hạn, linh hoạt theo yêu cầu',code:'GIAOHANG',base:10,adjust:-4,final:6,evidence:[
          {source:'Shipment SHP-2026-0087',rule:'Trễ hạn 5–<10 ngày',date:'2026-01-20',points:-4},
@@ -4509,7 +4571,7 @@ let SEC_BATCHES=[
         trừ. Điểm trừ lấy đúng theo file gốc: giao trễ dưới 5 ngày -2, giá cao hơn tham chiếu ≤5% -5,
         đặt cọc/trả trước một phần -5, thiếu 1 chứng nhận ESG -1. Tổng 87đ → Xếp loại B "Tốt". */
      {name:'Cty TM Hải Đăng',group:'noidia',status:'Calculated',totalScore:87,rating:'B',
-      source:'Có 1 PO nội địa phát sinh trong tháng (PO-2026-0108)',
+      source:'Shipment SHP-2026-0055 có ETA trong tháng (đợt giao 10/01)',
       results:[
        {criteria:'Chất lượng hàng hóa/dịch vụ',code:'CHATLUONG',base:40,adjust:0,final:40},
        {criteria:'Giao hàng đúng hạn, linh hoạt theo yêu cầu',code:'GIAOHANG',base:10,adjust:-2,final:8,evidence:[
@@ -4529,7 +4591,7 @@ let SEC_BATCHES=[
        {criteria:'Hỗ trợ nổi trội',code:'HOTRO',base:5,adjust:0,final:5},
      ]},
      {name:'ONE Line',group:'dichvu',status:'Calculated',totalScore:90,rating:'A',
-      source:'Có phí logistics phát sinh trong tháng (Shipment Fee INV-2026-0041)',
+      source:'Invoice INV-2026-0041 có Invoice Date trong tháng',
       results:[
        {criteria:'Chất lượng dịch vụ',code:'CHATLUONG',base:40,adjust:-10,final:30,evidence:[
          {source:'Case CS-2026-0072',rule:'Có lỗi ảnh hưởng tiến độ',date:'2026-01-22',points:-10},
@@ -4546,9 +4608,10 @@ let SEC_BATCHES=[
 ];
 function secDateVN(iso){ return iso? iso.split('-').reverse().join('/') : '—'; }
 /* Đợt đánh giá (Batch) giờ do hệ thống tự tạo đầu mỗi tháng (scheduled job) và tự thêm NCC nào có giao
-   dịch phát sinh trong tháng đó (PO nội địa/nhập khẩu, hoặc phí logistics với NCC dịch vụ) — KHÔNG còn
-   tạo tay/thêm-bớt NCC thủ công. Popup dưới đây chỉ để XEM (read-only): thông tin đợt + danh sách NCC
-   kèm lý do (nguồn phát sinh) khiến NCC đó được đưa vào đợt. */
+   dịch phát sinh trong tháng đó (Shipment có ETA__c trong tháng với NCC Nội địa/Nhập khẩu, hoặc Invoice
+   có Invoice_Date__c trong tháng với NCC Dịch vụ — theo DCP-177) — KHÔNG còn tạo tay/thêm-bớt NCC thủ
+   công. Popup dưới đây chỉ để XEM (read-only): thông tin đợt + danh sách NCC kèm lý do (nguồn phát sinh)
+   khiến NCC đó được đưa vào đợt. */
 function secBatchSuppliersRowsHTML(b){
   if(!b.suppliers.length) return `<tr><td colspan="3" class="wf-muted" style="text-align:center;padding:12px">Không có NCC nào phát sinh giao dịch trong tháng này.</td></tr>`;
   return b.suppliers.map(s=>`<tr><td><a data-go="vendor" data-vendor="${s.name.replace(/"/g,'&quot;')}" data-vtype="${s.group}">${s.name}</a></td><td>${SEC_GROUP_LABEL[s.group]}</td><td class="wf-muted" style="font-size:12px">${s.source||'—'}</td></tr>`).join('');
@@ -4590,18 +4653,18 @@ S.evalbatch = ()=> {
    thấy rõ cách gộp quý/năm — phản ánh đúng nghiệp vụ đã chốt: tháng nào NCC không phát sinh giao dịch
    thì KHÔNG có Period, và KHÔNG được tính là 0 điểm khi gộp trung bình quý/năm. */
 let SEC_REPORT_ROWS=[
-  {vendor:'Cty Hóa chất Tân Tiến',group:'noidia',ym:'2026-01',score:61},
+  {vendor:'Cty Hóa chất Tân Tiến',group:'noidia',ym:'2026-01',score:76},
   {vendor:'Cty TM Hải Đăng',group:'noidia',ym:'2026-01',score:87},
   {vendor:'ONE Line',group:'dichvu',ym:'2026-01',score:90},
   {vendor:'Cty Hóa chất Tân Tiến',group:'noidia',ym:'2026-02',score:68},
   // Hải Đăng và ONE Line không phát sinh giao dịch tháng 02 → không có Period tháng này
   {vendor:'Cty Hóa chất Tân Tiến',group:'noidia',ym:'2026-03',score:74},
   {vendor:'Cty TM Hải Đăng',group:'noidia',ym:'2026-03',score:85},
-  // ONE Line không phát sinh phí logistics tháng 03
+  // ONE Line không có Invoice tháng 03
   {vendor:'Cty Hóa chất Tân Tiến',group:'noidia',ym:'2026-04',score:80},
   {vendor:'Cty TM Hải Đăng',group:'noidia',ym:'2026-04',score:88},
   {vendor:'ONE Line',group:'dichvu',ym:'2026-04',score:92},
-  // Tân Tiến không phát sinh PO tháng 05
+  // Tân Tiến không có Shipment ETA tháng 05
   {vendor:'Cty TM Hải Đăng',group:'noidia',ym:'2026-05',score:84},
   {vendor:'ONE Line',group:'dichvu',ym:'2026-05',score:90},
   {vendor:'Cty Hóa chất Tân Tiến',group:'noidia',ym:'2026-06',score:82},
