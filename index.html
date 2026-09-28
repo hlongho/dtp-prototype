@@ -4342,7 +4342,7 @@ function secCritEditBlock(c){
       ? `<select class="mass-sel" style="max-width:280px" onchange="secSetCritField(${c.id},'denomRuleId',parseInt(this.value)||null)">
           <option value="">-- Chọn Rule tính mẫu số --</option>${denomRules.map(r=>`<option value="${r.id}" ${c.denomRuleId===r.id?'selected':''}>${r.name||'(chưa đặt tên)'}</option>`).join('')}
         </select>`
-      : `<span class="wf-muted" style="font-size:11px;color:var(--err)">⚠ Chưa có mức nào với Mục đích = "Đếm mẫu số" trong tiêu chí này — thêm 1 mức bên dưới rồi đổi Mục đích</span>`
+      : `<span class="wf-muted" style="font-size:11px;color:var(--err)">⚠ Chưa có mức nào với Mục đích = "Đếm mẫu số" trong tiêu chí này</span><button class="btn sm" onclick="secAddDenomRule(${c.id})">＋ Thêm Rule mẫu số ngay</button>`
     ):''}
   </div>`;
   return `<div class="po-card" style="margin-bottom:10px">
@@ -4358,6 +4358,11 @@ function secCritEditBlock(c){
   </div>`;
 }
 function secSetCritDenomToggle(cid,checked){ const c=secCritGet(cid); if(!c) return; c.normalizeByDenom=checked; if(!checked) c.denomRuleId=null; secRenderBody(); }
+function secAddDenomRule(cid){
+  const c=secCritGet(cid); if(!c) return;
+  const r=secRule({name:'Đếm mẫu số',purpose:'Denominator'});
+  c.rules.push(r); c.denomRuleId=r.id; secRenderBody();
+}
 function secRulesEditHTML(){
   const list=SEC_DRAFT_CRITERIA;
   return `<div class="po-card" style="padding:10px 14px;margin-bottom:10px">
